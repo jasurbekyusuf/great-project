@@ -1,13 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loadme_mobile/config/env/app_env.dart';
 import 'package:loadme_mobile/core/network/dio_client.dart';
 import 'package:loadme_mobile/core/storage/providers.dart';
 import 'package:loadme_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:loadme_mobile/features/auth/data/datasources/fake_auth_remote_data_source.dart';
 import 'package:loadme_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:loadme_mobile/features/auth/domain/entities/auth_check_result.dart';
 import 'package:loadme_mobile/features/auth/domain/entities/auth_session.dart';
 import 'package:loadme_mobile/features/auth/domain/repositories/auth_repository.dart';
 
-final authRemoteDataSourceProvider = Provider((ref) => AuthRemoteDataSource(ref.watch(dioProvider)));
+final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
+  if (ref.watch(appEnvProvider).useFakeData) return FakeAuthRemoteDataSource();
+  return AuthRemoteDataSource(ref.watch(dioProvider));
+});
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepositoryImpl(ref.watch(authRemoteDataSourceProvider), ref.watch(storageProvider)),

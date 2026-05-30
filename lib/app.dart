@@ -16,11 +16,12 @@ class LoadmeApp extends ConsumerWidget {
 
     return MaterialApp.router(
       title: 'Loadme',
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
       locale: locale,
-      supportedLocales: const [Locale('en'), Locale('ru'), Locale('uz')],
+      supportedLocales: supportedAppLocales,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

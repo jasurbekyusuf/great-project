@@ -7,20 +7,35 @@ class LoadsRemoteDataSource {
 
   final Dio _dio;
 
-  Future<PaginatedResponse<LoadDto>> getLoads({required int page, required int limit}) async {
+  Future<PaginatedResponse<LoadDto>> getLoads(
+      {required int page, required int limit}) async {
     final res = await _dio.post('/loads/get', data: {
       'page': page,
       'limit': limit,
     });
-    return PaginatedResponse.fromJson(
-      (res.data['data'] ?? res.data) as Map<String, dynamic>,
-      (json) => LoadDto.fromJson(json! as Map<String, dynamic>),
-    );
+    return _parseLoadsResponse(res.data);
+  }
+
+  Future<PaginatedResponse<LoadDto>> getUserLoads({
+    required int page,
+    required int limit,
+    required bool isActive,
+    String? userGuid,
+  }) async {
+    final res = await _dio.post('/loads/get-user-loads', data: {
+      'page': page,
+      'offset': (page - 1) * limit,
+      'limit': limit,
+      'is_active': isActive,
+      if (userGuid != null && userGuid.isNotEmpty) 'users_id': userGuid,
+    });
+    return _parseLoadsResponse(res.data);
   }
 
   Future<LoadDto> getLoadById(String id) async {
     final res = await _dio.post('/loads/get-load', data: {'load_id': id});
-    return LoadDto.fromJson((res.data['data'] ?? res.data) as Map<String, dynamic>);
+    return LoadDto.fromJson(
+        (res.data['data'] ?? res.data) as Map<String, dynamic>);
   }
 
   Future<void> addLoad({
@@ -47,5 +62,33 @@ class LoadsRemoteDataSource {
       'to_address': toAddress,
       'comment': comment,
     });
+  }
+
+  Future<void> updateLoadStatus({
+    required String guid,
+    required bool isActive,
+    String? closedPlatform,
+  }) async {
+    await _dio.post('/loads/update', data: {
+      'guid': guid,
+      'is_active': isActive,
+      if (closedPlatform != null) 'closed_platform': closedPlatform,
+    });
+  }
+
+  PaginatedResponse<LoadDto> _parseLoadsResponse(Object? raw) {
+    final data = (raw is Map<String, dynamic> ? raw['data'] ?? raw : raw)
+        as Map<String, dynamic>;
+    final items = data['result'] ?? data['loads'] ?? const [];
+    return PaginatedResponse(
+      count: (data['count'] as num?)?.toInt() ??
+          (items is List ? items.length : 0),
+      result: items is List
+          ? items
+              .whereType<Map>()
+              .map((json) => LoadDto.fromJson(Map<String, dynamic>.from(json)))
+              .toList()
+          : const [],
+    );
   }
 }

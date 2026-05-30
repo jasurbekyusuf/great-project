@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 import 'package:loadme_mobile/shared/design_system/ds_card.dart';
 import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
@@ -15,7 +16,15 @@ class TrucksScreen extends ConsumerWidget {
     final state = ref.watch(trucksControllerProvider);
     return AppScaffold(
       title: 'Trucks',
-      currentNavIndex: 1,
+      currentNavIndex: 0,
+      actions: [
+        IconButton(
+            onPressed: () => context.push('/add-truck'),
+            icon: const Icon(Icons.local_shipping_outlined)),
+        IconButton(
+            onPressed: () => context.push('/add-post-truck'),
+            icon: const Icon(Icons.add)),
+      ],
       body: state.when(
         loading: () => const DsLoader(),
         error: (e, _) => DsErrorState(message: e.toString()),
@@ -24,7 +33,12 @@ class TrucksScreen extends ConsumerWidget {
           itemCount: items.length,
           itemBuilder: (_, i) => Padding(
             padding: EdgeInsets.only(bottom: context.space.md),
-            child: DsCard(child: Text('${items[i].fromAddress} -> ${items[i].toAddress}')),
+            child: GestureDetector(
+              onTap: () => context.push('/post-truck/${items[i].guid}'),
+              child: DsCard(
+                  child:
+                      Text('${items[i].fromAddress} -> ${items[i].toAddress}')),
+            ),
           ),
         ),
       ),

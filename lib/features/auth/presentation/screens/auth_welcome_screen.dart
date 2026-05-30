@@ -5,6 +5,8 @@ import 'package:loadme_mobile/core/services/app_state_providers.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:loadme_mobile/features/auth/presentation/providers/auth_flow_provider.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
+import 'package:loadme_mobile/shared/widgets/mobile_language_pill.dart';
+import 'package:loadme_mobile/shared/widgets/mobile_segmented_tab.dart';
 
 class AuthWelcomeScreen extends ConsumerStatefulWidget {
   const AuthWelcomeScreen({super.key});
@@ -28,6 +30,12 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
             userFound: result.userFound,
           );
       if (mounted) context.go('/auth/verify');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Xatolik: $e')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -86,7 +94,7 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
                     color: locale.languageCode == e.$1 ? const Color(0xFF0057FF) : const Color(0xFFD0D5DD),
                   ),
                   onTap: () {
-                    ref.read(localeProvider.notifier).state = Locale(e.$1);
+                    ref.read(localeProvider.notifier).setLocale(Locale(e.$1));
                     Navigator.pop(context);
                   },
                 ),
@@ -109,7 +117,7 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
         child: Column(
           children: [
             Container(
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: EdgeInsets.zero,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -118,97 +126,47 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: () => context.pop(),
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/guest');
+                      }
+                    },
                     icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 22, color: Color(0xFF101828)),
                   ),
                   const Expanded(
                     child: Text('Kirish', textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Color(0xFF101828))),
                   ),
-                  GestureDetector(
-                    onTap: _openLanguageSheet,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF2F3F7),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFE4E7EC)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 16,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE6F4EA),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                            child: const Text('UZ', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700)),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text("O'Z", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Color(0xFF101828))),
-                        ],
-                      ),
-                    ),
-                  ),
+                  MobileLanguagePill(label: "O'Z", onTap: _openLanguageSheet),
                 ],
               ),
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("LoadMe'ga xush kelibsiz!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Color(0xFF344054))),
-                    const SizedBox(height: 14),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE5E7EC),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setState(() => _tabIndex = 0),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: isPhoneTab ? Colors.white : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: const Text('Telefon raqami', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Color(0xFF101828))),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setState(() => _tabIndex = 1),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: !isPhoneTab ? Colors.white : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: const Text('Telegram', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Color(0xFF101828))),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    const Text("LoadMe'ga xush kelibsiz!", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Color(0xFF475467), height: 1.5)),
+                    const SizedBox(height: 16),
+                    MobileSegmentedTab(
+                      items: const ['Telefon raqami', 'Telegram'],
+                      selectedIndex: _tabIndex,
+                      onChanged: (index) => setState(() => _tabIndex = index),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     Text(
                       'Telefon raqami ${isPhoneTab ? '*' : ''}',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Color(0xFF344054)),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: Color(0xFF475467), height: 1.43),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      height: 56,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: const Color(0xFFE4E7EC)),
                       ),
                       child: Row(
@@ -245,7 +203,7 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
                       const SizedBox(height: 10),
                       const Text(
                         "Sizda O'zbekiston raqami yo'qmi? Muammo emas!\nTelegram orqali tizimga kiring va platformaning barcha imkoniyatlaridan foydalaning.",
-                        style: TextStyle(fontSize: 16, color: Color(0xFF344054), height: 1.4),
+                        style: TextStyle(fontSize: 14, color: Color(0xFF475467), height: 1.43),
                       ),
                     ],
                     const SizedBox(height: 120),
@@ -259,8 +217,6 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
                 label: isPhoneTab ? 'Davom etish' : 'Kodni yuborish',
                 onPressed: _continue,
                 loading: _loading,
-                height: 64,
-                radius: 16,
               ),
             ),
           ],
