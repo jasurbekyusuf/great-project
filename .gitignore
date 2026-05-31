@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Codegen artefacts
+**/*.g.dart
+**/*.freezed.dart
+
+# Env / local config
+.env
+.env.local
+
+# Lefthook local overrides
+lefthook-local.yml

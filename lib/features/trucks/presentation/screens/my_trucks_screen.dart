@@ -51,6 +51,7 @@ class MyTrucksScreen extends ConsumerWidget {
                 'mytrucks.tab.history'.tr(ref),
               ],
               selectedIndex: selectedIndex,
+              variant: MobileSegmentedTabVariant.primaryFilled,
               onChanged: (index) {
                 final next = switch (index) {
                   0 => MyTrucksTab.available,
@@ -99,13 +100,13 @@ class _MyTrucksList extends ConsumerWidget {
 
   Future<void> _openActions(BuildContext context, WidgetRef ref, TruckEntity item, bool isTruckTab) async {
     final isActive = tab == MyTrucksTab.available || tab == MyTrucksTab.myTrucks;
-    showOwnerActionSheet(
+    await showOwnerActionSheet(
       context,
       title: '${item.fromAddress} → ${item.toAddress}',
       actions: [
         OwnerAction(
           icon: Icons.visibility_outlined,
-          label: 'Ko\'rish',
+          label: 'owner.view'.tr(ref),
           onTap: () => context.push(
             isTruckTab
                 ? '/my-truck/${item.guid}?active=true'
@@ -114,31 +115,32 @@ class _MyTrucksList extends ConsumerWidget {
         ),
         OwnerAction(
           icon: Icons.edit_outlined,
-          label: 'Tahrirlash',
-          onTap: () => context.push(isTruckTab ? '/edit-truck/${item.guid}' : '/edit-post-truck/${item.guid}'),
+          label: 'common.edit'.tr(ref),
+          onTap: () => context.push(
+            isTruckTab ? '/edit-truck/${item.guid}' : '/edit-post-truck/${item.guid}',
+          ),
         ),
         OwnerAction(
           icon: isActive ? Icons.inventory_2_outlined : Icons.refresh_rounded,
-          label: isActive ? 'Arxivlash' : 'Qayta faollashtirish',
+          label: (isActive ? 'owner.archive' : 'owner.reactivate').tr(ref),
           destructive: isActive,
           onTap: () async {
             final ok = await showDsConfirmation(
               context,
-              title: isActive ? 'Arxivlash' : 'Faollashtirish',
-              message: isActive ? 'Mashina arxivga o\'tadi.' : 'Mashina yana faol bo\'ladi.',
-              confirmText: isActive ? 'Arxivlash' : 'Faollashtirish',
-              cancelText: 'Bekor',
+              title: (isActive ? 'owner.archive' : 'owner.reactivate').tr(ref),
+              message: (isActive ? 'detail.archiveTruckMessage' : 'detail.reactivateMessage').tr(ref),
+              confirmText: (isActive ? 'owner.archive' : 'owner.reactivate').tr(ref),
+              cancelText: 'common.cancel'.tr(ref),
               intent: isActive ? DsConfirmIntent.warning : DsConfirmIntent.primary,
               icon: isActive ? Icons.inventory_2_outlined : Icons.refresh_rounded,
             );
             if (!ok) return;
-            final repo = ref.read(trucksRepositoryProvider);
+            final controller = ref.read(myTrucksControllerProvider.notifier);
             if (isTruckTab) {
-              await repo.updateTruckStatus(guid: item.guid, isActive: !isActive);
+              await controller.updateTruckStatus(guid: item.guid, isActive: !isActive);
             } else {
-              await repo.updatePostTruckStatus(guid: item.guid, isActive: !isActive);
+              await controller.updatePostTruckStatus(guid: item.guid, isActive: !isActive);
             }
-            await ref.read(myTrucksControllerProvider.notifier).refresh();
           },
         ),
       ],

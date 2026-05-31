@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 
-// Mirrors `client_frontend_web-master/src/components/Tabs/Tabs.module.scss`:
-// 40px height, bg #F2F3F5, white indicator with shadow, sliding animation.
+enum MobileSegmentedTabVariant {
+  // Web default: white pill on light track (Profile, Saved, etc.).
+  light,
+  // Loads/Trucks switcher: white pill on dark track, blue active (web LoadsV2).
+  primaryFilled,
+}
+
 class MobileSegmentedTab extends StatelessWidget {
   const MobileSegmentedTab({
     super.key,
     required this.items,
     required this.selectedIndex,
     required this.onChanged,
+    this.variant = MobileSegmentedTabVariant.light,
   });
 
   final List<String> items;
   final int selectedIndex;
   final ValueChanged<int> onChanged;
+  final MobileSegmentedTabVariant variant;
 
   @override
   Widget build(BuildContext context) {
@@ -21,65 +28,95 @@ class MobileSegmentedTab extends StatelessWidget {
     final s = context.space;
     final t = context.types;
 
+    final isPrimary = variant == MobileSegmentedTabVariant.primaryFilled;
+    // Track uses theme-aware `tabsTrack` for both variants (light gray in
+    // light mode, dark navy in dark mode). Only the thumb color changes.
+    final trackColor = c.tabsTrack;
+    final thumbColor = isPrimary ? c.primary : c.tabsThumb;
+    // Track and thumb radii chosen so the thumb's corner fits inside the
+    // track's corner (thumb radius < track radius − padding).
+    const trackRadius = 12.0;
+    const thumbInset = 4.0;
+    const thumbRadius = 8.0;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final segmentWidth = (width - 4) / items.length;
+        final innerWidth = width - thumbInset * 2;
+        final segmentWidth = innerWidth / items.length;
 
-        return Container(
-          width: width,
-          height: s.tabsHeight,
-          decoration: BoxDecoration(
-            color: c.tabsTrack,
-            borderRadius: BorderRadius.circular(s.radiusXs),
-          ),
-          padding: const EdgeInsets.all(2),
-          child: Stack(
-            children: [
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                left: segmentWidth * selectedIndex,
-                top: 0,
-                bottom: 0,
-                width: segmentWidth,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: c.tabsThumb,
-                    borderRadius: BorderRadius.circular(s.radiusXs),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.08), width: 0.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        offset: const Offset(0, 4),
-                        blurRadius: 4,
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        offset: Offset.zero,
-                        blurRadius: 2,
-                      ),
-                    ],
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(trackRadius),
+          child: Container(
+            width: width,
+            height: s.tabsHeight,
+            decoration: BoxDecoration(
+              color: trackColor,
+              borderRadius: BorderRadius.circular(trackRadius),
+            ),
+            padding: const EdgeInsets.all(thumbInset),
+            child: Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  left: segmentWidth * selectedIndex,
+                  top: 0,
+                  bottom: 0,
+                  width: segmentWidth,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: thumbColor,
+                      borderRadius: BorderRadius.circular(thumbRadius),
+                      border: isPrimary
+                          ? null
+                          : Border.all(color: Colors.black.withValues(alpha: 0.08), width: 0.5),
+                      boxShadow: isPrimary
+                          ? [
+                              BoxShadow(
+                                color: c.primary.withValues(alpha: 0.30),
+                                offset: const Offset(0, 4),
+                                blurRadius: 12,
+                                spreadRadius: -2,
+                              ),
+                            ]
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                offset: const Offset(0, 4),
+                                blurRadius: 4,
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                offset: Offset.zero,
+                                blurRadius: 2,
+                              ),
+                            ],
+                    ),
                   ),
                 ),
-              ),
-              Row(
-                children: List.generate(items.length, (index) {
-                  return Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => onChanged(index),
-                      child: Center(
-                        child: Text(
-                          items[index],
-                          style: t.bodyMedium.copyWith(color: c.textPrimary),
+                Row(
+                  children: List.generate(items.length, (index) {
+                    final active = index == selectedIndex;
+                    // primaryFilled: active = white (on blue), inactive = textPrimary (dark in light mode, light in dark mode).
+                    // light variant: text is always primary (works on light track).
+                    final color = isPrimary
+                        ? (active ? Colors.white : c.textPrimary)
+                        : c.textPrimary;
+                    return Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => onChanged(index),
+                        child: Center(
+                          child: Text(items[index], style: t.bodyMedium.copyWith(color: color)),
                         ),
                       ),
-                    ),
-                  );
-                }),
-              ),
-            ],
+                    );
+                  }),
+                ),
+              ],
+            ),
           ),
         );
       },

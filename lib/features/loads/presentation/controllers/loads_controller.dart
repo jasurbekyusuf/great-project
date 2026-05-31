@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loadme_mobile/config/env/app_env.dart';
+import 'package:loadme_mobile/core/errors/app_failure.dart';
 import 'package:loadme_mobile/core/network/dio_client.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:loadme_mobile/features/loads/data/datasources/fake_loads_remote_data_source.dart';
@@ -7,20 +8,46 @@ import 'package:loadme_mobile/features/loads/data/datasources/loads_remote_data_
 import 'package:loadme_mobile/features/loads/data/repositories/loads_repository_impl.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 import 'package:loadme_mobile/features/loads/domain/repositories/loads_repository.dart';
+import 'package:loadme_mobile/features/loads/domain/use_cases/loads_use_cases.dart';
+
+// -----------------------------------------------------------------------------
+// DI wiring
+// -----------------------------------------------------------------------------
 
 final loadsRepositoryProvider = Provider<LoadsRepository>((ref) {
   final useFake = ref.watch(appEnvProvider).useFakeData;
-  final ds = useFake ? FakeLoadsRemoteDataSource() : LoadsRemoteDataSource(ref.watch(dioProvider));
+  final ds = useFake
+      ? FakeLoadsRemoteDataSource()
+      : LoadsRemoteDataSource(ref.watch(dioProvider));
   return LoadsRepositoryImpl(ds);
 });
+
+final fetchLoadsUseCaseProvider =
+    Provider((ref) => FetchLoadsUseCase(ref.watch(loadsRepositoryProvider)));
+final fetchMyLoadsUseCaseProvider =
+    Provider((ref) => FetchMyLoadsUseCase(ref.watch(loadsRepositoryProvider)));
+final fetchLoadByIdUseCaseProvider =
+    Provider((ref) => FetchLoadByIdUseCase(ref.watch(loadsRepositoryProvider)));
+final saveLoadUseCaseProvider =
+    Provider((ref) => SaveLoadUseCase(ref.watch(loadsRepositoryProvider)));
+final updateLoadStatusUseCaseProvider =
+    Provider((ref) => UpdateLoadStatusUseCase(ref.watch(loadsRepositoryProvider)));
+
+// Async family for load detail page.
+final loadDetailsProvider =
+    FutureProvider.family.autoDispose<LoadEntity, String>((ref, id) async {
+  final result = await ref.read(fetchLoadByIdUseCaseProvider).call(id);
+  return result.fold((f) => throw f, (e) => e);
+});
+
+// -----------------------------------------------------------------------------
+// Controllers
+// -----------------------------------------------------------------------------
 
 final loadsControllerProvider =
     AutoDisposeAsyncNotifierProvider<LoadsController, List<LoadEntity>>(
         LoadsController.new);
-final loadDetailsProvider =
-    FutureProvider.family.autoDispose<LoadEntity, String>((ref, id) {
-  return ref.read(loadsRepositoryProvider).getLoadById(id);
-});
+
 final myLoadsControllerProvider =
     AutoDisposeAsyncNotifierProvider<MyLoadsController, List<LoadEntity>>(
         MyLoadsController.new);
@@ -34,21 +61,25 @@ class LoadsController extends AutoDisposeAsyncNotifier<List<LoadEntity>> {
 
   @override
   Future<List<LoadEntity>> build() async {
-    final list = await ref
-        .read(loadsRepositoryProvider)
-        .getLoads(page: _page, limit: _limit);
-    return _applyFilter(list);
+    final result = await ref
+        .read(fetchLoadsUseCaseProvider)
+        .call(const PaginatedInput());
+    return result.fold(
+      (f) => throw f,
+      (list) => _applyFilter(list),
+    );
   }
 
   Future<void> refresh() async {
     _page = 1;
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final list = await ref
-          .read(loadsRepositoryProvider)
-          .getLoads(page: _page, limit: _limit);
-      return _applyFilter(list);
-    });
+    final result = await ref
+        .read(fetchLoadsUseCaseProvider)
+        .call(PaginatedInput(page: _page, limit: _limit));
+    state = result.fold(
+      (f) => AsyncError(f, StackTrace.current),
+      (list) => AsyncData(_applyFilter(list)),
+    );
   }
 
   void applyQuery(String query) {
@@ -57,37 +88,42 @@ class LoadsController extends AutoDisposeAsyncNotifier<List<LoadEntity>> {
     state = AsyncData(_applyFilter(current));
   }
 
-  Future<void> saveLoad({
+  Future<AppFailure?> saveLoad({
     String? loadId,
     required String fromAddress,
     required String toAddress,
     required String comment,
   }) async {
-    if (loadId == null) {
-      await ref.read(loadsRepositoryProvider).addLoad(
-          fromAddress: fromAddress, toAddress: toAddress, comment: comment);
-    } else {
-      await ref.read(loadsRepositoryProvider).updateLoad(
+    final result = await ref.read(saveLoadUseCaseProvider).call(
+          SaveLoadInput(
             loadId: loadId,
             fromAddress: fromAddress,
             toAddress: toAddress,
             comment: comment,
-          );
-    }
-    await refresh();
+          ),
+        );
+    return result.fold((f) => f, (_) {
+      refresh();
+      return null;
+    });
   }
 
-  Future<void> updateStatus({
+  Future<AppFailure?> updateStatus({
     required String guid,
     required bool isActive,
     String? closedPlatform,
   }) async {
-    await ref.read(loadsRepositoryProvider).updateLoadStatus(
-          guid: guid,
-          isActive: isActive,
-          closedPlatform: closedPlatform,
+    final result = await ref.read(updateLoadStatusUseCaseProvider).call(
+          UpdateLoadStatusInput(
+            guid: guid,
+            isActive: isActive,
+            closedPlatform: closedPlatform,
+          ),
         );
-    await refresh();
+    return result.fold((f) => f, (_) {
+      refresh();
+      return null;
+    });
   }
 
   List<LoadEntity> _applyFilter(List<LoadEntity> input) {
@@ -119,29 +155,38 @@ class MyLoadsController extends AutoDisposeAsyncNotifier<List<LoadEntity>> {
   Future<void> refresh() async {
     _page = 1;
     state = const AsyncLoading();
-    state = await AsyncValue.guard(_fetch);
+    final list = await _fetch();
+    state = AsyncData(list);
   }
 
-  Future<List<LoadEntity>> _fetch() {
+  Future<List<LoadEntity>> _fetch() async {
     final session = ref.read(authControllerProvider).valueOrNull;
-    return ref.read(loadsRepositoryProvider).getMyLoads(
-          page: _page,
-          limit: _limit,
-          isActive: _tab == MyLoadsTab.active,
-          userGuid: session?.userGuid,
+    final result = await ref.read(fetchMyLoadsUseCaseProvider).call(
+          MyLoadsInput(
+            page: _page,
+            limit: _limit,
+            isActive: _tab == MyLoadsTab.active,
+            userGuid: session?.userGuid,
+          ),
         );
+    return result.fold((f) => throw f, (list) => list);
   }
 
-  Future<void> updateStatus({
+  Future<AppFailure?> updateStatus({
     required String guid,
     required bool isActive,
     String? closedPlatform,
   }) async {
-    await ref.read(loadsRepositoryProvider).updateLoadStatus(
-          guid: guid,
-          isActive: isActive,
-          closedPlatform: closedPlatform,
+    final result = await ref.read(updateLoadStatusUseCaseProvider).call(
+          UpdateLoadStatusInput(
+            guid: guid,
+            isActive: isActive,
+            closedPlatform: closedPlatform,
+          ),
         );
-    await refresh();
+    return result.fold((f) => f, (_) {
+      refresh();
+      return null;
+    });
   }
 }

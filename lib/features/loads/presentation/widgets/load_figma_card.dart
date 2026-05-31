@@ -13,7 +13,7 @@ class LoadFigmaCard extends StatelessWidget {
     required this.load,
     required this.onTap,
     this.ownerName = 'LoadMe admin',
-    this.ownerRating = 5.0,
+    this.ownerRating,
     this.priceLabel,
     this.fromCountry = 'UZ',
     this.toCountry = 'UZ',
@@ -21,12 +21,15 @@ class LoadFigmaCard extends StatelessWidget {
     this.truckType = 'Tent / Shtora',
     this.loadKind = "To'liq",
     this.distanceKm,
+    this.deadHeadKm,
+    this.volumeM3,
+    this.weightT,
   });
 
   final LoadEntity load;
   final VoidCallback onTap;
   final String ownerName;
-  final double ownerRating;
+  final double? ownerRating;
   final String? priceLabel;
   final String fromCountry;
   final String toCountry;
@@ -34,6 +37,9 @@ class LoadFigmaCard extends StatelessWidget {
   final String truckType;
   final String loadKind;
   final int? distanceKm;
+  final int? deadHeadKm; // B.Y. — dead-head km
+  final double? volumeM3;
+  final double? weightT;
 
   @override
   Widget build(BuildContext context) {
@@ -70,10 +76,12 @@ class LoadFigmaCard extends StatelessWidget {
                       style: t.bodySemibold,
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  Text(ownerRating.toStringAsFixed(1), style: t.caption.copyWith(color: c.textSecondary)),
-                  const SizedBox(width: 2),
-                  Icon(Icons.star_rounded, size: 14, color: c.warning300),
+                  if (ownerRating != null) ...[
+                    const SizedBox(width: 6),
+                    Text(ownerRating!.toStringAsFixed(1), style: t.caption.copyWith(color: c.textSecondary)),
+                    const SizedBox(width: 2),
+                    Icon(Icons.star_rounded, size: 14, color: c.warning300),
+                  ],
                   const Spacer(),
                   if (priceLabel != null)
                     Text(priceLabel!, style: t.bodyMedium.copyWith(color: c.primary)),
@@ -129,17 +137,22 @@ class LoadFigmaCard extends StatelessWidget {
 
               SizedBox(height: s.md),
 
-              // Chip row — theme-aware colors (surfaceMuted adapts to dark mode).
+              // Chip row matches loadme.uz: B.Y. (dead-head) | volume m³ | weight t | status | distance km.
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
                 children: [
                   if (roleBadge != null)
                     _Chip(text: roleBadge!, color: c.yellow100, textColor: c.yellow700),
-                  _Chip(text: truckType, color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
+                  if (deadHeadKm != null)
+                    _Chip(text: 'B.Y. $deadHeadKm km', color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
+                  if (volumeM3 != null)
+                    _Chip(text: '${volumeM3!.toStringAsFixed(volumeM3! % 1 == 0 ? 0 : 1)} m³', color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
+                  if (weightT != null)
+                    _Chip(text: '${weightT!.toStringAsFixed(weightT! % 1 == 0 ? 0 : 1)} t', color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
+                  _Chip(text: loadKind, color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
                   if (distanceKm != null)
                     _Chip(text: '$distanceKm km', color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
-                  _Chip(text: loadKind, color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
                 ],
               ),
             ],

@@ -6,16 +6,32 @@ import 'package:loadme_mobile/features/profile/data/datasources/fake_profile_rem
 import 'package:loadme_mobile/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:loadme_mobile/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:loadme_mobile/features/profile/domain/entities/profile_entity.dart';
+import 'package:loadme_mobile/features/profile/domain/repositories/profile_repository.dart';
+import 'package:loadme_mobile/features/profile/domain/use_cases/get_profile_use_case.dart';
 
-final profileControllerProvider = AutoDisposeAsyncNotifierProvider<ProfileController, ProfileEntity>(ProfileController.new);
+final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
+  final useFake = ref.watch(appEnvProvider).useFakeData;
+  final ds = useFake
+      ? FakeProfileRemoteDataSource()
+      : ProfileRemoteDataSource(ref.watch(dioProvider));
+  return ProfileRepositoryImpl(ds);
+});
+
+final getProfileUseCaseProvider =
+    Provider((ref) => GetProfileUseCase(ref.watch(profileRepositoryProvider)));
+
+final profileControllerProvider =
+    AutoDisposeAsyncNotifierProvider<ProfileController, ProfileEntity>(
+        ProfileController.new);
 
 class ProfileController extends AutoDisposeAsyncNotifier<ProfileEntity> {
   @override
-  Future<ProfileEntity> build() {
-    final useFake = ref.watch(appEnvProvider).useFakeData;
-    final ds = useFake ? FakeProfileRemoteDataSource() : ProfileRemoteDataSource(ref.watch(dioProvider));
-    return ProfileRepositoryImpl(ds).getProfile();
+  Future<ProfileEntity> build() async {
+    final result = await ref.read(getProfileUseCaseProvider).call();
+    return result.fold((f) => throw f, (e) => e);
   }
 
-  Future<void> logout() => ref.read(authControllerProvider.notifier).logout();
+  Future<void> logout() async {
+    await ref.read(authControllerProvider.notifier).logout();
+  }
 }

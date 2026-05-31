@@ -2,12 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loadme_mobile/config/env/app_env.dart';
 import 'package:loadme_mobile/core/constants/app_constants.dart';
-import 'package:loadme_mobile/core/errors/failure.dart';
+import 'package:loadme_mobile/core/errors/app_failure.dart';
 import 'package:loadme_mobile/core/storage/providers.dart';
 
 final dioProvider = Provider<Dio>((ref) {
   final env = ref.watch(appEnvProvider);
-  final storage = ref.watch(storageProvider);
+  final secure = ref.watch(secureTokenStorageProvider);
   final dio = Dio(
     BaseOptions(
       baseUrl: env.baseApiUrl,
@@ -21,7 +21,7 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final token = await storage.read('access_token');
+        final token = await secure.readAccessToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
         }
@@ -52,12 +52,21 @@ final dioProvider = Provider<Dio>((ref) {
   return dio;
 });
 
-Failure mapDioException(Object error) {
-  if (error is DioException && error.error is Failure) {
-    return error.error! as Failure;
-  }
+/// Maps any thrown object (typically [DioException]) into a typed [AppFailure].
+///
+/// Repository methods catch and run their throw through this helper before
+/// converting it into a `Result<T>`. Never returns a generic Exception.
+AppFailure mapDioException(Object error) {
   if (error is DioException) {
-    return NetworkFailure(error.message ?? 'Network error', code: error.response?.statusCode);
+    if (error.error is AppFailure) return error.error! as AppFailure;
+    final status = error.response?.statusCode;
+    if (status == 401) return const UnauthorizedFailure();
+    if (status == 404) return const NotFoundFailure();
+    return NetworkFailure(
+      error.message ?? 'Network error',
+      code: status,
+      cause: error,
+    );
   }
-  return const UnknownFailure('Unknown error');
+  return UnknownFailure(error.toString(), error);
 }

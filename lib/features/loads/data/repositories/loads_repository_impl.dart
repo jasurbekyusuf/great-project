@@ -1,3 +1,5 @@
+import 'package:loadme_mobile/core/result/guard.dart';
+import 'package:loadme_mobile/core/result/result.dart';
 import 'package:loadme_mobile/features/loads/data/datasources/loads_remote_data_source.dart';
 import 'package:loadme_mobile/features/loads/data/dtos/load_dto.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
@@ -7,82 +9,83 @@ class LoadsRepositoryImpl implements LoadsRepository {
   LoadsRepositoryImpl(this._remote);
 
   final LoadsRemoteDataSource _remote;
+  static const _tag = 'LoadsRepository';
+
+  static AsyncResult<T> _guard<T>(Future<T> Function() block) =>
+      Guard.run(block, tag: _tag);
 
   @override
-  Future<List<LoadEntity>> getLoads(
-      {required int page, required int limit}) async {
-    final response = await _remote.getLoads(page: page, limit: limit);
-    return response.result.map(_mapLoad).toList();
-  }
+  AsyncResult<List<LoadEntity>> getLoads({required int page, required int limit}) =>
+      _guard(() async {
+        final response = await _remote.getLoads(page: page, limit: limit);
+        return response.result.map(_mapLoad).toList();
+      });
 
   @override
-  Future<List<LoadEntity>> getMyLoads({
+  AsyncResult<List<LoadEntity>> getMyLoads({
     required int page,
     required int limit,
     required bool isActive,
     String? userGuid,
-  }) async {
-    final response = await _remote.getUserLoads(
-      page: page,
-      limit: limit,
-      isActive: isActive,
-      userGuid: userGuid,
-    );
-    return response.result.map(_mapLoad).toList();
-  }
+  }) =>
+      _guard(() async {
+        final response = await _remote.getUserLoads(
+          page: page,
+          limit: limit,
+          isActive: isActive,
+          userGuid: userGuid,
+        );
+        return response.result.map(_mapLoad).toList();
+      });
 
   @override
-  Future<LoadEntity> getLoadById(String id) async {
-    final e = await _remote.getLoadById(id);
-    return _mapLoad(e);
-  }
+  AsyncResult<LoadEntity> getLoadById(String id) =>
+      _guard(() async => _mapLoad(await _remote.getLoadById(id)));
 
   @override
-  Future<void> addLoad({
+  AsyncResult<void> addLoad({
     required String fromAddress,
     required String toAddress,
     required String comment,
-  }) {
-    return _remote.addLoad(
-        fromAddress: fromAddress, toAddress: toAddress, comment: comment);
-  }
+  }) =>
+      _guard(() => _remote.addLoad(
+            fromAddress: fromAddress,
+            toAddress: toAddress,
+            comment: comment,
+          ));
 
   @override
-  Future<void> updateLoad({
+  AsyncResult<void> updateLoad({
     required String loadId,
     required String fromAddress,
     required String toAddress,
     required String comment,
-  }) {
-    return _remote.updateLoad(
-      loadId: loadId,
-      fromAddress: fromAddress,
-      toAddress: toAddress,
-      comment: comment,
-    );
-  }
+  }) =>
+      _guard(() => _remote.updateLoad(
+            loadId: loadId,
+            fromAddress: fromAddress,
+            toAddress: toAddress,
+            comment: comment,
+          ));
 
   @override
-  Future<void> updateLoadStatus({
+  AsyncResult<void> updateLoadStatus({
     required String guid,
     required bool isActive,
     String? closedPlatform,
-  }) {
-    return _remote.updateLoadStatus(
-      guid: guid,
-      isActive: isActive,
-      closedPlatform: closedPlatform,
-    );
-  }
+  }) =>
+      _guard(() => _remote.updateLoadStatus(
+            guid: guid,
+            isActive: isActive,
+            closedPlatform: closedPlatform,
+          ));
 
-  LoadEntity _mapLoad(LoadDto e) {
-    return LoadEntity(
-      guid: e.guid ?? '',
-      fromAddress: e.fromAddress ?? '-',
-      toAddress: e.toAddress ?? '-',
-      comment: e.comment,
-      pickupDate: e.pickupDate,
-      price: e.price?.toDouble(),
-    );
-  }
+  LoadEntity _mapLoad(LoadDto e) => LoadEntity(
+        guid: e.guid ?? '',
+        fromAddress: e.fromAddress ?? '-',
+        toAddress: e.toAddress ?? '-',
+        comment: e.comment,
+        pickupDate: e.pickupDate,
+        price: e.price?.toDouble(),
+      );
 }

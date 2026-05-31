@@ -1,0 +1,114 @@
+import 'package:equatable/equatable.dart';
+import 'package:loadme_mobile/core/result/result.dart';
+import 'package:loadme_mobile/core/use_case/use_case.dart';
+import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
+import 'package:loadme_mobile/features/loads/domain/repositories/loads_repository.dart';
+
+// =============================================================================
+// Inputs
+// =============================================================================
+
+class PaginatedInput extends Equatable {
+  const PaginatedInput({this.page = 1, this.limit = 10});
+  final int page;
+  final int limit;
+  @override
+  List<Object?> get props => [page, limit];
+}
+
+class MyLoadsInput extends Equatable {
+  const MyLoadsInput({this.page = 1, this.limit = 10, required this.isActive, this.userGuid});
+  final int page;
+  final int limit;
+  final bool isActive;
+  final String? userGuid;
+  @override
+  List<Object?> get props => [page, limit, isActive, userGuid];
+}
+
+class SaveLoadInput extends Equatable {
+  const SaveLoadInput({
+    required this.fromAddress,
+    required this.toAddress,
+    required this.comment,
+    this.loadId,
+  });
+  final String? loadId;
+  final String fromAddress;
+  final String toAddress;
+  final String comment;
+  @override
+  List<Object?> get props => [loadId, fromAddress, toAddress, comment];
+}
+
+class UpdateLoadStatusInput extends Equatable {
+  const UpdateLoadStatusInput({required this.guid, required this.isActive, this.closedPlatform});
+  final String guid;
+  final bool isActive;
+  final String? closedPlatform;
+  @override
+  List<Object?> get props => [guid, isActive, closedPlatform];
+}
+
+// =============================================================================
+// Use cases
+// =============================================================================
+
+class FetchLoadsUseCase implements UseCase<PaginatedInput, List<LoadEntity>> {
+  const FetchLoadsUseCase(this._repo);
+  final LoadsRepository _repo;
+  @override
+  AsyncResult<List<LoadEntity>> call(PaginatedInput input) =>
+      _repo.getLoads(page: input.page, limit: input.limit);
+}
+
+class FetchMyLoadsUseCase implements UseCase<MyLoadsInput, List<LoadEntity>> {
+  const FetchMyLoadsUseCase(this._repo);
+  final LoadsRepository _repo;
+  @override
+  AsyncResult<List<LoadEntity>> call(MyLoadsInput input) => _repo.getMyLoads(
+        page: input.page,
+        limit: input.limit,
+        isActive: input.isActive,
+        userGuid: input.userGuid,
+      );
+}
+
+class FetchLoadByIdUseCase implements UseCase<String, LoadEntity> {
+  const FetchLoadByIdUseCase(this._repo);
+  final LoadsRepository _repo;
+  @override
+  AsyncResult<LoadEntity> call(String id) => _repo.getLoadById(id);
+}
+
+class SaveLoadUseCase implements UseCase<SaveLoadInput, void> {
+  const SaveLoadUseCase(this._repo);
+  final LoadsRepository _repo;
+  @override
+  AsyncResult<void> call(SaveLoadInput input) {
+    if (input.loadId == null) {
+      return _repo.addLoad(
+        fromAddress: input.fromAddress,
+        toAddress: input.toAddress,
+        comment: input.comment,
+      );
+    }
+    return _repo.updateLoad(
+      loadId: input.loadId!,
+      fromAddress: input.fromAddress,
+      toAddress: input.toAddress,
+      comment: input.comment,
+    );
+  }
+}
+
+class UpdateLoadStatusUseCase implements UseCase<UpdateLoadStatusInput, void> {
+  const UpdateLoadStatusUseCase(this._repo);
+  final LoadsRepository _repo;
+  @override
+  AsyncResult<void> call(UpdateLoadStatusInput input) => _repo.updateLoadStatus(
+        guid: input.guid,
+        isActive: input.isActive,
+        closedPlatform: input.closedPlatform,
+      );
+}

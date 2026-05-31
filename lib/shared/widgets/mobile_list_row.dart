@@ -68,17 +68,50 @@ class MobileListRow extends StatelessWidget {
   }
 }
 
-// Wraps a list of [MobileListRow] children with shared border, dividers between
-// items, and 16px rounded outer corners. Mirrors web pattern in Profile.
+enum MobileListGroupVariant {
+  // Single rounded box with dividers between items (default).
+  grouped,
+  // Each item is its own rounded bordered box with gaps (web Profile design).
+  separated,
+}
+
 class MobileListGroup extends StatelessWidget {
-  const MobileListGroup({super.key, required this.children});
+  const MobileListGroup({
+    super.key,
+    required this.children,
+    this.variant = MobileListGroupVariant.grouped,
+    this.gap = 8,
+  });
 
   final List<Widget> children;
+  final MobileListGroupVariant variant;
+  final double gap;
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final s = context.space;
+
+    if (variant == MobileListGroupVariant.separated) {
+      return Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) SizedBox(height: gap),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(s.radiusMd),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: c.surface,
+                  borderRadius: BorderRadius.circular(s.radiusMd),
+                  border: Border.all(color: c.borderSubtle, width: 1),
+                ),
+                child: children[i],
+              ),
+            ),
+          ],
+        ],
+      );
+    }
 
     final items = <Widget>[];
     for (var i = 0; i < children.length; i++) {

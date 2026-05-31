@@ -8,9 +8,10 @@ import 'package:loadme_mobile/shared/widgets/mobile_auth_required_sheet.dart';
 
 enum AppNavTab { search, post, my, profile }
 
-// Role-aware bottom navigation mirroring the web `FooterBar` 4-tab layout.
-// Shipper / Broker:  Qidiruv | Joylash (add-load) | Mening yuklarim | Profil
-// Carrier:           Qidiruv | Joylash (add-post-truck) | Mening grzlrim | Profil
+// Context-aware bottom navigation. The 3rd tab adapts to the current area:
+//   - On any /loads or /my-loads route → "Mening yuklarim" + box icon
+//   - On any /trucks or /my-trucks route → "Ulovlarim" + truck icon
+// Also honours an explicit `userRole` override (legacy carrier hint).
 class AppBottomNav extends ConsumerWidget {
   const AppBottomNav({
     super.key,
@@ -30,23 +31,26 @@ class AppBottomNav extends ConsumerWidget {
     final t = context.types;
 
     final role = userRole ?? ref.watch(currentUserRoleSyncProvider);
-    final isCarrier = role == 'carrier';
+    final currentPath = GoRouterState.of(context).matchedLocation;
+    final isTrucksArea = role == 'carrier' ||
+        currentPath.contains('truck') ||
+        currentPath == '/guest-trucks';
 
     final items = <_NavItem>[
       _NavItem(
         label: 'nav.search'.tr(ref),
         icon: Icons.search_rounded,
-        path: guest ? '/guest' : '/loads',
+        path: guest ? '/guest' : (isTrucksArea ? '/trucks' : '/loads'),
       ),
       _NavItem(
         label: 'nav.post'.tr(ref),
         icon: Icons.add_circle_outline_rounded,
-        path: isCarrier ? '/add-post-truck' : '/add-load',
+        path: isTrucksArea ? '/add-post-truck' : '/add-load',
       ),
       _NavItem(
-        label: (isCarrier ? 'nav.myTrucks' : 'nav.myLoads').tr(ref),
-        icon: isCarrier ? Icons.local_shipping_outlined : Icons.inventory_2_outlined,
-        path: isCarrier ? '/my-trucks' : '/my-loads',
+        label: (isTrucksArea ? 'nav.myTrucks' : 'nav.myLoads').tr(ref),
+        icon: isTrucksArea ? Icons.local_shipping_outlined : Icons.inventory_2_outlined,
+        path: isTrucksArea ? '/my-trucks' : '/my-loads',
       ),
       _NavItem(
         label: 'nav.profile'.tr(ref),

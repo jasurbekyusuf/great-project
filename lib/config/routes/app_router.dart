@@ -97,25 +97,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/loads/:id/edit',
           builder: (_, state) =>
-              LoadFormScreen(loadId: state.pathParameters['id']!)),
+              LoadFormScreen(loadId: state.pathParameters['id'])),
       GoRoute(
           path: '/edit-load/:id',
           builder: (_, state) =>
-              LoadFormScreen(loadId: state.pathParameters['id']!)),
+              LoadFormScreen(loadId: state.pathParameters['id'])),
       GoRoute(path: '/trucks', builder: (_, __) => const TrucksScreen()),
       GoRoute(path: '/my-trucks', builder: (_, __) => const MyTrucksScreen()),
       GoRoute(path: '/add-truck', builder: (_, __) => const TruckFormScreen()),
       GoRoute(
           path: '/edit-truck/:id',
           builder: (_, state) =>
-              TruckFormScreen(truckId: state.pathParameters['id']!)),
+              TruckFormScreen(truckId: state.pathParameters['id'])),
       GoRoute(
           path: '/add-post-truck',
           builder: (_, __) => const PostTruckFormScreen()),
       GoRoute(
         path: '/edit-post-truck/:id',
         builder: (_, state) =>
-            PostTruckFormScreen(postTruckId: state.pathParameters['id']!),
+            PostTruckFormScreen(postTruckId: state.pathParameters['id']),
       ),
       GoRoute(
           path: '/post-truck/:id',

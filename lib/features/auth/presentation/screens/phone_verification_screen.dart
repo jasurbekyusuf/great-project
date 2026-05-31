@@ -45,27 +45,31 @@ class _PhoneVerificationScreenState extends ConsumerState<PhoneVerificationScree
     final flow = ref.read(authFlowProvider);
     ref.read(authFlowProvider.notifier).setOtp(_otpController.text.trim());
     setState(() => _loading = true);
-    try {
-      final session = await ref.read(authControllerProvider.notifier).verifyOtp(
-            phone: flow.phone,
-            smsId: flow.smsId,
-            otp: _otpController.text.trim(),
-            userFound: flow.userFound,
-          );
-      if (!mounted) return;
-      if (session != null) {
-        context.go('/loads');
-      } else {
-        context.go('/auth/register');
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    final (session, fail) =
+        await ref.read(authControllerProvider.notifier).verifyOtp(
+              phone: flow.phone,
+              smsId: flow.smsId,
+              otp: _otpController.text.trim(),
+              userFound: flow.userFound,
+            );
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (fail != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(fail.message)));
+      return;
+    }
+    if (session != null) {
+      context.go('/loads');
+    } else {
+      context.go('/auth/register');
     }
   }
 
   Future<void> _resend() async {
     final flow = ref.read(authFlowProvider);
-    final result = await ref.read(authControllerProvider.notifier).checkUserPhone(flow.phone);
+    final (result, fail) =
+        await ref.read(authControllerProvider.notifier).checkUserPhone(flow.phone);
+    if (fail != null || result == null) return;
     ref.read(authFlowProvider.notifier).setPhoneCheckResult(
           phone: flow.phone,
           smsId: result.smsId,

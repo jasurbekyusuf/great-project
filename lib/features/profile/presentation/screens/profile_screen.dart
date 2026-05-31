@@ -40,6 +40,7 @@ class ProfileScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               child: MobileListGroup(
+                variant: MobileListGroupVariant.separated,
                 children: [
                   MobileListRow(
                     leadingIcon: Icons.edit_outlined,
@@ -66,11 +67,7 @@ class ProfileScreen extends ConsumerWidget {
                     title: 'profile.premium'.tr(ref),
                     onTap: () => context.push('/profile/premium'),
                   ),
-                  MobileListRow(
-                    leadingIcon: Icons.percent_rounded,
-                    title: 'profile.commission'.tr(ref),
-                    onTap: () => context.push('/profile/default-commission'),
-                  ),
+                  // 'Standart komissiya' — broker-only on web, hidden by default.
                   MobileListRow(
                     leadingIcon: Icons.language_rounded,
                     title: 'profile.language'.tr(ref),
@@ -95,6 +92,11 @@ class ProfileScreen extends ConsumerWidget {
                     leadingIcon: Icons.help_outline_rounded,
                     title: 'profile.faq'.tr(ref),
                     onTap: () => context.push('/faq'),
+                  ),
+                  MobileListRow(
+                    leadingIcon: Icons.contact_page_outlined,
+                    title: 'profile.personalData'.tr(ref),
+                    onTap: () => context.push('/profile/edit'),
                   ),
                   MobileListRow(
                     leadingIcon: Icons.support_agent_outlined,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loadme_mobile/core/theme/app_color_tokens.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 
 // Mirrors web `ConfirmationModal` (src/components/ConfirmationModal/index.tsx).
@@ -107,7 +108,7 @@ class DsConfirmationModal extends StatelessWidget {
     );
   }
 
-  _IntentPalette _palette(dynamic c, DsConfirmIntent intent) {
+  _IntentPalette _palette(AppColorTokens c, DsConfirmIntent intent) {
     switch (intent) {
       case DsConfirmIntent.primary:
       case DsConfirmIntent.info:

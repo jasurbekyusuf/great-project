@@ -6,20 +6,43 @@ import 'package:loadme_mobile/shared/models/paginated_response.dart';
 class FakeLoadsRemoteDataSource extends LoadsRemoteDataSource {
   FakeLoadsRemoteDataSource() : super(Dio());
 
-  static final _sample = List.generate(
-    8,
-    (i) => LoadDto(
-      guid: 'fake-load-$i',
-      fromAddress: _from[i % _from.length],
-      toAddress: _to[i % _to.length],
-      comment: 'Тент · ${(i + 1) * 5} т',
-      price: 1500000 + i * 250000,
-      pickupDate: '2026-06-${(i % 28) + 1}',
-    ),
-  );
+  // Real-looking samples mirroring loadme.uz mobile view.
+  static const _routes = [
+    ('UZ', 'Ташкентский ра…', 'UZ', 'Ташкентский рай…'),
+    ('UZ', 'Бухара', 'RU', 'Оренбург'),
+    ('UZ', 'Шахрисабз', 'UZ', 'Каршинский район'),
+    ('UZ', 'село Яварлик', 'RU', 'Самара'),
+    ('UZ', 'Самарканд', 'UZ', 'Хива'),
+    ('UZ', 'Наманган', 'UZ', 'Нукус'),
+    ('UZ', 'Андижан', 'KZ', 'Алматы'),
+    ('UZ', 'Фергана', 'KG', 'Бишкек'),
+  ];
 
-  static const _from = ['Ташкент', 'Самарканд', 'Бухара', 'Наманган'];
-  static const _to = ['Самарканд', 'Хива', 'Андижан', 'Нукус'];
+  static const _owners = [
+    "Abdulla Karimov Parvozbek o'g'li",
+    'Мужафаров Амиржон Зафарович',
+    'Shaxzod Abdullaev',
+    'Saydialim',
+    'Ravshan Tursunov',
+    'Jamshid Ergashev',
+    'Bekzod Yusupov',
+    'LoadMe admin',
+  ];
+
+  static final _sample = List.generate(_routes.length, (i) {
+    final r = _routes[i];
+    final base = DateTime(2026, 6, i + 1);
+    return LoadDto(
+      guid: 'fake-load-$i',
+      // Country code is rendered as a pill via `countriesForIndex` — keep
+      // just the address text here.
+      fromAddress: r.$2,
+      toAddress: r.$4,
+      comment: '${10 + i * 4} m³ · ${(2 + i * 2.5).toStringAsFixed(1)} t',
+      price: 1500000 + i * 250000,
+      pickupDate: base.toIso8601String(),
+    );
+  });
 
   @override
   Future<PaginatedResponse<LoadDto>> getLoads({required int page, required int limit}) async {
@@ -67,4 +90,23 @@ class FakeLoadsRemoteDataSource extends LoadsRemoteDataSource {
   Future<void> updateLoadStatus({required String guid, required bool isActive, String? closedPlatform}) async {
     await Future<void>.delayed(const Duration(milliseconds: 200));
   }
+
+  static const _priceMix = [
+    '3 250 UZS',
+    'Kelishiladi',
+    '5 400 000 UZS',
+    'Kelishiladi',
+    '1 200 USD',
+    '12 500 000 UZS',
+    'Kelishiladi',
+    '850 USD',
+  ];
+
+  // -- Helpers consumed by the presentation display provider --------------
+  static String ownerNameForIndex(int i) => _owners[i % _owners.length];
+  static (String, String) countriesForIndex(int i) {
+    final r = _routes[i % _routes.length];
+    return (r.$1, r.$3);
+  }
+  static String priceLabelForIndex(int i) => _priceMix[i % _priceMix.length];
 }

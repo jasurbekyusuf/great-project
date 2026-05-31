@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
-import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
+import 'package:loadme_mobile/features/loads/presentation/controllers/loads_display_providers.dart';
+import 'package:loadme_mobile/features/loads/presentation/models/load_display.dart';
 import 'package:loadme_mobile/features/loads/presentation/widgets/load_figma_card.dart';
 import 'package:loadme_mobile/shared/design_system/ds_confirmation_modal.dart';
 import 'package:loadme_mobile/shared/design_system/ds_empty_state.dart';
@@ -19,7 +20,7 @@ class MyLoadsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(myLoadsControllerProvider);
+    final state = ref.watch(myLoadsDisplayProvider);
     final controller = ref.watch(myLoadsControllerProvider.notifier);
     final selectedIndex = controller.tab == MyLoadsTab.active ? 0 : 1;
 
@@ -37,6 +38,7 @@ class MyLoadsScreen extends ConsumerWidget {
             child: MobileSegmentedTab(
               items: ['myloads.tab.active'.tr(ref), 'myloads.tab.history'.tr(ref)],
               selectedIndex: selectedIndex,
+              variant: MobileSegmentedTabVariant.primaryFilled,
               onChanged: (i) => ref
                   .read(myLoadsControllerProvider.notifier)
                   .setTab(i == 0 ? MyLoadsTab.active : MyLoadsTab.history),
@@ -69,37 +71,38 @@ class _MyLoadsList extends ConsumerWidget {
     required this.emptyTitle,
   });
 
-  final List<LoadEntity> items;
+  final List<LoadDisplay> items;
   final bool isActiveTab;
   final String emptyTitle;
 
-  Future<void> _openActions(BuildContext context, WidgetRef ref, LoadEntity item) async {
-    showOwnerActionSheet(
+  Future<void> _openActions(BuildContext context, WidgetRef ref, LoadDisplay d) async {
+    final item = d.load;
+    await showOwnerActionSheet(
       context,
       title: '${item.fromAddress} → ${item.toAddress}',
       actions: [
         OwnerAction(
           icon: Icons.visibility_outlined,
-          label: 'Ko\'rish',
+          label: 'owner.view'.tr(ref),
           onTap: () => context.push('/my-load/${item.guid}?active=$isActiveTab'),
         ),
         if (isActiveTab)
           OwnerAction(
             icon: Icons.edit_outlined,
-            label: 'Tahrirlash',
+            label: 'common.edit'.tr(ref),
             onTap: () => context.push('/edit-load/${item.guid}'),
           ),
         OwnerAction(
           icon: isActiveTab ? Icons.inventory_2_outlined : Icons.refresh_rounded,
-          label: isActiveTab ? 'Arxivlash' : 'Qayta faollashtirish',
+          label: (isActiveTab ? 'owner.archive' : 'owner.reactivate').tr(ref),
           destructive: isActiveTab,
           onTap: () async {
             final ok = await showDsConfirmation(
               context,
-              title: isActiveTab ? 'Arxivlash' : 'Faollashtirish',
-              message: isActiveTab ? 'Yuk arxivga o\'tadi.' : 'Yuk yana faol bo\'ladi.',
-              confirmText: isActiveTab ? 'Arxivlash' : 'Faollashtirish',
-              cancelText: 'Bekor',
+              title: (isActiveTab ? 'owner.archive' : 'owner.reactivate').tr(ref),
+              message: (isActiveTab ? 'owner.archiveMessage' : 'owner.reactivateMessage').tr(ref),
+              confirmText: (isActiveTab ? 'owner.archive' : 'owner.reactivate').tr(ref),
+              cancelText: 'common.cancel'.tr(ref),
               intent: isActiveTab ? DsConfirmIntent.warning : DsConfirmIntent.primary,
               icon: isActiveTab ? Icons.inventory_2_outlined : Icons.refresh_rounded,
             );
@@ -126,17 +129,22 @@ class _MyLoadsList extends ConsumerWidget {
         itemCount: items.length,
         separatorBuilder: (_, __) => SizedBox(height: context.space.sm),
         itemBuilder: (_, index) {
-          final item = items[index];
+          final d = items[index];
           return GestureDetector(
-            onLongPress: () => _openActions(context, ref, item),
+            onLongPress: () => _openActions(context, ref, d),
             child: LoadFigmaCard(
-              load: item,
-              distanceKm: 600 + index * 100,
-              roleBadge: 'Admin',
-              truckType: index.isEven ? 'Tent / Shtora' : 'Isuzu NQR / NPR',
-              loadKind: "To'liq",
-              priceLabel: 'common.negotiable'.tr(ref),
-              onTap: () => context.push('/my-load/${item.guid}?active=$isActiveTab'),
+              load: d.load,
+              ownerName: d.ownerName,
+              ownerRating: d.ownerRating,
+              fromCountry: d.fromCountry,
+              toCountry: d.toCountry,
+              deadHeadKm: d.deadHeadKm,
+              volumeM3: d.volumeM3,
+              weightT: d.weightT,
+              distanceKm: d.distanceKm,
+              loadKind: d.loadKind,
+              priceLabel: d.priceLabel,
+              onTap: () => context.push('/my-load/${d.load.guid}?active=$isActiveTab'),
             ),
           );
         },

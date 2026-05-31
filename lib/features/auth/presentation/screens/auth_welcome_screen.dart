@@ -22,23 +22,23 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
 
   Future<void> _continue() async {
     setState(() => _loading = true);
-    try {
-      final result = await ref.read(authControllerProvider.notifier).checkUserPhone(_phoneController.text.trim());
-      ref.read(authFlowProvider.notifier).setPhoneCheckResult(
-            phone: _phoneController.text.trim(),
-            smsId: result.smsId,
-            userFound: result.userFound,
-          );
-      if (mounted) context.go('/auth/verify');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Xatolik: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
+    final phone = _phoneController.text.trim();
+    final (result, fail) =
+        await ref.read(authControllerProvider.notifier).checkUserPhone(phone);
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (fail != null || result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(fail?.message ?? 'Xatolik')),
+      );
+      return;
     }
+    ref.read(authFlowProvider.notifier).setPhoneCheckResult(
+          phone: phone,
+          smsId: result.smsId,
+          userFound: result.userFound,
+        );
+    context.go('/auth/verify');
   }
 
   void _openLanguageSheet() {

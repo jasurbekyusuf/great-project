@@ -45,10 +45,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           DsButton(
             label: 'Sign in',
             loading: auth.isLoading,
-            onPressed: () => ref.read(authControllerProvider.notifier).login(
-                  _phoneController.text.trim(),
-                  _passwordController.text,
-                ),
+            onPressed: () async {
+              final fail = await ref.read(authControllerProvider.notifier).login(
+                    _phoneController.text.trim(),
+                    _passwordController.text,
+                  );
+              if (fail != null && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(fail.message)),
+                );
+              }
+            },
           ),
           if (auth.hasError) ...[
             SizedBox(height: context.space.md),
