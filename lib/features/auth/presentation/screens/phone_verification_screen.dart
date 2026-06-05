@@ -59,9 +59,11 @@ class _PhoneVerificationScreenState extends ConsumerState<PhoneVerificationScree
       return;
     }
     if (session != null) {
+      // Authenticated → replace the auth stack with the app.
       context.go('/loads');
     } else {
-      context.go('/auth/register');
+      // Push so the user can still go back if they typed the wrong OTP.
+      await context.push<void>('/auth/register');
     }
   }
 

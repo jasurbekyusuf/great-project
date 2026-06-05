@@ -26,7 +26,9 @@ class MyLoadsScreen extends ConsumerWidget {
 
     return AppScaffold(
       title: 'nav.myLoads'.tr(ref),
-      currentNavIndex: 2,
+      // Tab root inside StatefulShellRoute — there's nothing for back to pop.
+      showBack: false,
+      // Bottom nav provided by ScaffoldWithNav.
       padded: false, // ListView already adds 16px horizontal — match Search screen.
       actions: [
         IconButton(onPressed: () => context.push('/add-load'), icon: const Icon(Icons.add)),
@@ -35,10 +37,10 @@ class MyLoadsScreen extends ConsumerWidget {
         children: [
           Padding(
             padding: EdgeInsets.fromLTRB(context.space.lg, context.space.md, context.space.lg, context.space.md),
+            // Web uses default CustomTab (white pill on gray). No blue variant.
             child: MobileSegmentedTab(
               items: ['myloads.tab.active'.tr(ref), 'myloads.tab.history'.tr(ref)],
               selectedIndex: selectedIndex,
-              variant: MobileSegmentedTabVariant.primaryFilled,
               onChanged: (i) => ref
                   .read(myLoadsControllerProvider.notifier)
                   .setTab(i == 0 ? MyLoadsTab.active : MyLoadsTab.history),

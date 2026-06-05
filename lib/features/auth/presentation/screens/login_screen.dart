@@ -27,7 +27,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return AuthShell(
       showBack: true,
-      onBack: () => context.go('/auth/welcome'),
+      onBack: () => context.canPop() ? context.pop() : context.go('/auth/welcome'),
       title: 'Sign in with password',
       subtitle: 'Use your phone and password',
       child: Column(
@@ -39,7 +39,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           SizedBox(height: context.space.md),
           Align(
             alignment: Alignment.centerRight,
-            child: TextButton(onPressed: () => context.go('/auth/forgot-password'), child: const Text('Forgot password?')),
+            child: TextButton(onPressed: () => context.push('/auth/forgot-password'), child: const Text('Forgot password?')),
           ),
           SizedBox(height: context.space.md),
           DsButton(

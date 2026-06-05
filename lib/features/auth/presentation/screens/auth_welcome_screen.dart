@@ -38,7 +38,8 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
           smsId: result.smsId,
           userFound: result.userFound,
         );
-    context.go('/auth/verify');
+    // push (not go) so the user can tap back to fix the phone number.
+    await context.push<void>('/auth/verify');
   }
 
   void _openLanguageSheet() {

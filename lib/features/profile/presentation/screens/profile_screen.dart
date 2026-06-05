@@ -9,7 +9,6 @@ import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
 import 'package:loadme_mobile/shared/design_system/ds_confirmation_modal.dart';
 import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
 import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
-import 'package:loadme_mobile/shared/widgets/app_bottom_nav.dart';
 import 'package:loadme_mobile/shared/widgets/mobile_list_row.dart';
 
 // Mirrors `client_frontend_web-master/src/modules/Profile/index.jsx`.
@@ -23,7 +22,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: c.background,
-      bottomNavigationBar: const AppBottomNav(currentIndex: 3),
+      // Bottom nav provided by ScaffoldWithNav.
       body: state.when(
         loading: () => const DsLoader(),
         error: (e, _) => DsErrorState(message: e.toString()),

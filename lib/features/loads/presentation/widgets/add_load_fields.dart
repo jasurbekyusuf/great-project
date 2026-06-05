@@ -47,6 +47,7 @@ class AddLoadField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final t = context.types;
     return Container(
       height: 44,
       decoration: BoxDecoration(
@@ -55,18 +56,25 @@ class AddLoadField extends StatelessWidget {
         border: Border.all(color: c.border),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: TextField(
               controller: controller,
               keyboardType: keyboardType,
+              // `isDense: true` shrinks the InputDecorator; combined with
+              // textAlignVertical.center the hint sits on the exact same
+              // baseline as the `Text` placeholder used in `AddLoadSelectTile`.
+              textAlignVertical: TextAlignVertical.center,
+              style: t.body.copyWith(color: c.textPrimary),
               decoration: InputDecoration(
                 hintText: hintText,
+                hintStyle: t.body.copyWith(color: c.textMuted),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                 isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
               ),
             ),
           ),
@@ -144,6 +152,11 @@ class AddLoadInputWithUnit extends StatelessWidget {
   final String unit;
   final VoidCallback onUnitTap;
 
+  // Per Figma: unit pill is a fixed-width slot on the right so the divider
+  // line sits at the same X-coordinate for USD / m³ / tons. Without this, the
+  // pill grows/shrinks with the label and the dividers wander.
+  static const double _unitSlotWidth = 78;
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -156,35 +169,51 @@ class AddLoadInputWithUnit extends StatelessWidget {
         border: Border.all(color: c.border),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: TextField(
               controller: controller,
               keyboardType: TextInputType.number,
+              textAlignVertical: TextAlignVertical.center,
+              style: t.body.copyWith(color: c.textPrimary),
               decoration: InputDecoration(
                 hintText: hintText,
+                hintStyle: t.body.copyWith(color: c.textMuted),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                 isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
               ),
             ),
           ),
-          InkWell(
-            onTap: onUnitTap,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(8, 0, 12, 0),
+          SizedBox(
+            width: _unitSlotWidth,
+            child: InkWell(
+              onTap: onUnitTap,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 1,
-                    height: 24,
-                    color: c.border,
-                    margin: const EdgeInsets.only(right: 8),
+                  // Divider — fixed position relative to right edge.
+                  Container(width: 1, height: 24, color: c.border),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      unit,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.body.copyWith(color: c.textPrimary),
+                    ),
                   ),
-                  Text(unit, style: t.body.copyWith(color: c.textPrimary)),
-                  Icon(Icons.keyboard_arrow_down_rounded, color: c.textMuted, size: 18),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: c.textMuted,
+                      size: 18,
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -29,7 +29,8 @@ class MyTrucksScreen extends ConsumerWidget {
 
     return AppScaffold(
       title: 'nav.myTrucks'.tr(ref),
-      currentNavIndex: 2,
+      // Tab root inside StatefulShellRoute — nothing to pop here.
+      showBack: false,
       padded: false,
       actions: [
         IconButton(
@@ -44,6 +45,7 @@ class MyTrucksScreen extends ConsumerWidget {
           Padding(
             padding: EdgeInsets.fromLTRB(
                 context.space.lg, context.space.lg, context.space.lg, 0),
+            // Web uses default CustomTab (white pill on gray). No blue variant.
             child: MobileSegmentedTab(
               items: [
                 'mytrucks.tab.available'.tr(ref),
@@ -51,7 +53,6 @@ class MyTrucksScreen extends ConsumerWidget {
                 'mytrucks.tab.history'.tr(ref),
               ],
               selectedIndex: selectedIndex,
-              variant: MobileSegmentedTabVariant.primaryFilled,
               onChanged: (index) {
                 final next = switch (index) {
                   0 => MyTrucksTab.available,

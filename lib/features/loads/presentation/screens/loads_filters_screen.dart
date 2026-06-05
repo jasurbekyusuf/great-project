@@ -228,7 +228,13 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
       _to?.title ?? '',
     ].where((e) => e.isNotEmpty).join(' ');
     ref.read(loadsControllerProvider.notifier).applyQuery(query);
-    context.go('/loads');
+    // Pop back to the previous list (preserves history). Fallback to /loads
+    // if filters was opened as a fresh root (e.g. deep link).
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/loads');
+    }
   }
 }
 

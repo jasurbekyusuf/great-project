@@ -42,10 +42,11 @@ class _LoadsFiltersBlockState extends ConsumerState<LoadsFiltersBlock> {
     return AnimatedSize(
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
+      // Web LoadsV2: padding 10px 16px, gap 8px, filter button fixed 117px.
       child: !widget.expanded
           ? const SizedBox.shrink()
           : Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               child: Column(
                 children: [
                   _LocationInput(
@@ -63,7 +64,7 @@ class _LoadsFiltersBlockState extends ConsumerState<LoadsFiltersBlock> {
                       widget.onOriginChanged?.call(picked);
                     },
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   _LocationInput(
                     icon: Icons.local_shipping_outlined,
                     value: widget.destination == null
@@ -79,26 +80,31 @@ class _LoadsFiltersBlockState extends ConsumerState<LoadsFiltersBlock> {
                       widget.onDestinationChanged?.call(picked);
                     },
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DsButton(
-                          label: 'loads.searchBtn'.tr(ref),
-                          icon: Icons.search_rounded,
-                          onPressed: widget.onSearch,
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 44,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: DsButton(
+                            label: 'loads.searchBtn'.tr(ref),
+                            icon: Icons.search_rounded,
+                            onPressed: widget.onSearch,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: DsButton(
-                          label: 'loads.filterBtn'.tr(ref),
-                          icon: Icons.tune_rounded,
-                          variant: DsButtonVariant.outline,
-                          onPressed: widget.onFilter,
+                        const SizedBox(width: 8),
+                        // Fixed 117px width per web spec.
+                        SizedBox(
+                          width: 117,
+                          child: DsButton(
+                            label: 'loads.filterBtn'.tr(ref),
+                            icon: Icons.tune_rounded,
+                            variant: DsButtonVariant.outline,
+                            onPressed: widget.onFilter,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -124,21 +130,23 @@ class _LocationInput extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final t = context.types;
+    // Web: h="52px", borderRadius="8px", p="0 18px", gap="8px",
+    // icon boxSize 20px / #98A2B3, font 14/400.
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
         decoration: BoxDecoration(
           color: c.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: c.border),
         ),
         child: Row(
           children: [
             Icon(icon, color: c.textMuted, size: 20),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 value ?? placeholder,
