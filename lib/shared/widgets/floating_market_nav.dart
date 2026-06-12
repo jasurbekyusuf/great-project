@@ -36,6 +36,11 @@ class FloatingMarketNav extends StatelessWidget {
   static const _pillRadius = 32.0;
   static const _fabOvershoot = 34.0;
 
+  /// Height the bar reserves above the bottom safe-area inset (pill + raised
+  /// FAB + outer margin). Add it to sticky content so it clears the floating
+  /// nav instead of hard-coding a guess.
+  static const double reservedHeight = _pillHeight + _fabOvershoot + 10;
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(

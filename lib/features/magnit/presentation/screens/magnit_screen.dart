@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
+import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/design_system/ds_success_modal.dart';
+import 'package:loadme_mobile/shared/widgets/frosted_header.dart';
 import 'package:loadme_mobile/shared/widgets/select_location_drawer.dart';
 import 'package:loadme_mobile/shared/widgets/swipe_back_wrapper.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -170,10 +172,10 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
   Widget build(BuildContext context) {
     return SwipeBackWrapper(
       child: Scaffold(
-        backgroundColor: const Color(0xFFF3F4F7),
+        backgroundColor: FigmaPalette.sheetBg,
         body: Column(
           children: [
-            _MagnitHeader(title: 'magnit.title'.tr(ref)),
+            FrostedHeader(title: 'magnit.title'.tr(ref)),
             Expanded(
               child: ListView(
                 keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -276,58 +278,6 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Header — white surface, back chevron, centered title, bookmark trailing.
-// ---------------------------------------------------------------------------
-class _MagnitHeader extends StatelessWidget {
-  const _MagnitHeader({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final t = context.types;
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(color: Color(0x14000000), blurRadius: 14, offset: Offset(0, 2)),
-        ],
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: SizedBox(
-          height: 52,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 24,
-                  child: InkResponse(
-                    onTap: () => Navigator.maybePop(context),
-                    radius: 20,
-                    child: Icon(LucideIcons.chevronLeft, size: 24, color: c.textPrimary),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: t.bodyLg.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const SizedBox(width: 24),
-              ],
-            ),
-          ),
         ),
       ),
     );

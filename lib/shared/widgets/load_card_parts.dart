@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Shared building blocks for the Figma load / truck cards and the load
 /// details screen, so the three keep one implementation.
@@ -197,6 +198,66 @@ class RoleBadge extends StatelessWidget {
           fontWeight: FontWeight.w500,
           color: danger ? FigmaPalette.dangerText : FigmaPalette.primary,
         ),
+      ),
+    );
+  }
+}
+
+/// Circular truck avatar — a network photo when available, otherwise a muted
+/// truck glyph on the neutral avatar background.
+class TruckAvatar extends StatelessWidget {
+  const TruckAvatar({super.key, this.url, this.size = 40});
+
+  final String? url;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: FigmaPalette.avatarBg,
+        shape: BoxShape.circle,
+      ),
+      clipBehavior: Clip.antiAlias,
+      alignment: Alignment.center,
+      child: url != null
+          ? Image.network(url!, fit: BoxFit.cover, cacheWidth: (size * 2).round())
+          : Icon(LucideIcons.truck, size: size * 0.5, color: FigmaPalette.muted),
+    );
+  }
+}
+
+/// Gray pill showing a truck icon + the vehicle name (e.g. "Isuzu Katta").
+class VehicleTypeChip extends StatelessWidget {
+  const VehicleTypeChip({super.key, required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: FigmaPalette.chipBg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(LucideIcons.truck, size: 16, color: FigmaPalette.ink),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 18 / 14,
+              fontWeight: FontWeight.w500,
+              color: FigmaPalette.ink,
+            ),
+          ),
+        ],
       ),
     );
   }

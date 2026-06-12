@@ -9,6 +9,8 @@ import 'package:loadme_mobile/features/auth/presentation/screens/login_screen.da
 import 'package:loadme_mobile/features/auth/presentation/screens/onboarding_screen.dart';
 import 'package:loadme_mobile/features/auth/presentation/screens/phone_verification_screen.dart';
 import 'package:loadme_mobile/features/auth/presentation/screens/register_screen.dart';
+import 'package:loadme_mobile/features/garage/presentation/screens/garage_screen.dart';
+import 'package:loadme_mobile/features/garage/presentation/screens/transport_detail_screen.dart';
 import 'package:loadme_mobile/features/info/presentation/screens/faq_screen.dart';
 import 'package:loadme_mobile/features/info/presentation/screens/instructions_screen.dart';
 import 'package:loadme_mobile/features/info/presentation/screens/premium_screen.dart';
@@ -75,7 +77,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/guest-post-truck/:id',
-        builder: (_, state) => PostTruckDetailScreen(id: state.pathParameters['id']!),
+        builder: (_, state) => TransportDetailScreen(id: state.pathParameters['id']!),
       ),
 
       // ---- Auth flow (no bottom nav) ---------------------------------------
@@ -124,10 +126,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Branch 2 — My loads / trucks + edit forms + detail
+          // Branch 2 — Garaj (vehicles + saved routes); my-loads/trucks kept
+          // as reachable sub-routes but no longer the tab's landing screen.
           StatefulShellBranch(
             navigatorKey: _myKey,
+            initialLocation: '/garage',
             routes: [
+              GoRoute(
+                path: '/garage',
+                builder: (_, __) => const GarageScreen(),
+              ),
               GoRoute(
                 path: '/my-loads',
                 builder: (_, __) => const MyLoadsScreen(),
@@ -211,7 +219,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/post-truck/:id',
         builder: (_, state) =>
-            PostTruckDetailScreen(id: state.pathParameters['id']!),
+            TransportDetailScreen(id: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/my-load/:id',
@@ -240,6 +248,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // the garage "Qo'shish" CTA / my-trucks header.
       // Magnit — load-matching alert form, opened from the centre nav button.
       GoRoute(path: '/magnit', builder: (_, __) => const MagnitScreen()),
+      // Transport detail — opened from a Garaj → Transportlar card.
+      GoRoute(
+        path: '/transport/:id',
+        builder: (_, state) =>
+            TransportDetailScreen(id: state.pathParameters['id']!),
+      ),
       GoRoute(
         path: '/add-truck',
         builder: (_, __) => const TruckFormScreen(),
