@@ -32,7 +32,8 @@ class LoadsListView extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () => ref.read(loadsControllerProvider.notifier).refresh(),
           child: ListView.separated(
-            padding: EdgeInsets.fromLTRB(s.lg, 0, s.lg, s.lg),
+            // Bottom inset clears the floating frosted nav (≈110px).
+            padding: EdgeInsets.fromLTRB(s.lg, 0, s.lg, 110),
             itemCount: items.length,
             separatorBuilder: (_, __) => SizedBox(height: s.sm),
             itemBuilder: (_, i) {
@@ -41,13 +42,15 @@ class LoadsListView extends ConsumerWidget {
                 load: d.load,
                 ownerName: d.ownerName,
                 ownerRating: d.ownerRating,
+                verified: d.verified,
+                roleBadge: d.roleBadge,
                 fromCountry: d.fromCountry,
                 toCountry: d.toCountry,
-                deadHeadKm: d.deadHeadKm,
-                volumeM3: d.volumeM3,
+                truckType: d.truckType,
                 weightT: d.weightT,
                 distanceKm: d.distanceKm,
-                loadKind: d.loadKind,
+                radiusKm: d.radiusKm,
+                timeAgo: d.timeAgo,
                 priceLabel: d.priceLabel,
                 onTap: () => context.push(
                   guest ? '/guest-load/${d.load.guid}' : '/loads/${d.load.guid}',

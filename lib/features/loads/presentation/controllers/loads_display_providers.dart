@@ -10,26 +10,15 @@ import 'package:loadme_mobile/features/loads/presentation/models/load_display.da
 /// in the data layer (see [FakeLoadsRemoteDataSource]) — the UI consumes
 /// only [LoadDisplay] objects and never reaches for inline arrays.
 final loadsDisplayProvider = Provider<AsyncValue<List<LoadDisplay>>>((ref) {
-  final loads = ref.watch(loadsControllerProvider);
-  return loads.whenData(
-    (items) => items
-        .asMap()
-        .entries
-        .map((e) => _toDisplay(e.key, e.value))
-        .toList(growable: false),
-  );
+  return ref.watch(loadsControllerProvider).whenData(_toDisplayList);
 });
 
 final myLoadsDisplayProvider = Provider<AsyncValue<List<LoadDisplay>>>((ref) {
-  final loads = ref.watch(myLoadsControllerProvider);
-  return loads.whenData(
-    (items) => items
-        .asMap()
-        .entries
-        .map((e) => _toDisplay(e.key, e.value))
-        .toList(growable: false),
-  );
+  return ref.watch(myLoadsControllerProvider).whenData(_toDisplayList);
 });
+
+List<LoadDisplay> _toDisplayList(List<LoadEntity> items) =>
+    [for (var i = 0; i < items.length; i++) _toDisplay(i, items[i])];
 
 LoadDisplay _toDisplay(int index, LoadEntity load) {
   final countries = FakeLoadsRemoteDataSource.countriesForIndex(index);
@@ -38,13 +27,17 @@ LoadDisplay _toDisplay(int index, LoadEntity load) {
     ownerName: FakeLoadsRemoteDataSource.ownerNameForIndex(index),
     fromCountry: countries.$1,
     toCountry: countries.$2,
-    distanceKm: 11 + index * 250,
+    distanceKm: 328 + index * 61,
     deadHeadKm: 10 + index * 5,
-    volumeM3: 4.0 + index * 8,
-    weightT: 2.5 + index * 1.5,
+    volumeM3: 20.0 + index * 4,
+    weightT: 33.0 - index * 2,
     priceLabel: FakeLoadsRemoteDataSource.priceLabelForIndex(index),
     loadKind: "To'liq",
-    truckType: index.isEven ? 'Tent / Shtora' : 'Isuzu NQR / NPR',
-    ownerRating: index == 3 ? 5.0 : null,
+    truckType: FakeLoadsRemoteDataSource.truckTypeForIndex(index),
+    ownerRating: 4.5,
+    roleBadge: FakeLoadsRemoteDataSource.roleBadgeForIndex(index),
+    verified: FakeLoadsRemoteDataSource.verifiedForIndex(index),
+    radiusKm: FakeLoadsRemoteDataSource.radiusForIndex(index),
+    timeAgo: FakeLoadsRemoteDataSource.timeAgoForIndex(index),
   );
 }

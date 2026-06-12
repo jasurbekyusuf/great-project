@@ -19,6 +19,7 @@ class TruckDisplay extends Equatable {
     required this.truckType,
     required this.pickupDateIso,
     this.ownerRating,
+    this.timeAgo,
   });
 
   final TruckEntity truck;
@@ -33,6 +34,7 @@ class TruckDisplay extends Equatable {
   final String truckType;
   final String pickupDateIso;
   final double? ownerRating;
+  final String? timeAgo;
 
   @override
   List<Object?> get props => [
@@ -48,5 +50,6 @@ class TruckDisplay extends Equatable {
         truckType,
         pickupDateIso,
         ownerRating,
+        timeAgo,
       ];
 }

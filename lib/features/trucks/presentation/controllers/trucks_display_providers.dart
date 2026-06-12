@@ -9,26 +9,27 @@ import 'package:loadme_mobile/features/trucks/presentation/models/truck_display.
 /// All "look real" data (names, countries, prices) lives in the data layer
 /// helpers — the UI consumes only [TruckDisplay] objects.
 final trucksDisplayProvider = Provider<AsyncValue<List<TruckDisplay>>>((ref) {
-  final trucks = ref.watch(trucksControllerProvider);
-  return trucks.whenData(
-    (items) => items
-        .asMap()
-        .entries
-        .map((e) => _toDisplay(e.key, e.value))
-        .toList(growable: false),
-  );
+  return ref.watch(trucksControllerProvider).whenData(_toDisplayList);
 });
 
 final myTrucksDisplayProvider = Provider<AsyncValue<List<TruckDisplay>>>((ref) {
-  final trucks = ref.watch(myTrucksControllerProvider);
-  return trucks.whenData(
-    (items) => items
-        .asMap()
-        .entries
-        .map((e) => _toDisplay(e.key, e.value))
-        .toList(growable: false),
-  );
+  return ref.watch(myTrucksControllerProvider).whenData(_toDisplayList);
 });
+
+List<TruckDisplay> _toDisplayList(List<TruckEntity> items) =>
+    [for (var i = 0; i < items.length; i++) _toDisplay(i, items[i])];
+
+// Truck model names shown as the card title (Figma "Isuzu Katta" etc.).
+const _truckModels = [
+  'Isuzu Katta',
+  'MAN TGX',
+  'Mercedes Actros',
+  'Kamaz 5490',
+  'Isuzu Katta',
+  'Volvo FH',
+  'Scania R500',
+  'Howo Sino',
+];
 
 TruckDisplay _toDisplay(int index, TruckEntity truck) {
   final countries = FakeLoadsRemoteDataSource.countriesForIndex(index);
@@ -38,12 +39,13 @@ TruckDisplay _toDisplay(int index, TruckEntity truck) {
     ownerName: FakeLoadsRemoteDataSource.ownerNameForIndex(index),
     fromCountry: countries.$1,
     toCountry: countries.$2,
-    distanceKm: 11 + index * 250,
-    volumeM3: 4.0 + index * 8,
-    weightT: 2.5 + index * 1.5,
+    distanceKm: 328 + index * 61,
+    volumeM3: 20.0 + index * 4,
+    weightT: 33.0 - index * 2,
     priceLabel: FakeLoadsRemoteDataSource.priceLabelForIndex(index),
     loadKind: "To'liq",
-    truckType: index.isEven ? 'Tent / Shtora' : 'Isuzu NQR / NPR',
+    truckType: _truckModels[index % _truckModels.length],
     pickupDateIso: base.toIso8601String(),
+    timeAgo: FakeLoadsRemoteDataSource.timeAgoForIndex(index),
   );
 }

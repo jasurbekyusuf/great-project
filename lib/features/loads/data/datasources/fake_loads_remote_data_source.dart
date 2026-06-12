@@ -6,27 +6,63 @@ import 'package:loadme_mobile/shared/models/paginated_response.dart';
 class FakeLoadsRemoteDataSource extends LoadsRemoteDataSource {
   FakeLoadsRemoteDataSource() : super(Dio());
 
-  // Real-looking samples mirroring loadme.uz mobile view.
+  // Figma "Search" mock styling: 3-letter country codes, broker names,
+  // role badges, truck types and "X min oldin" timestamps.
   static const _routes = [
-    ('UZ', 'Ташкентский ра…', 'UZ', 'Ташкентский рай…'),
-    ('UZ', 'Бухара', 'RU', 'Оренбург'),
-    ('UZ', 'Шахрисабз', 'UZ', 'Каршинский район'),
-    ('UZ', 'село Яварлик', 'RU', 'Самара'),
-    ('UZ', 'Самарканд', 'UZ', 'Хива'),
-    ('UZ', 'Наманган', 'UZ', 'Нукус'),
-    ('UZ', 'Андижан', 'KZ', 'Алматы'),
-    ('UZ', 'Фергана', 'KG', 'Бишкек'),
+    ('UZB', 'Shahrisabz', 'KAZ', 'Ostona'),
+    ('UZB', 'Toshkent', 'RUS', 'Orenburg'),
+    ('UZB', 'Samarqand', 'KAZ', 'Almaty'),
+    ('UZB', 'Buxoro', 'RUS', 'Samara'),
+    ('UZB', 'Farg‘ona', 'KGZ', 'Bishkek'),
+    ('UZB', 'Namangan', 'UZB', 'Nukus'),
+    ('UZB', 'Andijon', 'KAZ', 'Shymkent'),
+    ('UZB', 'Qarshi', 'TJK', 'Dushanbe'),
   ];
 
   static const _owners = [
-    "Abdulla Karimov Parvozbek o'g'li",
-    'Мужафаров Амиржон Зафарович',
-    'Shaxzod Abdullaev',
-    'Saydialim',
-    'Ravshan Tursunov',
-    'Jamshid Ergashev',
-    'Bekzod Yusupov',
-    'LoadMe admin',
+    'ExportView LTD',
+    'TransLogistic Co',
+    'ExportView LTD',
+    'Silk Road Cargo',
+    'ExportView LTD',
+    'Asia Freight',
+    'ExportView LTD',
+    'Caspian Lines',
+  ];
+
+  // Role badge per card — "Yuk egasi" (red), "Logist"/"LoadMe AI" (blue).
+  static const _roles = [
+    'Yuk egasi',
+    'Logist',
+    'LoadMe AI',
+    'Yuk egasi',
+    'LoadMe AI',
+    'Logist',
+    'Yuk egasi',
+    'LoadMe AI',
+  ];
+
+  // Truck types shown on the destination row chip.
+  static const _truckTypes = [
+    'Tent',
+    'Refer',
+    'Isuzu Katta',
+    'Sisterna',
+    'Jumbo',
+    'Tent',
+    'Refer',
+    'Jumbo',
+  ];
+
+  static const _verified = [
+    true,
+    false,
+    true,
+    true,
+    false,
+    false,
+    true,
+    false,
   ];
 
   static final _sample = List.generate(_routes.length, (i) {
@@ -92,14 +128,27 @@ class FakeLoadsRemoteDataSource extends LoadsRemoteDataSource {
   }
 
   static const _priceMix = [
-    '3 250 UZS',
+    "20 000 000 so'm",
+    "20 000 000 so'm",
+    '20 000 000 UZS',
+    "20 000 000 so'm",
+    "20 000 000 so'm",
     'Kelishiladi',
     '5 400 000 UZS',
-    'Kelishiladi',
     '1 200 USD',
-    '12 500 000 UZS',
-    'Kelishiladi',
-    '850 USD',
+  ];
+
+  // Radius (km) shown next to the pin.
+  static const _radii = [120, 120, 120, 120, 120, 15, 20, 25];
+
+  // Relative timestamps cycling like the Figma "X min oldin" labels.
+  static const _timeAgoMix = [
+    '16 min oldin',
+    '42 min oldin',
+    '2 soat oldin',
+    '5 soat oldin',
+    '1 kun oldin',
+    '2 kun oldin',
   ];
 
   // -- Helpers consumed by the presentation display provider --------------
@@ -109,4 +158,9 @@ class FakeLoadsRemoteDataSource extends LoadsRemoteDataSource {
     return (r.$1, r.$3);
   }
   static String priceLabelForIndex(int i) => _priceMix[i % _priceMix.length];
+  static String roleBadgeForIndex(int i) => _roles[i % _roles.length];
+  static String truckTypeForIndex(int i) => _truckTypes[i % _truckTypes.length];
+  static bool verifiedForIndex(int i) => _verified[i % _verified.length];
+  static int radiusForIndex(int i) => _radii[i % _radii.length];
+  static String timeAgoForIndex(int i) => _timeAgoMix[i % _timeAgoMix.length];
 }

@@ -21,6 +21,9 @@ class LoadDisplay extends Equatable {
     required this.truckType,
     this.ownerRating,
     this.roleBadge,
+    this.verified = false,
+    this.radiusKm,
+    this.timeAgo,
   });
 
   final LoadEntity load;
@@ -36,6 +39,9 @@ class LoadDisplay extends Equatable {
   final String truckType;
   final double? ownerRating;
   final String? roleBadge;
+  final bool verified;
+  final int? radiusKm;
+  final String? timeAgo;
 
   @override
   List<Object?> get props => [
@@ -52,5 +58,8 @@ class LoadDisplay extends Equatable {
         truckType,
         ownerRating,
         roleBadge,
+        verified,
+        radiusKm,
+        timeAgo,
       ];
 }

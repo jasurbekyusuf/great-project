@@ -11,6 +11,7 @@ import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
 import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/shared/widgets/app_scaffold.dart';
+import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
 import 'package:loadme_mobile/shared/widgets/mobile_segmented_tab.dart';
 import 'package:loadme_mobile/shared/widgets/owner_action_sheet.dart';
 
@@ -150,7 +151,17 @@ class _MyTrucksList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (items.isEmpty) return DsEmptyState(title: emptyTitle);
+    if (items.isEmpty) {
+      // Figma "Garaj" empty state (node 6542:41936): crossed-out truck +
+      // message; the "Qo'shish" CTA only where adding a truck is meaningful.
+      final canAdd = tab == MyTrucksTab.myTrucks;
+      return DsEmptyState(
+        title: emptyTitle,
+        icon: appSvgIcon('empty_truck', size: 84),
+        actionLabel: canAdd ? 'common.add'.tr(ref) : null,
+        onAction: canAdd ? () => context.push('/add-truck') : null,
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: () => ref.read(myTrucksControllerProvider.notifier).refresh(),

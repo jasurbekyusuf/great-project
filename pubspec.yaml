@@ -34,6 +34,19 @@ dependencies:
   intl: ^0.20.2
   cupertino_icons: ^1.0.8
 
+  # Icons — Lucide (lucide-icons/lucide) — used app-wide for consistency
+  # with the Figma design system. `lucide_icons_flutter` is the actively
+  # maintained port (the older `lucide_icons` package extends Flutter's
+  # IconData which is now a final class).
+  lucide_icons_flutter: ^3.1.14
+
+  # SVG rendering — for pixel-exact card icons exported straight from Figma.
+  flutter_svg: ^2.0.10
+
+  # Maps — OpenStreetMap tiles (no API key) for the load route preview.
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
   # Typography (Inter via Google Fonts, cached after first launch)
   google_fonts: ^6.2.1
 
@@ -63,3 +76,4 @@ flutter:
   assets:
     - assets/l10n/
     - assets/images/
+    - assets/icons/

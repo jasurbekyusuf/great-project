@@ -18,6 +18,7 @@ import 'package:loadme_mobile/features/loads/presentation/screens/load_details_s
 import 'package:loadme_mobile/features/loads/presentation/screens/load_form_screen.dart';
 import 'package:loadme_mobile/features/loads/presentation/screens/loads_filters_screen.dart';
 import 'package:loadme_mobile/features/loads/presentation/screens/my_loads_screen.dart';
+import 'package:loadme_mobile/features/magnit/presentation/screens/magnit_screen.dart';
 import 'package:loadme_mobile/features/market/presentation/screens/market_screen.dart';
 import 'package:loadme_mobile/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:loadme_mobile/features/profile/presentation/screens/default_commission_screen.dart';
@@ -53,7 +54,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final inGuest = loc.startsWith('/guest');
 
       if (!isAuthed && !inAuth && !inGuest) return '/guest';
-      if (isAuthed && (inAuth || inGuest)) return '/my-loads';
+      if (isAuthed && (inAuth || inGuest)) return '/add-truck';
       return null;
     },
     routes: [
@@ -102,21 +103,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'filters',
                     builder: (_, __) => const LoadsFiltersScreen(),
                   ),
-                  GoRoute(
-                    path: ':id',
-                    builder: (_, state) =>
-                        LoadDetailsScreen(id: state.pathParameters['id']!),
-                  ),
                 ],
               ),
               GoRoute(
                 path: '/trucks',
                 builder: (_, __) => const MarketScreen(initialTab: MarketTab.trucks),
-              ),
-              GoRoute(
-                path: '/post-truck/:id',
-                builder: (_, state) =>
-                    PostTruckDetailScreen(id: state.pathParameters['id']!),
               ),
             ],
           ),
@@ -126,7 +117,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             navigatorKey: _postKey,
             routes: [
               GoRoute(path: '/add-load', builder: (_, __) => const LoadFormScreen()),
-              GoRoute(path: '/add-truck', builder: (_, __) => const TruckFormScreen()),
               GoRoute(
                 path: '/add-post-truck',
                 builder: (_, __) => const PostTruckFormScreen(),
@@ -152,29 +142,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/my-trucks',
                 builder: (_, __) => const MyTrucksScreen(),
-              ),
-              GoRoute(
-                path: '/my-load/:id',
-                builder: (_, state) => LoadDetailsScreen(
-                  id: state.pathParameters['id']!,
-                  ownerMode: true,
-                  isActive: state.uri.queryParameters['active'] != 'false',
-                ),
-              ),
-              GoRoute(
-                path: '/my-truck/:id',
-                builder: (_, state) => MyTruckDetailScreen(
-                  id: state.pathParameters['id']!,
-                  isActive: state.uri.queryParameters['active'] != 'false',
-                ),
-              ),
-              GoRoute(
-                path: '/my-post-truck-detail/:id',
-                builder: (_, state) => PostTruckDetailScreen(
-                  id: state.pathParameters['id']!,
-                  ownerMode: true,
-                  isActive: state.uri.queryParameters['active'] != 'false',
-                ),
               ),
               GoRoute(
                 path: '/edit-load/:id',
@@ -230,6 +197,52 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+
+      // ---- Full-screen detail pages (root navigator → no bottom nav) ------
+      // Defined as top-level routes (siblings of the shell) so they render
+      // above it. go_router forbids a shell sub-route from pointing at the
+      // root navigator key, hence they live here rather than in a branch.
+      GoRoute(
+        path: '/loads/:id',
+        builder: (_, state) =>
+            LoadDetailsScreen(id: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/post-truck/:id',
+        builder: (_, state) =>
+            PostTruckDetailScreen(id: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/my-load/:id',
+        builder: (_, state) => LoadDetailsScreen(
+          id: state.pathParameters['id']!,
+          ownerMode: true,
+          isActive: state.uri.queryParameters['active'] != 'false',
+        ),
+      ),
+      GoRoute(
+        path: '/my-truck/:id',
+        builder: (_, state) => MyTruckDetailScreen(
+          id: state.pathParameters['id']!,
+          isActive: state.uri.queryParameters['active'] != 'false',
+        ),
+      ),
+      GoRoute(
+        path: '/my-post-truck-detail/:id',
+        builder: (_, state) => PostTruckDetailScreen(
+          id: state.pathParameters['id']!,
+          ownerMode: true,
+          isActive: state.uri.queryParameters['active'] != 'false',
+        ),
+      ),
+      // Add-transport form — full-screen task page (no bottom nav), reached via
+      // the garage "Qo'shish" CTA / my-trucks header.
+      // Magnit — load-matching alert form, opened from the centre nav button.
+      GoRoute(path: '/magnit', builder: (_, __) => const MagnitScreen()),
+      GoRoute(
+        path: '/add-truck',
+        builder: (_, __) => const TruckFormScreen(),
       ),
     ],
   );

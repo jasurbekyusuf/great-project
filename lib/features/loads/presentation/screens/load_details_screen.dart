@@ -2,22 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
-import 'package:loadme_mobile/core/theme/theme_extensions.dart';
+import 'package:loadme_mobile/core/theme/figma_palette.dart';
+import 'package:loadme_mobile/core/utils/address_format.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
-import 'package:loadme_mobile/shared/design_system/ds_button.dart';
-import 'package:loadme_mobile/shared/design_system/ds_card.dart';
 import 'package:loadme_mobile/shared/design_system/ds_confirmation_modal.dart';
 import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
 import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
-import 'package:loadme_mobile/shared/widgets/lightbox_image.dart';
-import 'package:loadme_mobile/shared/widgets/mobile_page_head.dart';
-import 'package:loadme_mobile/shared/widgets/phone_reveal.dart';
+import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
+import 'package:loadme_mobile/shared/widgets/load_card_parts.dart';
+import 'package:loadme_mobile/shared/widgets/route_map.dart';
 import 'package:loadme_mobile/shared/widgets/swipe_back_wrapper.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-// Mirrors web `Load` / `MyLoad` modules. Visible to authed shipper/broker users
-// as a read-only detail; the same screen with `ownerMode: true` shows
-// archive/edit and skips the contact reveal.
+// Pixel port of the Figma "Search/details" frame (node 6435:39895).
+//   • bg #F3F4F7, white cards r18 / pad16, 8px gaps
+//   • route card (cube→flag, dates) + Naqd/Avans price box
+//   • spec rows (icon · label · value) + Izoh
+//   • map preview card + owner card
+//   • sticky "Bog'lanish" CTA
 class LoadDetailsScreen extends ConsumerWidget {
   const LoadDetailsScreen({
     super.key,
@@ -33,30 +36,26 @@ class LoadDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(loadDetailsProvider(id));
-    final c = context.colors;
 
     return SwipeBackWrapper(
       child: Scaffold(
-        backgroundColor: c.background,
+        backgroundColor: FigmaPalette.sheetBg,
         body: Column(
           children: [
-            MobilePageHead(
-              title: (ownerMode ? 'detail.load.ownerTitle' : 'detail.load.title').tr(ref),
-              trailing: ownerMode && isActive
-                  ? IconButton(
-                      onPressed: () => context.push('/edit-load/$id'),
-                      icon: Icon(Icons.edit_outlined, size: 22, color: c.primary),
-                    )
-                  : IconButton(
-                      onPressed: () {},
-                      icon: Icon(Icons.bookmark_outline_rounded, color: c.textPrimary),
-                    ),
+            _Header(
+              ownerMode: ownerMode,
+              isActive: isActive,
+              onEdit: () => context.push('/edit-load/$id'),
             ),
             Expanded(
               child: state.when(
                 loading: () => const DsLoader(),
                 error: (e, _) => DsErrorState(message: e.toString()),
-                data: (load) => _Body(load: load, ownerMode: ownerMode, isActive: isActive),
+                data: (load) => _Body(
+                  load: load,
+                  ownerMode: ownerMode,
+                  isActive: isActive,
+                ),
               ),
             ),
           ],
@@ -66,134 +65,122 @@ class LoadDetailsScreen extends ConsumerWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Header — back · "Details" · bookmark / edit
+// ---------------------------------------------------------------------------
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.ownerMode,
+    required this.isActive,
+    required this.onEdit,
+  });
+
+  final bool ownerMode;
+  final bool isActive;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final canEdit = ownerMode && isActive;
+    return ColoredBox(
+      color: Colors.white,
+      child: SafeArea(
+        bottom: false,
+        child: SizedBox(
+          height: 52,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                _CircleBtn(
+                  icon: LucideIcons.chevronLeft,
+                  // go_router pop when possible; otherwise (deep-link entry)
+                  // fall back to the list (redirects to /guest if not authed).
+                  onTap: () =>
+                      context.canPop() ? context.pop() : context.go('/loads'),
+                ),
+                const Expanded(
+                  child: Text(
+                    'Details',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: FigmaPalette.ink,
+                    ),
+                  ),
+                ),
+                _CircleBtn(
+                  icon: canEdit ? LucideIcons.squarePen : LucideIcons.bookmark,
+                  onTap: canEdit ? onEdit : () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CircleBtn extends StatelessWidget {
+  const _CircleBtn({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: onTap,
+      radius: 22,
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Icon(icon, size: 22, color: FigmaPalette.ink),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Body
+// ---------------------------------------------------------------------------
+
 class _Body extends ConsumerWidget {
-  const _Body({required this.load, required this.ownerMode, required this.isActive});
+  const _Body({
+    required this.load,
+    required this.ownerMode,
+    required this.isActive,
+  });
   final LoadEntity load;
   final bool ownerMode;
   final bool isActive;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final s = context.space;
-    final t = context.types;
-
-    return ListView(
-      padding: EdgeInsets.fromLTRB(s.lg, s.lg, s.lg, s.xl),
+    return Column(
       children: [
-        if (!ownerMode) _OwnerCard(),
-        if (!ownerMode) SizedBox(height: s.md),
-        DsCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             children: [
-              Text('detail.section.route'.tr(ref), style: t.h3),
-              SizedBox(height: s.md),
-              _RouteBlock(from: load.fromAddress, to: load.toAddress, fromDate: load.pickupDate),
+              _RouteCard(load: load),
+              const SizedBox(height: 8),
+              const _DetailsCard(),
+              const SizedBox(height: 8),
+              _MapCard(load: load),
+              const SizedBox(height: 8),
+              const _OwnerCard(),
             ],
           ),
         ),
-        SizedBox(height: s.md),
-        DsCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('detail.section.loadInfo'.tr(ref), style: t.h3),
-              SizedBox(height: s.md),
-              _Grid(items: [
-                ('detail.field.truckType'.tr(ref), 'Tent / Shtora'),
-                ('common.price'.tr(ref), load.price == null ? 'common.negotiable'.tr(ref) : '${load.price!.toStringAsFixed(0)} UZS'),
-                ('detail.field.weight'.tr(ref), '20 ${'common.tons'.tr(ref)}'),
-                ('detail.field.volume'.tr(ref), '100 ${'common.m3'.tr(ref)}'),
-                ('detail.field.distance'.tr(ref), '334 ${'common.km'.tr(ref)}'),
-                ('detail.field.payment'.tr(ref), 'Naqd'),
-              ]),
-            ],
-          ),
+        _BottomBar(
+          ownerMode: ownerMode,
+          isActive: isActive,
+          onArchiveToggle: () => _ownerToggle(context, ref),
+          onEdit: () => context.push('/edit-load/${load.guid}'),
         ),
-        SizedBox(height: s.md),
-        DsCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('detail.section.comment'.tr(ref), style: t.h3),
-              SizedBox(height: s.md),
-              Text(
-                load.comment?.isNotEmpty == true ? load.comment! : 'detail.noComment'.tr(ref),
-                style: t.body.copyWith(height: 22 / 14),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: s.md),
-        DsCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('detail.section.photos'.tr(ref), style: t.h3),
-              SizedBox(height: s.md),
-              SizedBox(
-                height: 88,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 3,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) => LightboxImage(
-                    imageUrl: 'https://picsum.photos/seed/load-${load.guid}-$i/240/240',
-                    heroTag: 'load-${load.guid}-$i',
-                    width: 88,
-                    height: 88,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: s.lg),
-
-        if (ownerMode) ...[
-          DsButton(
-            label: (isActive ? 'detail.archiveLoad' : 'detail.reactivate').tr(ref),
-            variant: isActive ? DsButtonVariant.outline : DsButtonVariant.solid,
-            onPressed: () => _ownerToggle(context, ref),
-          ),
-          SizedBox(height: s.sm),
-          DsButton(
-            label: 'detail.editLoad'.tr(ref),
-            variant: DsButtonVariant.secondary,
-            onPressed: () => context.push('/edit-load/${load.guid}'),
-          ),
-        ] else ...[
-          PhoneReveal(
-            phone: '+998901234567',
-            label: 'phone.show'.tr(ref),
-            callLabel: 'phone.call'.tr(ref),
-            onRevealed: () {},
-            onCall: (_) {},
-          ),
-          SizedBox(height: s.sm),
-          Row(
-            children: [
-              Expanded(
-                child: DsButton(
-                  label: 'detail.report'.tr(ref),
-                  variant: DsButtonVariant.report,
-                  icon: Icons.flag_outlined,
-                  onPressed: () {},
-                ),
-              ),
-              SizedBox(width: s.sm),
-              Expanded(
-                child: DsButton(
-                  label: 'detail.rating'.tr(ref),
-                  variant: DsButtonVariant.outline,
-                  icon: Icons.star_outline_rounded,
-                  onPressed: () {},
-                ),
-              ),
-            ],
-          ),
-        ],
       ],
     );
   }
@@ -202,14 +189,15 @@ class _Body extends ConsumerWidget {
     final confirm = await showDsConfirmation(
       context,
       title: (isActive ? 'detail.archiveLoad' : 'detail.reactivate').tr(ref),
-      message: (isActive ? 'detail.archiveLoadMessage' : 'detail.reactivateMessage').tr(ref),
+      message:
+          (isActive ? 'detail.archiveLoadMessage' : 'detail.reactivateMessage')
+              .tr(ref),
       confirmText: (isActive ? 'owner.archive' : 'detail.reactivate').tr(ref),
       cancelText: 'common.cancel'.tr(ref),
       intent: isActive ? DsConfirmIntent.warning : DsConfirmIntent.primary,
       icon: isActive ? Icons.inventory_2_outlined : Icons.refresh_rounded,
     );
-    if (!confirm) return;
-    if (!context.mounted) return;
+    if (!confirm || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
     try {
@@ -218,7 +206,8 @@ class _Body extends ConsumerWidget {
             isActive: !isActive,
             closedPlatform: isActive ? 'loadme' : null,
           );
-      messenger.showSnackBar(SnackBar(content: Text(isActive ? 'Yuk arxivlandi' : 'Yuk qayta faollashtirildi')));
+      messenger.showSnackBar(SnackBar(
+          content: Text(isActive ? 'Yuk arxivlandi' : 'Qayta faollashtirildi')));
       router.go('/my-loads');
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.toString())));
@@ -226,40 +215,98 @@ class _Body extends ConsumerWidget {
   }
 }
 
-class _OwnerCard extends StatelessWidget {
+// ---------------------------------------------------------------------------
+// Shared card shell
+// ---------------------------------------------------------------------------
+
+class _Card extends StatelessWidget {
+  const _Card({required this.child, this.padding = const EdgeInsets.all(16)});
+  final Widget child;
+  final EdgeInsets padding;
+
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final t = context.types;
-    return DsCard(
-      child: Row(
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: child,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Route card
+// ---------------------------------------------------------------------------
+
+class _RouteCard extends StatelessWidget {
+  const _RouteCard({required this.load});
+  final LoadEntity load;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: c.primary50,
-            child: Text('LM', style: t.button.copyWith(color: c.primary)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left icon column: cube · dotted · flag (parallel to the text).
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  appSvgIcon('card_cube', size: 16, color: FigmaPalette.ink),
+                  const DottedConnector(height: 24),
+                  appSvgIcon('card_flag', size: 16, color: FigmaPalette.ink),
+                ],
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(child: Text('LoadMe admin', style: t.bodySemibold, overflow: TextOverflow.ellipsis)),
-                    const SizedBox(width: 6),
-                    Icon(Icons.verified_rounded, size: 16, color: c.primary),
+                    _stopText(
+                      city: addressCity(load.fromAddress),
+                      region:
+                          addressRegion(load.fromAddress, 'Qashqadaryo, UZB'),
+                      date: '4-iyun',
+                    ),
+                    const SizedBox(height: 8),
+                    _stopText(
+                      city: addressCity(load.toAddress),
+                      region: addressRegion(load.toAddress, 'Kamchatka, RUS'),
+                      date: '8-iyun',
+                    ),
                   ],
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Icon(Icons.star_rounded, size: 14, color: c.warning300),
-                    const SizedBox(width: 2),
-                    Text('5.0', style: t.caption),
-                    const SizedBox(width: 10),
-                    Text('12 ta yuk', style: t.caption.copyWith(color: c.textSecondary)),
-                  ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Naqd / Avans price box
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: FigmaPalette.chipBg,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _money(
+                      'Naqd', '220 000 000 so’m', FigmaPalette.moneyGreen),
+                ),
+                Container(
+                    width: 1, height: 28, color: FigmaPalette.dividerStrong),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _money(
+                      'Avans', '30 000 000 so’m', FigmaPalette.gray700),
                 ),
               ],
             ),
@@ -268,44 +315,78 @@ class _OwnerCard extends StatelessWidget {
       ),
     );
   }
-}
 
-class _RouteBlock extends StatelessWidget {
-  const _RouteBlock({required this.from, required this.to, required this.fromDate});
-  final String from;
-  final String to;
-  final String? fromDate;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final t = context.types;
-    return Row(
+  // One stop's text block (city + date, region) — fixed line heights so the
+  // left icon column lines up: city 20px + 2 + region 18px = 40px.
+  Widget _stopText({
+    required String city,
+    required String region,
+    required String date,
+  }) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Column(
-            children: [
-              Container(width: 10, height: 10, decoration: BoxDecoration(color: c.primary, shape: BoxShape.circle)),
-              const SizedBox(height: 2),
-              SizedBox(width: 2, height: 32, child: DecoratedBox(decoration: BoxDecoration(color: c.gray300))),
-              const SizedBox(height: 2),
-              Container(width: 10, height: 10, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: c.primary, width: 2))),
-            ],
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                city,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 20 / 14,
+                  fontWeight: FontWeight.w600,
+                  color: FigmaPalette.inkStrong,
+                ),
+              ),
+            ),
+            Text(
+              date,
+              style: const TextStyle(
+                fontSize: 12,
+                height: 20 / 12,
+                fontWeight: FontWeight.w500,
+                color: FigmaPalette.label,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          region,
+          style: const TextStyle(
+            fontSize: 12,
+            height: 18 / 12,
+            fontWeight: FontWeight.w500,
+            color: FigmaPalette.label,
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(from, style: t.bodyLgMedium),
-              const SizedBox(height: 4),
-              if (fromDate != null) Text(fromDate!, style: t.caption.copyWith(color: c.textMuted)),
-              const SizedBox(height: 18),
-              Text(to, style: t.bodyLgMedium),
-            ],
+      ],
+    );
+  }
+
+  Widget _money(String label, String value, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: FigmaPalette.gray700,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: valueColor,
           ),
         ),
       ],
@@ -313,29 +394,374 @@ class _RouteBlock extends StatelessWidget {
   }
 }
 
-class _Grid extends StatelessWidget {
-  const _Grid({required this.items});
-  final List<(String, String)> items;
+// ---------------------------------------------------------------------------
+// Details card (spec rows + Izoh)
+// ---------------------------------------------------------------------------
+
+class _DetailsCard extends StatelessWidget {
+  const _DetailsCard();
+
+  static const _rows = <(IconData, String, String)>[
+    (LucideIcons.snowflake, 'Transport turi:', 'Refer'),
+    (LucideIcons.thermometer, 'Harorat:', '-2°  +12°'),
+    (LucideIcons.package, 'Mahsulot:', 'Gilos'),
+    (LucideIcons.arrowDownToLine, 'Yuklash turi:', 'Dagruz (To’liq)'),
+    (LucideIcons.mapPin, 'Radius (Yukgacha):', '10 km'),
+    (LucideIcons.route, 'Masofa:', '400 km'),
+    (LucideIcons.weight, 'Og’irlik:', '4 t'),
+    (LucideIcons.box, 'Yuk hajmi:', '-'),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final t = context.types;
-    return Wrap(
-      runSpacing: 14,
-      children: items
-          .map((it) => SizedBox(
-                width: (MediaQuery.sizeOf(context).width - 64) / 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(it.$1, style: t.caption.copyWith(color: c.textSecondary)),
-                    const SizedBox(height: 2),
-                    Text(it.$2, style: t.bodyMedium),
-                  ],
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final r in _rows) _row(r.$1, r.$2, r.$3),
+          const SizedBox(height: 8),
+          const Divider(
+              height: 1, thickness: 1, color: FigmaPalette.dividerStrong),
+          const SizedBox(height: 12),
+          const Text(
+            'Izoh:',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: FigmaPalette.label,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Temperature inside truck may depend on the weather outside',
+            style: TextStyle(
+              fontSize: 12,
+              height: 18 / 12,
+              fontWeight: FontWeight.w500,
+              color: FigmaPalette.ink,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7.5),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: FigmaPalette.primary),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: FigmaPalette.gray700,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: FigmaPalette.ink,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Map card
+// ---------------------------------------------------------------------------
+
+class _MapCard extends StatelessWidget {
+  const _MapCard({required this.load});
+  final LoadEntity load;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          height: 200,
+          child: Stack(
+            fit: StackFit.expand,
+            alignment: Alignment.center,
+            children: [
+              // Live OpenStreetMap preview (non-interactive inside the card).
+              RouteMap(
+                from: cityLatLng(addressCity(load.fromAddress)),
+                to: cityLatLng(addressCity(load.toAddress)),
+                interactive: false,
+              ),
+              // "Show in map" pill — wrapped in Center so the white Container
+              // sizes to its content instead of expanding (StackFit.expand)
+              // and painting over the whole map.
+              Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1A101828),
+                        offset: Offset(0, 2),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(LucideIcons.map,
+                          size: 18, color: FigmaPalette.primary),
+                      SizedBox(width: 8),
+                      Text(
+                        'Show in map',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ))
-          .toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Owner card
+// ---------------------------------------------------------------------------
+
+class _OwnerCard extends StatelessWidget {
+  const _OwnerCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Name + rating | role badge
+          Row(
+            children: [
+              appSvgIcon('card_verified', size: 16),
+              const SizedBox(width: 6),
+              const Text(
+                'ExportView LTD',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: FigmaPalette.ink,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Text('4.5',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: FigmaPalette.ink)),
+              const SizedBox(width: 2),
+              appSvgIcon('card_star', size: 14),
+              const Spacer(),
+              const RoleBadge(label: 'Yuk egasi'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _contact(LucideIcons.send, 'Telegram', '@calltome'),
+          const SizedBox(height: 8),
+          _contact(LucideIcons.phone, 'Whatsapp', '@callmexport'),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _OutlineBtn(
+                  icon: LucideIcons.star,
+                  label: 'Baholash',
+                  onTap: () {},
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: _OutlineBtn(
+                  icon: LucideIcons.flag,
+                  label: 'Shikoyat qilish',
+                  onTap: () {},
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _contact(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: FigmaPalette.primary),
+        const SizedBox(width: 8),
+        Text('$label:',
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: FigmaPalette.gray700)),
+        const Spacer(),
+        Text(value,
+            style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: FigmaPalette.ink)),
+      ],
+    );
+  }
+}
+
+class _OutlineBtn extends StatelessWidget {
+  const _OutlineBtn(
+      {required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: FigmaPalette.dividerStrong),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 18, color: FigmaPalette.tertiary),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: FigmaPalette.tertiary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sticky bottom CTA
+// ---------------------------------------------------------------------------
+
+class _BottomBar extends StatelessWidget {
+  const _BottomBar({
+    required this.ownerMode,
+    required this.isActive,
+    required this.onArchiveToggle,
+    required this.onEdit,
+  });
+
+  final bool ownerMode;
+  final bool isActive;
+  final VoidCallback onArchiveToggle;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Colors.white,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: ownerMode
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: _SolidBtn(
+                        label: isActive ? 'Arxivlash' : 'Faollashtirish',
+                        color: isActive
+                            ? FigmaPalette.dangerText
+                            : FigmaPalette.primary,
+                        onTap: onArchiveToggle,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _SolidBtn(
+                        label: 'Tahrirlash',
+                        color: FigmaPalette.primary,
+                        onTap: onEdit,
+                      ),
+                    ),
+                  ],
+                )
+              : _SolidBtn(
+                  label: 'Bog’lanish',
+                  color: FigmaPalette.primary,
+                  onTap: () {},
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SolidBtn extends StatelessWidget {
+  const _SolidBtn(
+      {required this.label, required this.color, required this.onTap});
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 50,
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

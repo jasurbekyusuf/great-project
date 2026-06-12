@@ -146,6 +146,7 @@ class _MyLoadsList extends ConsumerWidget {
               distanceKm: d.distanceKm,
               loadKind: d.loadKind,
               priceLabel: d.priceLabel,
+              timeAgo: d.timeAgo,
               onTap: () => context.push('/my-load/${d.load.guid}?active=$isActiveTab'),
             ),
           );

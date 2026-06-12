@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
+import 'package:loadme_mobile/core/utils/address_format.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
+import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
+import 'package:loadme_mobile/shared/widgets/load_card_parts.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-// Mirrors the Loads list card design from Figma (Load_me_Udevs):
-// - Header row: owner name + rating star + agreed/price link (right)
-// - Body: from/to route with dotted connector and country pills (UZ/KG)
-// - Right: pickup date
-// - Footer: role + truck type + capacity + distance chips
+// Pixel-faithful port of the Figma `Search` page load card
+// (frame 2087329682, 343×158, r=16, padding 10/16, gap=4).
+//
+// Three sections separated by 1px dividers:
+//   1. Header — verified ✓ + owner + rating ⭐               role badge pill
+//   2. Route  — cube/flag icon column + radius (left) / price (right),
+//               from city + country, to city + country + truck-type chip
+//   3. Footer — distance · weight · volume                  timestamp
 class LoadFigmaCard extends StatelessWidget {
   const LoadFigmaCard({
     super.key,
@@ -14,197 +22,208 @@ class LoadFigmaCard extends StatelessWidget {
     required this.onTap,
     this.ownerName = 'LoadMe admin',
     this.ownerRating,
+    this.verified = false,
     this.priceLabel,
     this.fromCountry = 'UZ',
     this.toCountry = 'UZ',
     this.roleBadge,
-    this.truckType = 'Tent / Shtora',
-    this.loadKind = "To'liq",
+    this.truckType = 'Tent',
+    this.loadKind,
     this.distanceKm,
     this.deadHeadKm,
     this.volumeM3,
     this.weightT,
+    this.radiusKm,
+    this.timeAgo,
   });
 
   final LoadEntity load;
   final VoidCallback onTap;
   final String ownerName;
   final double? ownerRating;
+  final bool verified;
   final String? priceLabel;
   final String fromCountry;
   final String toCountry;
   final String? roleBadge;
   final String truckType;
-  final String loadKind;
+  final String? loadKind;
   final int? distanceKm;
-  final int? deadHeadKm; // B.Y. — dead-head km
+  final int? deadHeadKm;
   final double? volumeM3;
   final double? weightT;
+  final int? radiusKm;
+  final String? timeAgo;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final s = context.space;
-    final t = context.types;
-
-    final dateText = _formatDate(load.pickupDate);
-
-    return Material(
-      color: c.surface,
-      borderRadius: BorderRadius.circular(s.radiusLg),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(s.radiusLg),
-        child: Container(
-          padding: EdgeInsets.all(s.md),
-          decoration: BoxDecoration(
-            color: c.surface,
-            borderRadius: BorderRadius.circular(s.radiusLg),
-            border: Border.all(color: c.borderSubtle, width: 1),
+    return FigmaCardShell(
+      onTap: onTap,
+      color: context.colors.surface,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _HeaderRow(
+            ownerName: ownerName,
+            ownerRating: ownerRating,
+            verified: verified,
+            roleBadge: roleBadge,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: owner + rating | price link
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      ownerName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: t.bodySemibold,
-                    ),
-                  ),
-                  if (ownerRating != null) ...[
-                    const SizedBox(width: 6),
-                    Text(ownerRating!.toStringAsFixed(1), style: t.caption.copyWith(color: c.textSecondary)),
-                    const SizedBox(width: 2),
-                    Icon(Icons.star_rounded, size: 14, color: c.warning300),
-                  ],
-                  const Spacer(),
-                  if (priceLabel != null)
-                    Text(priceLabel!, style: t.bodyMedium.copyWith(color: c.primary)),
-                ],
-              ),
-              SizedBox(height: s.md),
-
-              // Route block + date
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Dotted connector column
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(color: c.primary, shape: BoxShape.circle),
-                        ),
-                        const SizedBox(height: 2),
-                        _DottedVerticalLine(color: c.gray300, height: 22),
-                        const SizedBox(height: 2),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: c.primary, width: 1.6),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _RouteRow(country: fromCountry, address: load.fromAddress),
-                        const SizedBox(height: 12),
-                        _RouteRow(country: toCountry, address: load.toAddress),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (dateText != null)
-                    Text(dateText, style: t.caption.copyWith(color: c.textMuted)),
-                ],
-              ),
-
-              SizedBox(height: s.md),
-
-              // Chip row matches loadme.uz: B.Y. (dead-head) | volume m³ | weight t | status | distance km.
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  if (roleBadge != null)
-                    _Chip(text: roleBadge!, color: c.yellow100, textColor: c.yellow700),
-                  if (deadHeadKm != null)
-                    _Chip(text: 'B.Y. $deadHeadKm km', color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
-                  if (volumeM3 != null)
-                    _Chip(text: '${volumeM3!.toStringAsFixed(volumeM3! % 1 == 0 ? 0 : 1)} m³', color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
-                  if (weightT != null)
-                    _Chip(text: '${weightT!.toStringAsFixed(weightT! % 1 == 0 ? 0 : 1)} t', color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
-                  _Chip(text: loadKind, color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
-                  if (distanceKm != null)
-                    _Chip(text: '$distanceKm km', color: c.surfaceMuted, textColor: c.textPrimary, border: c.borderSubtle),
-                ],
-              ),
-            ],
+          const SizedBox(height: 4),
+          const Divider(height: 1, thickness: 1, color: FigmaPalette.divider),
+          const SizedBox(height: 8),
+          _RouteBlock(
+            radiusKm: radiusKm ?? deadHeadKm,
+            priceLabel: priceLabel,
+            fromCity: addressCity(load.fromAddress),
+            fromCountry: fromCountry,
+            toCity: addressCity(load.toAddress),
+            toCountry: toCountry,
+            truckType: truckType,
           ),
-        ),
+          const SizedBox(height: 8),
+          const Divider(height: 1, thickness: 1, color: FigmaPalette.divider),
+          const SizedBox(height: 8),
+          _FooterRow(
+            distanceKm: distanceKm,
+            weightT: weightT,
+            volumeM3: volumeM3,
+            timeAgo: timeAgo,
+          ),
+        ],
       ),
     );
   }
-
-  static const _wdays = ['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Yak'];
-
-  String? _formatDate(String? raw) {
-    if (raw == null || raw.isEmpty) return null;
-    final d = DateTime.tryParse(raw);
-    if (d == null) return raw;
-    final wd = _wdays[(d.weekday - 1).clamp(0, 6)];
-    final dd = d.day.toString().padLeft(2, '0');
-    final mm = d.month.toString().padLeft(2, '0');
-    return '$wd $dd/$mm';
-  }
 }
 
-class _RouteRow extends StatelessWidget {
-  const _RouteRow({required this.country, required this.address});
-  final String country;
-  final String address;
+// ---------------------------------------------------------------------------
+// Header
+// ---------------------------------------------------------------------------
+
+class _HeaderRow extends StatelessWidget {
+  const _HeaderRow({
+    required this.ownerName,
+    required this.ownerRating,
+    required this.verified,
+    required this.roleBadge,
+  });
+
+  final String ownerName;
+  final double? ownerRating;
+  final bool verified;
+  final String? roleBadge;
+
+  static const _ownerStyle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: FigmaPalette.gray700,
+    height: 18 / 14,
+  );
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final t = context.types;
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: c.primary50,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            country,
-            style: t.caption.copyWith(color: c.primary, fontWeight: FontWeight.w700),
-          ),
-        ),
-        const SizedBox(width: 8),
+        if (verified) ...[
+          // Exact Figma check-circle (gradient + white check baked in → no tint).
+          appSvgIcon('card_verified', size: 12),
+          const SizedBox(width: 4),
+        ],
         Flexible(
           child: Text(
-            address,
+            ownerName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: t.bodyMedium,
+            style: _ownerStyle,
+          ),
+        ),
+        if (ownerRating != null) ...[
+          const SizedBox(width: 4),
+          Text(ownerRating!.toStringAsFixed(1), style: _ownerStyle),
+          const SizedBox(width: 2),
+          // Exact Figma star (gold #FEC84B baked in → no tint).
+          appSvgIcon('card_star', size: 14),
+        ],
+        const Spacer(),
+        if (roleBadge != null) RoleBadge(label: roleBadge!),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Route block
+// ---------------------------------------------------------------------------
+
+class _RouteBlock extends StatelessWidget {
+  const _RouteBlock({
+    required this.radiusKm,
+    required this.priceLabel,
+    required this.fromCity,
+    required this.fromCountry,
+    required this.toCity,
+    required this.toCountry,
+    required this.truckType,
+  });
+
+  final int? radiusKm;
+  final String? priceLabel;
+  final String fromCity;
+  final String fromCountry;
+  final String toCity;
+  final String toCountry;
+  final String truckType;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _RouteIconColumn(),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Radius (left) + Price (right)
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      radiusKm == null ? 'Radius: —' : 'Radius: ${radiusKm}km',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: FigmaPalette.muted,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                  if (priceLabel != null)
+                    Text(
+                      priceLabel!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: FigmaPalette.primary,
+                        height: 20 / 14,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              RouteCityRow(city: fromCity, country: fromCountry),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(child: RouteCityRow(city: toCity, country: toCountry)),
+                  _TruckTypeChip(label: truckType),
+                ],
+              ),
+            ],
           ),
         ),
       ],
@@ -212,53 +231,128 @@ class _RouteRow extends StatelessWidget {
   }
 }
 
-class _Chip extends StatelessWidget {
-  const _Chip({required this.text, required this.color, required this.textColor, this.border});
-  final String text;
-  final Color color;
-  final Color textColor;
-  final Color? border;
+class _RouteIconColumn extends StatelessWidget {
+  const _RouteIconColumn();
 
   @override
   Widget build(BuildContext context) {
-    final t = context.types;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-        border: border == null ? null : Border.all(color: border!, width: 1),
-      ),
-      child: Text(text, style: t.caption.copyWith(color: textColor)),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 2),
+        appSvgIcon('card_pin', size: 13, color: FigmaPalette.muted),
+        const DottedConnector(height: 14),
+        appSvgIcon('card_cube', size: 13, color: FigmaPalette.inkStrong),
+        const DottedConnector(height: 14),
+        appSvgIcon('card_flag', size: 13, color: FigmaPalette.inkStrong),
+      ],
     );
   }
 }
 
-class _DottedVerticalLine extends StatelessWidget {
-  const _DottedVerticalLine({required this.color, required this.height});
-  final Color color;
-  final double height;
+class _TruckTypeChip extends StatelessWidget {
+  const _TruckTypeChip({required this.label});
+  final String label;
+
+  // Per-type icon: refrigerated → snowflake, cistern → fuel, jumbo →
+  // container, otherwise a box truck (matches the Figma card variants).
+  static IconData _iconFor(String label) {
+    final l = label.toLowerCase();
+    if (l.contains('refer') || l.contains('refr')) return LucideIcons.snowflake;
+    if (l.contains('sisterna') || l.contains('tank') || l.contains('sistern')) {
+      return LucideIcons.fuel;
+    }
+    if (l.contains('jumbo')) return LucideIcons.container;
+    return LucideIcons.truck;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 1.5,
-      height: height,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          const dot = 2.0;
-          const gap = 3.0;
-          final count = (constraints.maxHeight / (dot + gap)).floor();
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(count, (_) => SizedBox(
-              width: 1.5,
-              height: dot,
-              child: DecoratedBox(decoration: BoxDecoration(color: color)),
-            )),
-          );
-        },
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: FigmaPalette.chipBg,
+        borderRadius: BorderRadius.circular(6),
       ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_iconFor(label), size: 12, color: FigmaPalette.ink),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: FigmaPalette.ink,
+              height: 18 / 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Footer
+// ---------------------------------------------------------------------------
+
+class _FooterRow extends StatelessWidget {
+  const _FooterRow({
+    required this.distanceKm,
+    required this.weightT,
+    required this.volumeM3,
+    required this.timeAgo,
+  });
+
+  final int? distanceKm;
+  final double? weightT;
+  final double? volumeM3;
+  final String? timeAgo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        if (distanceKm != null) ...[
+          RouteStatChip(
+            icon: appSvgIcon('card_route',
+                size: 14, color: FigmaPalette.inkStrong),
+            text: '$distanceKm km',
+          ),
+          const SizedBox(width: 6),
+          const CardVDivider(),
+          const SizedBox(width: 6),
+        ],
+        if (weightT != null) ...[
+          RouteStatChip(
+            icon: appSvgIcon('card_weight',
+                size: 14, color: FigmaPalette.inkStrong),
+            text: '${formatQty(weightT!)} t',
+          ),
+          const SizedBox(width: 6),
+        ],
+        if (volumeM3 != null) ...[
+          RouteStatChip(
+            icon: appSvgIcon('card_cube',
+                size: 14, color: FigmaPalette.inkStrong),
+            text: '${formatQty(volumeM3!)} m³',
+          ),
+          const SizedBox(width: 6),
+        ],
+        const Spacer(),
+        if (timeAgo != null)
+          Text(
+            timeAgo!,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: FigmaPalette.muted,
+              height: 1.5,
+            ),
+          ),
+      ],
     );
   }
 }
