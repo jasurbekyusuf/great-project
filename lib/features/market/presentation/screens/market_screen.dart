@@ -7,6 +7,8 @@ import 'package:loadme_mobile/features/loads/presentation/controllers/loads_cont
 import 'package:loadme_mobile/features/loads/presentation/widgets/loads_list_view.dart';
 import 'package:loadme_mobile/features/trucks/presentation/controllers/trucks_controller.dart';
 import 'package:loadme_mobile/features/trucks/presentation/widgets/trucks_list_view.dart';
+import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
+import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/widgets/floating_market_nav.dart';
 import 'package:loadme_mobile/shared/widgets/mobile_auth_required_sheet.dart';
 import 'package:loadme_mobile/shared/widgets/select_location_drawer.dart';
@@ -40,6 +42,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
   late MarketTab _tab = widget.initialTab;
   LocationItem? _origin;
   LocationItem? _destination;
+  String? _truckType;
 
   // Figma offsets (status bar already excluded — we add topInset at runtime).
   static const _tabTop = 12.0;
@@ -151,7 +154,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             child: _CombinedSearchBar(
               origin: _origin,
               destination: _destination,
-              onTapSearch: _openLocationSheet,
+              onTapSearch: _openSearchSheet,
               onTapAll: _openFilters,
             ),
           ),
@@ -160,18 +163,23 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     );
   }
 
-  Future<void> _openLocationSheet() async {
+  Future<void> _openSearchSheet() async {
     if (widget.guest) {
       await showMobileAuthRequiredSheet(context);
       return;
     }
-    final picked = await showSelectLocationDrawer(
+    final result = await showLoadsSearchSheet(
       context: context,
-      title: 'loads.originPlace'.tr(ref),
-      currentId: _origin?.id,
+      origin: _origin,
+      destination: _destination,
+      truckType: _truckType,
     );
-    if (picked != null) {
-      setState(() => _origin = picked);
+    if (result != null) {
+      setState(() {
+        _origin = result.origin;
+        _destination = result.destination;
+        _truckType = result.truckType;
+      });
       _runSearch();
     }
   }
@@ -194,6 +202,236 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     } else {
       ref.invalidate(trucksControllerProvider);
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// "Yuklarni qidirish" — search sheet from the market search bar
+// (Figma 6435:34680 / 36792): Qayerdan + Qayerga + Transport turi + Tayyor.
+// The location fields reuse the searchable location drawer for autocomplete.
+// ---------------------------------------------------------------------------
+
+class LoadsSearchResult {
+  const LoadsSearchResult({this.origin, this.destination, this.truckType});
+  final LocationItem? origin;
+  final LocationItem? destination;
+  final String? truckType;
+}
+
+Future<LoadsSearchResult?> showLoadsSearchSheet({
+  required BuildContext context,
+  LocationItem? origin,
+  LocationItem? destination,
+  String? truckType,
+}) {
+  return showModalBottomSheet<LoadsSearchResult>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+    ),
+    builder: (_) => _LoadsSearchSheet(
+      origin: origin,
+      destination: destination,
+      truckType: truckType,
+    ),
+  );
+}
+
+class _LoadsSearchSheet extends StatefulWidget {
+  const _LoadsSearchSheet({this.origin, this.destination, this.truckType});
+  final LocationItem? origin;
+  final LocationItem? destination;
+  final String? truckType;
+
+  @override
+  State<_LoadsSearchSheet> createState() => _LoadsSearchSheetState();
+}
+
+class _LoadsSearchSheetState extends State<_LoadsSearchSheet> {
+  late LocationItem? _origin = widget.origin;
+  late LocationItem? _destination = widget.destination;
+  late String? _truckType = widget.truckType;
+
+  static const _truckTypes = [
+    'Tent / Shtora',
+    'Refrigerator',
+    'Isuzu NQR / NPR',
+    'Trailer',
+    "Container 20'",
+    "Container 40'",
+    'Flatbed',
+  ];
+
+  String? _loc(LocationItem? l) =>
+      l == null ? null : '${l.country} · ${l.title}';
+
+  Future<void> _pickOrigin() async {
+    final v = await showSelectLocationDrawer(
+      context: context,
+      title: 'Qayerdan',
+      currentId: _origin?.id,
+    );
+    if (v != null) setState(() => _origin = v);
+  }
+
+  Future<void> _pickDestination() async {
+    final v = await showSelectLocationDrawer(
+      context: context,
+      title: 'Qayerga',
+      currentId: _destination?.id,
+    );
+    if (v != null) setState(() => _destination = v);
+  }
+
+  Future<void> _pickTruckType() async {
+    final v = await showDsActionDrawer<String>(
+      context: context,
+      title: 'Transport turi',
+      currentValue: _truckType,
+      items: _truckTypes
+          .map((t) => DsActionDrawerItem(value: t, label: t))
+          .toList(),
+    );
+    if (v != null) setState(() => _truckType = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          8,
+          16,
+          MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 5,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: FigmaPalette.divider,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Yuklarni qidirish',
+                    style: TextStyle(
+                      fontSize: 18,
+                      height: 24 / 18,
+                      fontWeight: FontWeight.w600,
+                      color: FigmaPalette.ink,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  behavior: HitTestBehavior.opaque,
+                  child: const Icon(LucideIcons.x,
+                      size: 22, color: FigmaPalette.label),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _SearchRow(
+              icon: const Icon(Icons.circle,
+                  size: 12, color: FigmaPalette.primary),
+              hint: 'Qayerdan',
+              value: _loc(_origin),
+              onTap: _pickOrigin,
+            ),
+            const SizedBox(height: 8),
+            _SearchRow(
+              icon: const Icon(Icons.trip_origin,
+                  size: 14, color: FigmaPalette.primary),
+              hint: 'Qayerga',
+              value: _loc(_destination),
+              onTap: _pickDestination,
+            ),
+            const SizedBox(height: 8),
+            _SearchRow(
+              icon: const Icon(LucideIcons.truck,
+                  size: 18, color: FigmaPalette.primary),
+              hint: 'Transport turini tanlang',
+              value: _truckType,
+              onTap: _pickTruckType,
+            ),
+            const SizedBox(height: 16),
+            DsButton(
+              label: 'Tayyor',
+              onPressed: () => Navigator.pop(
+                context,
+                LoadsSearchResult(
+                  origin: _origin,
+                  destination: _destination,
+                  truckType: _truckType,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchRow extends StatelessWidget {
+  const _SearchRow({
+    required this.icon,
+    required this.hint,
+    required this.value,
+    required this.onTap,
+  });
+
+  final Widget icon;
+  final String hint;
+  final String? value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: FigmaPalette.divider),
+        ),
+        child: Row(
+          children: [
+            icon,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                value ?? hint,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: value == null ? FigmaPalette.label : FigmaPalette.ink,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

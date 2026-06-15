@@ -106,7 +106,7 @@ class _PostTruckFormScreenState extends ConsumerState<PostTruckFormScreen> {
           children: [
             MobilePageHead(
               title: (_isEdit ? 'form.editPostTruckTitle' : 'form.addPostTruckTitle').tr(ref),
-              onBack: () => context.canPop() ? context.pop() : context.go('/my-trucks'),
+              onBack: () => context.canPop() ? context.pop() : context.go('/garage'),
             ),
             Expanded(
               child: ListView(
@@ -232,6 +232,10 @@ class _PostTruckFormScreenState extends ConsumerState<PostTruckFormScreen> {
     await Future<void>.delayed(const Duration(milliseconds: 350));
     if (!mounted) return;
     setState(() => _submitting = false);
-    context.go('/my-trucks');
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/garage');
+    }
   }
 }

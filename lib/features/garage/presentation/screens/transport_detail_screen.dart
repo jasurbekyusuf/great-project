@@ -4,6 +4,8 @@ import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/garage/presentation/providers/garage_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
+import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
+import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
 import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
 import 'package:loadme_mobile/shared/widgets/frosted_header.dart';
 import 'package:loadme_mobile/shared/widgets/load_card_parts.dart';
@@ -18,19 +20,9 @@ class TransportDetailScreen extends ConsumerWidget {
 
   final String id;
 
-  static const _fallback = GarageVehicle(
-    id: '',
-    name: 'Isuzu Katta',
-    model: 'Isuzu FVR 33',
-    plate: '60 O 506 KB',
-  );
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final vehicle = ref.watch(garageVehiclesProvider).firstWhere(
-          (v) => v.id == id,
-          orElse: () => _fallback,
-        );
+    final detail = ref.watch(transportDetailProvider(id));
 
     return SwipeBackWrapper(
       child: Scaffold(
@@ -43,27 +35,36 @@ class TransportDetailScreen extends ConsumerWidget {
                   size: 22, color: FigmaPalette.ink),
             ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                children: [
-                  _SummaryCard(vehicle: vehicle),
-                  const SizedBox(height: 12),
-                  _SpecsCard(vehicle: vehicle),
-                  const SizedBox(height: 12),
-                  const _ContactCard(),
-                ],
-              ),
-            ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: DsButton(
-                  label: 'transport.contact'.tr(ref),
-                  onPressed: () {},
+              child: detail.when(
+                loading: () => const DsLoader(),
+                error: (e, _) => DsErrorState(
+                  message: e.toString(),
+                  onRetry: () => ref.invalidate(transportDetailProvider(id)),
+                ),
+                data: (d) => ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                  children: [
+                    _SummaryCard(detail: d),
+                    const SizedBox(height: 12),
+                    _SpecsCard(detail: d),
+                    const SizedBox(height: 12),
+                    _ContactCard(detail: d),
+                  ],
                 ),
               ),
             ),
+            // The contact CTA only makes sense once the carrier data is loaded.
+            if (detail.hasValue)
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: DsButton(
+                    label: 'transport.contact'.tr(ref),
+                    onPressed: () {},
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -74,12 +75,12 @@ class TransportDetailScreen extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 // Summary card — vehicle, route (with dates) and price
 // ---------------------------------------------------------------------------
-class _SummaryCard extends ConsumerWidget {
-  const _SummaryCard({required this.vehicle});
-  final GarageVehicle vehicle;
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.detail});
+  final TransportDetail detail;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,10 +95,10 @@ class _SummaryCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    VehicleTypeChip(label: vehicle.name),
+                    VehicleTypeChip(label: detail.vehicleName),
                     const SizedBox(height: 4),
                     Text(
-                      vehicle.model,
+                      detail.vehicleModel,
                       style: const TextStyle(
                         fontSize: 12,
                         height: 18 / 12,
@@ -127,20 +128,20 @@ class _SummaryCard extends ConsumerWidget {
                 ],
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _RoutePoint(
-                      city: 'Shahrisabz,',
-                      subtitle: 'Qashqadaryo, UZ',
-                      date: '4-iyun',
+                      city: detail.fromCity,
+                      subtitle: detail.fromSubtitle,
+                      date: detail.fromDate,
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     _RoutePoint(
-                      city: 'Petropavlovsk-Kamchatskiy',
-                      subtitle: 'Kamchatka, RU',
-                      date: '8-iyun',
+                      city: detail.toCity,
+                      subtitle: detail.toSubtitle,
+                      date: detail.toDate,
                     ),
                   ],
                 ),
@@ -174,7 +175,7 @@ class _SummaryCard extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'transport.payment.cash'.tr(ref),
+                        detail.paymentLabel,
                         style: const TextStyle(
                           fontSize: 12,
                           height: 18 / 12,
@@ -182,9 +183,9 @@ class _SummaryCard extends ConsumerWidget {
                           color: FigmaPalette.gray700,
                         ),
                       ),
-                      const Text(
-                        '220 000 000 so’m',
-                        style: TextStyle(
+                      Text(
+                        detail.priceLabel,
+                        style: const TextStyle(
                           fontSize: 14,
                           height: 20 / 14,
                           fontWeight: FontWeight.w600,
@@ -260,18 +261,18 @@ class _RoutePoint extends StatelessWidget {
 // Specs card
 // ---------------------------------------------------------------------------
 class _SpecsCard extends ConsumerWidget {
-  const _SpecsCard({required this.vehicle});
-  final GarageVehicle vehicle;
+  const _SpecsCard({required this.detail});
+  final TransportDetail detail;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rows = <(IconData, String, String)>[
-      (LucideIcons.truck, 'transport.field.number'.tr(ref), vehicle.plate),
-      (LucideIcons.package, 'transport.field.loadType'.tr(ref), 'Dagruz (To’liq)'),
-      (LucideIcons.locateFixed, 'transport.field.radius'.tr(ref), '10 km'),
-      (LucideIcons.route, 'detail.field.distance'.tr(ref), '400 km'),
-      (LucideIcons.weight, 'detail.field.weight'.tr(ref), '4 t'),
-      (LucideIcons.scan, 'transport.field.capacity'.tr(ref), '34 m³'),
+      (LucideIcons.truck, 'transport.field.number'.tr(ref), detail.plate),
+      (LucideIcons.package, 'transport.field.loadType'.tr(ref), detail.loadType),
+      (LucideIcons.locateFixed, 'transport.field.radius'.tr(ref), detail.radius),
+      (LucideIcons.route, 'detail.field.distance'.tr(ref), detail.distance),
+      (LucideIcons.weight, 'detail.field.weight'.tr(ref), detail.weight),
+      (LucideIcons.scan, 'transport.field.capacity'.tr(ref), detail.capacity),
     ];
 
     return _Card(
@@ -294,9 +295,9 @@ class _SpecsCard extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Temperature inside truck may depend on the weather outside',
-            style: TextStyle(
+          Text(
+            detail.comment,
+            style: const TextStyle(
               fontSize: 12,
               height: 18 / 12,
               fontWeight: FontWeight.w500,
@@ -357,7 +358,8 @@ class _SpecRow extends StatelessWidget {
 // Contact card
 // ---------------------------------------------------------------------------
 class _ContactCard extends ConsumerWidget {
-  const _ContactCard();
+  const _ContactCard({required this.detail});
+  final TransportDetail detail;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -374,9 +376,9 @@ class _ContactCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Bahodir Abdullayev',
-                      style: TextStyle(
+                    Text(
+                      detail.contactName,
+                      style: const TextStyle(
                         fontSize: 14,
                         height: 18 / 14,
                         fontWeight: FontWeight.w500,
@@ -386,9 +388,9 @@ class _ContactCard extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Text(
-                          '4.5',
-                          style: TextStyle(
+                        Text(
+                          detail.contactRating.toString(),
+                          style: const TextStyle(
                             fontSize: 12,
                             height: 18 / 12,
                             fontWeight: FontWeight.w500,
@@ -407,11 +409,11 @@ class _ContactCard extends ConsumerWidget {
           const SizedBox(height: 12),
           const Divider(height: 1, thickness: 1, color: FigmaPalette.divider),
           const SizedBox(height: 12),
-          const Row(
+          Row(
             children: [
-              Expanded(child: _ContactLink(label: 'Telegram:', value: '@calltome')),
-              SizedBox(width: 12),
-              Expanded(child: _ContactLink(label: 'Whatsapp:', value: '@callmexport')),
+              Expanded(child: _ContactLink(label: 'Telegram:', value: detail.telegram)),
+              const SizedBox(width: 12),
+              Expanded(child: _ContactLink(label: 'Whatsapp:', value: detail.whatsapp)),
             ],
           ),
           const SizedBox(height: 12),

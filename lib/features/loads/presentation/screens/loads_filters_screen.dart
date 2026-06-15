@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:loadme_mobile/core/services/app_l10n.dart';
-import 'package:loadme_mobile/core/theme/theme_extensions.dart';
+import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
-import 'package:loadme_mobile/shared/widgets/mobile_page_head.dart';
+import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
+import 'package:loadme_mobile/shared/widgets/frosted_header.dart';
 import 'package:loadme_mobile/shared/widgets/select_location_drawer.dart';
 import 'package:loadme_mobile/shared/widgets/swipe_back_wrapper.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-// Mirrors web `LoadsFilters` screen (src/modules/LoadsFilters).
-// Fields: from, to, truck type, load type, weight, volume, dead-head, date,
-// rating, payment type. Apply + reset bottom bar.
+// Figma "Filtrlar" (node 6435:40358). A compact, mobile-native filter:
+//   • grouped route card — Qayerdan + Radius (split) over Qayerga, linked by a
+//     cube → flag dotted rail
+//   • Transport turi tile, E'lon egasi tile (icon-box · label · value · ›)
+//   • "Filterni tozalash" (red text) + full-width blue "Tayyor"
+// Strings are hardcoded in Uzbek to match the mockup 1:1, like the other
+// redesigned loads screens (e.g. the load detail page).
 class LoadsFiltersScreen extends ConsumerStatefulWidget {
   const LoadsFiltersScreen({super.key});
 
@@ -21,169 +26,146 @@ class LoadsFiltersScreen extends ConsumerStatefulWidget {
 }
 
 class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
-  final _query = TextEditingController();
-  final _weight = TextEditingController();
-  final _volume = TextEditingController();
-  final _deadHead = TextEditingController();
-
   LocationItem? _from;
   LocationItem? _to;
+  String? _radius;
   String? _truckType;
-  String? _loadKind;
-  String? _payment;
-  DateTimeRange? _pickupRange;
-  double _minRating = 0;
+  String? _poster;
 
+  static const _radii = ['10 km', '25 km', '50 km', '100 km', '200 km'];
   static const _truckTypes = [
-    'Tent / Shtora', 'Refrigerator', 'Isuzu NQR / NPR', 'Trailer', 'Container 20\'', 'Container 40\'',
+    'Tent / Shtora',
+    'Refrigerator',
+    'Isuzu NQR / NPR',
+    'Trailer',
+    "Konteyner 20'",
+    "Konteyner 40'",
   ];
-  static const _loadKinds = ["To'liq", 'Yarim', 'Konteyner', 'Maxsus'];
-  static const _payments = ['Naqd', 'Pul ko\'chirma', 'Kelishiladi'];
-
-  @override
-  void dispose() {
-    _query.dispose();
-    _weight.dispose();
-    _volume.dispose();
-    _deadHead.dispose();
-    super.dispose();
-  }
+  static const _posters = ['Hammasi', 'Haydovchi', 'Yuk egasi', 'Vositachi'];
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final s = context.space;
-
     return SwipeBackWrapper(
       child: Scaffold(
-        backgroundColor: c.background,
+        backgroundColor: FigmaPalette.sheetBg,
         body: Column(
           children: [
-            MobilePageHead(
-              title: 'filters.title'.tr(ref),
-              trailing: TextButton(
-                onPressed: _reset,
-                child: Text('filters.reset'.tr(ref), style: TextStyle(color: c.error)),
-              ),
-            ),
+            const FrostedHeader(title: 'Filtrlar'),
             Expanded(
               child: ListView(
-                padding: EdgeInsets.all(s.lg),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                 children: [
-                  _Field(
-                    label: 'filters.search'.tr(ref),
-                    placeholder: 'filters.searchHint'.tr(ref),
-                    controller: _query,
-                    icon: Icons.search_rounded,
+                  _routeCard(),
+                  const SizedBox(height: 12),
+                  _FilterTile(
+                    icon: const Icon(LucideIcons.truck,
+                        size: 22, color: FigmaPalette.primary),
+                    label: 'Transport turi',
+                    value: _truckType ?? 'Transport turini tanlang',
+                    placeholder: _truckType == null,
+                    onTap: _pickTruckType,
                   ),
-                  SizedBox(height: s.md),
-                  _SelectTile(
-                    label: 'filters.from'.tr(ref),
-                    value: _from == null ? null : '${_from!.country} · ${_from!.title}',
-                    placeholder: 'form.label.choose'.tr(ref),
-                    icon: Icons.trip_origin_rounded,
-                    onTap: () async {
-                      final v = await showSelectLocationDrawer(context: context, title: 'filters.from'.tr(ref), currentId: _from?.id);
-                      if (v != null) setState(() => _from = v);
-                    },
-                  ),
-                  SizedBox(height: s.md),
-                  _SelectTile(
-                    label: 'filters.to'.tr(ref),
-                    value: _to == null ? null : '${_to!.country} · ${_to!.title}',
-                    placeholder: 'form.label.choose'.tr(ref),
-                    icon: Icons.place_rounded,
-                    onTap: () async {
-                      final v = await showSelectLocationDrawer(context: context, title: 'filters.to'.tr(ref), currentId: _to?.id);
-                      if (v != null) setState(() => _to = v);
-                    },
-                  ),
-                  SizedBox(height: s.md),
-                  _SelectTile(
-                    label: 'filters.truckType'.tr(ref),
-                    value: _truckType,
-                    placeholder: 'form.label.choose'.tr(ref),
-                    onTap: () async {
-                      final v = await showDsActionDrawer<String>(
-                        context: context,
-                        title: 'filters.truckType'.tr(ref),
-                        currentValue: _truckType,
-                        items: _truckTypes.map((t) => DsActionDrawerItem(value: t, label: t)).toList(),
-                      );
-                      if (v != null) setState(() => _truckType = v);
-                    },
-                  ),
-                  SizedBox(height: s.md),
-                  _SelectTile(
-                    label: 'filters.loadType'.tr(ref),
-                    value: _loadKind,
-                    placeholder: 'form.label.choose'.tr(ref),
-                    onTap: () async {
-                      final v = await showDsActionDrawer<String>(
-                        context: context,
-                        title: 'filters.loadType'.tr(ref),
-                        currentValue: _loadKind,
-                        items: _loadKinds.map((t) => DsActionDrawerItem(value: t, label: t)).toList(),
-                      );
-                      if (v != null) setState(() => _loadKind = v);
-                    },
-                  ),
-                  SizedBox(height: s.md),
-                  Row(
-                    children: [
-                      Expanded(child: _Field(label: 'filters.weight'.tr(ref), placeholder: '0', controller: _weight, suffix: 't', keyboardType: TextInputType.number)),
-                      SizedBox(width: s.md),
-                      Expanded(child: _Field(label: 'filters.volume'.tr(ref), placeholder: '0', controller: _volume, suffix: 'm³', keyboardType: TextInputType.number)),
-                    ],
-                  ),
-                  SizedBox(height: s.md),
-                  _Field(label: 'filters.deadHead'.tr(ref), placeholder: '0', controller: _deadHead, suffix: 'km', keyboardType: TextInputType.number),
-                  SizedBox(height: s.md),
-                  _SelectTile(
-                    label: 'filters.pickupDate'.tr(ref),
-                    value: _pickupRange == null
-                        ? null
-                        : '${_fmt(_pickupRange!.start)} → ${_fmt(_pickupRange!.end)}',
-                    placeholder: 'form.label.choose'.tr(ref),
-                    icon: Icons.calendar_today_rounded,
-                    onTap: _pickDateRange,
-                  ),
-                  SizedBox(height: s.md),
-                  _SelectTile(
-                    label: 'filters.payment'.tr(ref),
-                    value: _payment,
-                    placeholder: 'form.label.choose'.tr(ref),
-                    icon: Icons.payments_outlined,
-                    onTap: () async {
-                      final v = await showDsActionDrawer<String>(
-                        context: context,
-                        title: 'filters.payment'.tr(ref),
-                        currentValue: _payment,
-                        items: _payments.map((t) => DsActionDrawerItem(value: t, label: t)).toList(),
-                      );
-                      if (v != null) setState(() => _payment = v);
-                    },
-                  ),
-                  SizedBox(height: s.lg),
-                  _RatingSlider(
-                    label: 'filters.minRating'.tr(ref),
-                    value: _minRating,
-                    onChanged: (v) => setState(() => _minRating = v),
+                  const SizedBox(height: 12),
+                  _FilterTile(
+                    icon: const Icon(LucideIcons.user,
+                        size: 22, color: FigmaPalette.primary),
+                    label: 'E’lon egasi',
+                    value: _poster ?? 'E’lon egasini tanlang',
+                    placeholder: _poster == null,
+                    onTap: _pickPoster,
                   ),
                 ],
               ),
             ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(s.lg, s.sm, s.lg, s.md),
-                child: Row(
-                  children: [
-                    Expanded(child: DsButton(label: 'filters.reset'.tr(ref), variant: DsButtonVariant.outline, onPressed: _reset)),
-                    SizedBox(width: s.md),
-                    Expanded(child: DsButton(label: 'filters.apply'.tr(ref), onPressed: _apply)),
-                  ],
+            _BottomBar(onReset: _reset, onApply: _apply),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Qayerdan + Radius (top, split by a divider) over Qayerga, with a cube → flag
+  // dotted rail on the left tying the two stops together.
+  Widget _routeCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Left rail: cube · dotted · flag.
+            Column(
+              children: [
+                _IconBox(
+                  child: appSvgIcon('card_cube',
+                      size: 20, color: FigmaPalette.primary),
                 ),
+                const Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
+                    child: Center(child: _VDottedLine()),
+                  ),
+                ),
+                _IconBox(
+                  child: appSvgIcon('card_flag',
+                      size: 20, color: FigmaPalette.primary),
+                ),
+              ],
+            ),
+            const SizedBox(width: 12),
+            // Right content.
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _Field(
+                            label: 'Qayerdan',
+                            value: _from?.title ?? 'Yuklash manzili',
+                            placeholder: _from == null,
+                            onTap: _pickFrom,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const VerticalDivider(
+                          width: 1,
+                          thickness: 1,
+                          color: FigmaPalette.divider,
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 92,
+                          child: _Field(
+                            label: 'Radius',
+                            value: _radius ?? 'Tanlang',
+                            placeholder: _radius == null,
+                            onTap: _pickRadius,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: FigmaPalette.divider,
+                  ),
+                  const SizedBox(height: 10),
+                  _Field(
+                    label: 'Qayerga',
+                    value: _to?.title ?? 'Yetkazish manzili',
+                    placeholder: _to == null,
+                    onTap: _pickTo,
+                  ),
+                ],
               ),
             ),
           ],
@@ -192,44 +174,70 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
     );
   }
 
-  Future<void> _pickDateRange() async {
-    final now = DateTime.now();
-    final picked = await showDateRangePicker(
+  Future<void> _pickFrom() async {
+    final v = await showSelectLocationDrawer(
       context: context,
-      firstDate: now.subtract(const Duration(days: 1)),
-      lastDate: now.add(const Duration(days: 365)),
-      initialDateRange: _pickupRange,
+      title: 'Qayerdan',
+      currentId: _from?.id,
     );
-    if (picked != null) setState(() => _pickupRange = picked);
+    if (v != null) setState(() => _from = v);
   }
 
-  String _fmt(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+  Future<void> _pickTo() async {
+    final v = await showSelectLocationDrawer(
+      context: context,
+      title: 'Qayerga',
+      currentId: _to?.id,
+    );
+    if (v != null) setState(() => _to = v);
+  }
+
+  Future<void> _pickRadius() async {
+    final v = await _pickFromList('Radius', _radii, _radius);
+    if (v != null) setState(() => _radius = v);
+  }
+
+  Future<void> _pickTruckType() async {
+    final v = await _pickFromList('Transport turi', _truckTypes, _truckType);
+    if (v != null) setState(() => _truckType = v);
+  }
+
+  Future<void> _pickPoster() async {
+    final v = await _pickFromList('E’lon egasi', _posters, _poster);
+    if (v != null) setState(() => _poster = v);
+  }
+
+  Future<String?> _pickFromList(
+    String title,
+    List<String> items,
+    String? current,
+  ) {
+    return showDsActionDrawer<String>(
+      context: context,
+      title: title,
+      currentValue: current,
+      items:
+          items.map((t) => DsActionDrawerItem(value: t, label: t)).toList(),
+    );
+  }
 
   void _reset() {
     setState(() {
-      _query.clear();
-      _weight.clear();
-      _volume.clear();
-      _deadHead.clear();
       _from = null;
       _to = null;
+      _radius = null;
       _truckType = null;
-      _loadKind = null;
-      _payment = null;
-      _pickupRange = null;
-      _minRating = 0;
+      _poster = null;
     });
   }
 
   void _apply() {
-    final query = [
-      _query.text.trim(),
-      _from?.title ?? '',
-      _to?.title ?? '',
-    ].where((e) => e.isNotEmpty).join(' ');
+    final query = [_from?.title ?? '', _to?.title ?? '']
+        .where((e) => e.isNotEmpty)
+        .join(' ');
     ref.read(loadsControllerProvider.notifier).applyQuery(query);
-    // Pop back to the previous list (preserves history). Fallback to /loads
-    // if filters was opened as a fresh root (e.g. deep link).
+    // Pop back to the previous list (preserves history); fall back to /loads
+    // if filters was opened as a fresh root (e.g. a deep link).
     if (context.canPop()) {
       context.pop();
     } else {
@@ -238,132 +246,216 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Shared bits
+// ---------------------------------------------------------------------------
+
+const _labelStyle = TextStyle(
+  fontSize: 12,
+  height: 16 / 12,
+  fontWeight: FontWeight.w500,
+  color: FigmaPalette.gray700,
+);
+const _valueStyle = TextStyle(
+  fontSize: 16,
+  height: 20 / 16,
+  fontWeight: FontWeight.w500,
+  color: FigmaPalette.ink,
+);
+const _hintStyle = TextStyle(
+  fontSize: 16,
+  height: 20 / 16,
+  fontWeight: FontWeight.w400,
+  color: FigmaPalette.label,
+);
+
+/// Label-over-value with a trailing chevron. Tap handling is owned by the
+/// parent so the whole tile (icon included) is hittable.
 class _Field extends StatelessWidget {
   const _Field({
     required this.label,
+    required this.value,
     required this.placeholder,
-    required this.controller,
-    this.suffix,
-    this.icon,
-    this.keyboardType,
+    this.onTap,
   });
 
   final String label;
-  final String placeholder;
-  final TextEditingController controller;
-  final String? suffix;
-  final IconData? icon;
-  final TextInputType? keyboardType;
+  final String value;
+  final bool placeholder;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final t = context.types;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final row = Row(
       children: [
-        Text(label, style: t.caption.copyWith(color: c.textSecondary)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          decoration: InputDecoration(
-            hintText: placeholder,
-            suffixText: suffix,
-            prefixIcon: icon == null ? null : Icon(icon, color: c.textMuted, size: 18),
-            isDense: true,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label, style: _labelStyle),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: placeholder ? _hintStyle : _valueStyle,
+              ),
+            ],
           ),
         ),
+        const SizedBox(width: 6),
+        const Icon(LucideIcons.chevronRight, size: 18, color: FigmaPalette.ink),
       ],
+    );
+    if (onTap == null) return row;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: row,
     );
   }
 }
 
-class _SelectTile extends StatelessWidget {
-  const _SelectTile({
+/// 40×40 light-gray rounded square holding a blue glyph.
+class _IconBox extends StatelessWidget {
+  const _IconBox({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: FigmaPalette.chipBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Standalone filter row: white r16 card with icon-box, field and chevron.
+class _FilterTile extends StatelessWidget {
+  const _FilterTile({
+    required this.icon,
     required this.label,
     required this.value,
     required this.placeholder,
     required this.onTap,
-    this.icon,
   });
 
+  final Widget icon;
   final String label;
-  final String? value;
-  final String placeholder;
+  final String value;
+  final bool placeholder;
   final VoidCallback onTap;
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final t = context.types;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: t.caption.copyWith(color: c.textSecondary)),
-        const SizedBox(height: 6),
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: c.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: c.border),
-            ),
-            child: Row(
-              children: [
-                if (icon != null) ...[Icon(icon, color: c.textMuted, size: 18), const SizedBox(width: 8)],
-                Expanded(
-                  child: Text(
-                    value ?? placeholder,
-                    style: t.body.copyWith(color: value == null ? c.textMuted : c.textPrimary),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Icon(Icons.keyboard_arrow_down_rounded, color: c.textMuted),
-              ],
-            ),
-          ),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
         ),
-      ],
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        child: Row(
+          children: [
+            _IconBox(child: icon),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _Field(
+                label: label,
+                value: value,
+                placeholder: placeholder,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _RatingSlider extends StatelessWidget {
-  const _RatingSlider({required this.label, required this.value, required this.onChanged});
-  final String label;
-  final double value;
-  final ValueChanged<double> onChanged;
+/// Vertical dotted line that fills its allotted height (cube → flag rail).
+class _VDottedLine extends StatelessWidget {
+  const _VDottedLine();
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final t = context.types;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return const SizedBox(width: 2, child: CustomPaint(painter: _VDots()));
+  }
+}
+
+class _VDots extends CustomPainter {
+  const _VDots();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = FigmaPalette.label
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    const dot = 2.0;
+    const gap = 3.0;
+    final x = size.width / 2;
+    var y = 0.0;
+    while (y < size.height) {
+      final end = (y + dot) > size.height ? size.height : y + dot;
+      canvas.drawLine(Offset(x, y), Offset(x, end), paint);
+      y += dot + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _VDots oldDelegate) => false;
+}
+
+// ---------------------------------------------------------------------------
+// Sticky bottom bar — "Filterni tozalash" (red) + "Tayyor"
+// ---------------------------------------------------------------------------
+
+class _BottomBar extends StatelessWidget {
+  const _BottomBar({required this.onReset, required this.onApply});
+
+  final VoidCallback onReset;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(child: Text(label, style: t.caption.copyWith(color: c.textSecondary))),
-            Text(value.toStringAsFixed(1), style: t.bodySemibold),
+            GestureDetector(
+              onTap: onReset,
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text(
+                  'Filterni tozalash',
+                  style: TextStyle(
+                    fontSize: 16,
+                    height: 20 / 16,
+                    fontWeight: FontWeight.w600,
+                    color: FigmaPalette.dangerText,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            DsButton(label: 'Tayyor', onPressed: onApply),
           ],
         ),
-        Slider(
-          value: value,
-          min: 0,
-          max: 5,
-          divisions: 10,
-          activeColor: c.primary,
-          inactiveColor: c.border,
-          onChanged: onChanged,
-        ),
-      ],
+      ),
     );
   }
 }

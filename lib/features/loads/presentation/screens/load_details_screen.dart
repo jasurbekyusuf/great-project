@@ -102,7 +102,7 @@ class _Header extends StatelessWidget {
                 ),
                 const Expanded(
                   child: Text(
-                    'Details',
+                    'Yuk ma’lumotlari',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
@@ -584,9 +584,13 @@ class _OwnerCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _contact(LucideIcons.send, 'Telegram', '@calltome'),
-          const SizedBox(height: 8),
-          _contact(LucideIcons.phone, 'Whatsapp', '@callmexport'),
+          Row(
+            children: [
+              Expanded(child: _contactCol('Telegram:', '@calltome')),
+              const SizedBox(width: 12),
+              Expanded(child: _contactCol('Whatsapp:', '@callmexport')),
+            ],
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -612,22 +616,25 @@ class _OwnerCard extends StatelessWidget {
     );
   }
 
-  Widget _contact(IconData icon, String label, String value) {
-    return Row(
+  // Figma owner card: Telegram / Whatsapp sit side by side as label-over-value
+  // columns (gray label, blue value, no leading icon) — same as the transport
+  // detail contact block.
+  Widget _contactCol(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: FigmaPalette.primary),
-        const SizedBox(width: 8),
-        Text('$label:',
+        Text(label,
             style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: FigmaPalette.gray700)),
-        const Spacer(),
+                color: FigmaPalette.label)),
+        const SizedBox(height: 2),
         Text(value,
             style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: FigmaPalette.ink)),
+                color: FigmaPalette.primary)),
       ],
     );
   }

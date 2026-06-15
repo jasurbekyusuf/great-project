@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
+import 'package:loadme_mobile/features/garage/presentation/providers/garage_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/design_system/ds_success_modal.dart';
@@ -151,17 +152,37 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
     if (result != null) setState(() => controller.text = result);
   }
 
+  GarageRoute _buildRoute() {
+    final price = _price.text.trim();
+    final wv = RegExp(r'\d+').firstMatch(_weightVolume ?? '');
+    return GarageRoute(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      name: _transport ?? "Yo'nalish",
+      priceLabel: price.isEmpty ? 'Kelishiladi' : "$price so'm",
+      fromCity: _from?.title ?? '',
+      fromCountry: _from?.country ?? '',
+      toCity: _to?.title ?? '',
+      toCountry: _to?.country ?? '',
+      distanceKm: 0,
+      weightT: wv != null ? double.parse(wv.group(0)!) : 0.0,
+      loadKind: _cargoType == 'partial' ? 'Yarim' : "To'liq",
+      active: true,
+    );
+  }
+
   Future<void> _submit() async {
     setState(() => _submitting = true);
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 400));
+      // Posting a Magnit publishes a route on Garaj → Yo'nalishlarim.
+      await ref.read(garageRepositoryProvider).addRoute(_buildRoute());
+      ref.invalidate(garageRoutesProvider);
       if (!mounted) return;
       await showDsSuccessModal(
         context,
         title: 'magnit.success.title'.tr(ref),
         message: 'magnit.success.message'.tr(ref),
         actionLabel: 'common.confirm'.tr(ref),
-        onAction: () => context.canPop() ? context.pop() : context.go('/loads'),
+        onAction: () => context.canPop() ? context.pop() : context.go('/garage'),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);

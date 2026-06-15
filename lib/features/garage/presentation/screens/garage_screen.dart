@@ -9,6 +9,9 @@ import 'package:loadme_mobile/features/garage/presentation/widgets/garage_vehicl
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/design_system/ds_confirmation_modal.dart';
 import 'package:loadme_mobile/shared/design_system/ds_empty_state.dart';
+import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
+import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
+import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
 import 'package:loadme_mobile/shared/widgets/card_action_menu.dart';
 import 'package:loadme_mobile/shared/widgets/floating_market_nav.dart';
 import 'package:loadme_mobile/shared/widgets/frosted_header.dart';
@@ -35,6 +38,12 @@ class _GarageScreenState extends ConsumerState<GarageScreen> {
         FloatingMarketNav.reservedHeight +
         24;
 
+    // On the empty state the illustration shows its own "Qo'shish" button
+    // (Figma 6542:41936), so hide the sticky CTA there.
+    final activeEmpty = _tab == 0
+        ? (ref.watch(garageVehiclesProvider).valueOrNull?.isEmpty ?? false)
+        : (ref.watch(garageRoutesProvider).valueOrNull?.isEmpty ?? false);
+
     return Scaffold(
       backgroundColor: FigmaPalette.sheetBg,
       body: Column(
@@ -58,14 +67,17 @@ class _GarageScreenState extends ConsumerState<GarageScreen> {
                   : const _RoutesList(key: ValueKey('routes')),
             ),
           ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, navClearance),
-            child: DsButton(
-              label: (_tab == 0 ? 'garage.addTransport' : 'garage.addRoute').tr(ref),
-              icon: Icons.add,
-              onPressed: () => context.push(_tab == 0 ? '/add-truck' : '/add-post-truck'),
+          if (!activeEmpty)
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, navClearance),
+              child: DsButton(
+                label: (_tab == 0 ? 'garage.addTransport' : 'garage.addRoute')
+                    .tr(ref),
+                icon: Icons.add,
+                onPressed: () =>
+                    context.push(_tab == 0 ? '/add-truck' : '/magnit'),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -80,26 +92,39 @@ class _TransportsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final vehicles = ref.watch(garageVehiclesProvider);
-    if (vehicles.isEmpty) {
-      return DsEmptyState(title: 'garage.empty.transports'.tr(ref));
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      itemCount: vehicles.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (_, i) {
-        final v = vehicles[i];
-        return GarageVehicleCard(
-          name: v.name,
-          model: v.model,
-          plate: v.plate,
-          photoUrl: v.photoUrl,
-          onEdit: () => context.push('/edit-truck/${v.id}'),
-          onTap: () => context.push('/transport/${v.id}'),
+    return ref.watch(garageVehiclesProvider).when(
+          loading: () => const DsLoader(),
+          error: (e, _) => DsErrorState(
+            message: e.toString(),
+            onRetry: () => ref.invalidate(garageVehiclesProvider),
+          ),
+          data: (vehicles) {
+            if (vehicles.isEmpty) {
+              return DsEmptyState(
+                title: 'garage.empty.transports'.tr(ref),
+                icon: appSvgIcon('empty_truck', size: 84),
+                actionLabel: 'common.add'.tr(ref),
+                onAction: () => context.push('/add-truck'),
+              );
+            }
+            return ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              itemCount: vehicles.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 16),
+              itemBuilder: (_, i) {
+                final v = vehicles[i];
+                return GarageVehicleCard(
+                  name: v.name,
+                  model: v.model,
+                  plate: v.plate,
+                  photoUrl: v.photoUrl,
+                  onEdit: () => context.push('/edit-truck/${v.id}'),
+                  onTap: () => context.push('/transport/${v.id}'),
+                );
+              },
+            );
+          },
         );
-      },
-    );
   }
 }
 
@@ -122,7 +147,9 @@ class _RoutesList extends ConsumerWidget {
     );
     if (!ok) return;
     // Demo seed is read-only for archiving; pausing keeps it visible here.
-    if (r.active) ref.read(garageRoutesProvider.notifier).toggleActive(r.id);
+    if (r.active) {
+      await ref.read(garageRoutesProvider.notifier).toggleActive(r.id);
+    }
   }
 
   Future<void> _confirmDelete(
@@ -137,55 +164,68 @@ class _RoutesList extends ConsumerWidget {
       icon: Icons.delete_outline_rounded,
     );
     if (!ok) return;
-    ref.read(garageRoutesProvider.notifier).remove(r.id);
+    await ref.read(garageRoutesProvider.notifier).remove(r.id);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final routes = ref.watch(garageRoutesProvider);
-    if (routes.isEmpty) {
-      return DsEmptyState(title: 'garage.empty.routes'.tr(ref));
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      itemCount: routes.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (_, i) {
-        final r = routes[i];
-        return GarageRouteCard(
-          name: r.name,
-          priceLabel: r.priceLabel,
-          fromCity: r.fromCity,
-          fromCountry: r.fromCountry,
-          toCity: r.toCity,
-          toCountry: r.toCountry,
-          distanceKm: r.distanceKm,
-          weightT: r.weightT,
-          loadKind: r.loadKind,
-          active: r.active,
-          avatarUrl: r.avatarUrl,
-          onToggle: (_) =>
-              ref.read(garageRoutesProvider.notifier).toggleActive(r.id),
-          menuActions: [
-            CardMenuAction(
-              icon: LucideIcons.pencil,
-              label: 'common.edit'.tr(ref),
-              onSelected: () => context.push('/edit-post-truck/${r.id}'),
-            ),
-            CardMenuAction(
-              icon: LucideIcons.archive,
-              label: 'owner.archive'.tr(ref),
-              onSelected: () => _confirmArchive(context, ref, r),
-            ),
-            CardMenuAction(
-              icon: LucideIcons.trash2,
-              label: 'common.delete'.tr(ref),
-              destructive: true,
-              onSelected: () => _confirmDelete(context, ref, r),
-            ),
-          ],
+    return ref.watch(garageRoutesProvider).when(
+          loading: () => const DsLoader(),
+          error: (e, _) => DsErrorState(
+            message: e.toString(),
+            onRetry: () => ref.invalidate(garageRoutesProvider),
+          ),
+          data: (routes) {
+            if (routes.isEmpty) {
+              return DsEmptyState(
+                title: 'garage.empty.routes'.tr(ref),
+                icon: appSvgIcon('empty_truck', size: 84),
+                actionLabel: 'common.add'.tr(ref),
+                onAction: () => context.push('/magnit'),
+              );
+            }
+            return ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              itemCount: routes.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 16),
+              itemBuilder: (_, i) {
+                final r = routes[i];
+                return GarageRouteCard(
+                  name: r.name,
+                  priceLabel: r.priceLabel,
+                  fromCity: r.fromCity,
+                  fromCountry: r.fromCountry,
+                  toCity: r.toCity,
+                  toCountry: r.toCountry,
+                  distanceKm: r.distanceKm,
+                  weightT: r.weightT,
+                  loadKind: r.loadKind,
+                  active: r.active,
+                  avatarUrl: r.avatarUrl,
+                  onToggle: (_) =>
+                      ref.read(garageRoutesProvider.notifier).toggleActive(r.id),
+                  menuActions: [
+                    CardMenuAction(
+                      icon: LucideIcons.pencil,
+                      label: 'common.edit'.tr(ref),
+                      onSelected: () => context.push('/edit-post-truck/${r.id}'),
+                    ),
+                    CardMenuAction(
+                      icon: LucideIcons.archive,
+                      label: 'owner.archive'.tr(ref),
+                      onSelected: () => _confirmArchive(context, ref, r),
+                    ),
+                    CardMenuAction(
+                      icon: LucideIcons.trash2,
+                      label: 'common.delete'.tr(ref),
+                      destructive: true,
+                      onSelected: () => _confirmDelete(context, ref, r),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
         );
-      },
-    );
   }
 }
