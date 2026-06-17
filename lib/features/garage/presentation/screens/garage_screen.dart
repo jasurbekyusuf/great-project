@@ -102,7 +102,15 @@ class _TransportsList extends ConsumerWidget {
             if (vehicles.isEmpty) {
               return DsEmptyState(
                 title: 'garage.empty.transports'.tr(ref),
-                icon: appSvgIcon('empty_truck', size: 84),
+                // Figma "New design" empty (node 6782:11096): 199x168 3D
+                // illustration exported at 4x (PNG includes a ~16px shadow
+                // halo → 231x200 keeps the core art at 199x168).
+                icon: Image.asset(
+                  'assets/images/empty_garage.png',
+                  width: 231,
+                  height: 200,
+                  fit: BoxFit.contain,
+                ),
                 actionLabel: 'common.add'.tr(ref),
                 onAction: () => context.push('/add-truck'),
               );

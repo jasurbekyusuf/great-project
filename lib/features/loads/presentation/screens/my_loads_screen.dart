@@ -122,7 +122,22 @@ class _MyLoadsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (items.isEmpty) return DsEmptyState(title: emptyTitle);
+    if (items.isEmpty) {
+      // Figma "New design" Mening yuklarim empty (node 6806:15041): the box
+      // illustration + "Qo'shish". History tab has no add action, so the
+      // button is hidden there (illustration + message only).
+      return DsEmptyState(
+        title: emptyTitle,
+        icon: Image.asset(
+          'assets/images/empty_loads.png',
+          width: 231,
+          height: 200,
+          fit: BoxFit.contain,
+        ),
+        actionLabel: isActiveTab ? 'common.add'.tr(ref) : null,
+        onAction: isActiveTab ? () => context.push('/add-load') : null,
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: () => ref.read(myLoadsControllerProvider.notifier).refresh(),
