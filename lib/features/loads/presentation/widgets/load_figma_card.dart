@@ -125,28 +125,39 @@ class _HeaderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        if (verified) ...[
-          // Exact Figma check-circle (gradient + white check baked in → no tint).
-          appSvgIcon('card_verified', size: 12),
-          const SizedBox(width: 4),
-        ],
-        Flexible(
-          child: Text(
-            ownerName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _ownerStyle,
+        // Owner identity group takes all the free width so the role badge is
+        // always pinned to the right edge (and the name ellipsises instead of
+        // shoving the badge inward).
+        Expanded(
+          child: Row(
+            children: [
+              if (verified) ...[
+                // Exact Figma check-circle (gradient + white check baked in).
+                appSvgIcon('card_verified', size: 12),
+                const SizedBox(width: 4),
+              ],
+              Flexible(
+                child: Text(
+                  ownerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _ownerStyle,
+                ),
+              ),
+              if (ownerRating != null) ...[
+                const SizedBox(width: 4),
+                Text(ownerRating!.toStringAsFixed(1), style: _ownerStyle),
+                const SizedBox(width: 2),
+                // Exact Figma star (gold #FEC84B baked in → no tint).
+                appSvgIcon('card_star', size: 14),
+              ],
+            ],
           ),
         ),
-        if (ownerRating != null) ...[
-          const SizedBox(width: 4),
-          Text(ownerRating!.toStringAsFixed(1), style: _ownerStyle),
-          const SizedBox(width: 2),
-          // Exact Figma star (gold #FEC84B baked in → no tint).
-          appSvgIcon('card_star', size: 14),
+        if (roleBadge != null) ...[
+          const SizedBox(width: 8),
+          RoleBadge(label: roleBadge!),
         ],
-        const Spacer(),
-        if (roleBadge != null) RoleBadge(label: roleBadge!),
       ],
     );
   }
@@ -219,7 +230,8 @@ class _RouteBlock extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Expanded(child: RouteCityRow(city: toCity, country: toCountry)),
+                  Expanded(
+                      child: RouteCityRow(city: toCity, country: toCountry)),
                   _TruckTypeChip(label: truckType),
                 ],
               ),

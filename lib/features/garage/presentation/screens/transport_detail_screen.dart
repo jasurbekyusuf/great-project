@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
+import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:loadme_mobile/features/garage/presentation/providers/garage_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
@@ -9,6 +10,7 @@ import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
 import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
 import 'package:loadme_mobile/shared/widgets/frosted_header.dart';
 import 'package:loadme_mobile/shared/widgets/load_card_parts.dart';
+import 'package:loadme_mobile/shared/widgets/mobile_auth_required_sheet.dart';
 import 'package:loadme_mobile/shared/widgets/swipe_back_wrapper.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -23,6 +25,8 @@ class TransportDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(transportDetailProvider(id));
+    // No session → guest. The contact CTA then opens the login prompt.
+    final isGuest = ref.watch(authControllerProvider).valueOrNull == null;
 
     return SwipeBackWrapper(
       child: Scaffold(
@@ -32,7 +36,7 @@ class TransportDetailScreen extends ConsumerWidget {
             FrostedHeader(
               title: 'transport.detail.title'.tr(ref),
               trailing: const Icon(LucideIcons.bookmark,
-                  size: 22, color: FigmaPalette.ink),
+                  size: 24, color: FigmaPalette.ink),
             ),
             Expanded(
               child: detail.when(
@@ -45,9 +49,9 @@ class TransportDetailScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                   children: [
                     _SummaryCard(detail: d),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _SpecsCard(detail: d),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _ContactCard(detail: d),
                   ],
                 ),
@@ -55,13 +59,19 @@ class TransportDetailScreen extends ConsumerWidget {
             ),
             // The contact CTA only makes sense once the carrier data is loaded.
             if (detail.hasValue)
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                  child: DsButton(
-                    label: 'transport.contact'.tr(ref),
-                    onPressed: () {},
+              ColoredBox(
+                color: Colors.white,
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                    child: DsButton(
+                      label: 'transport.contact'.tr(ref),
+                      onPressed: () {
+                        if (isGuest) showMobileAuthRequiredSheet(context);
+                        // Authed contact action is wired separately.
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -88,8 +98,8 @@ class _SummaryCard extends StatelessWidget {
           // Vehicle row.
           Row(
             children: [
-              const TruckAvatar(size: 48),
-              const SizedBox(width: 10),
+              const TruckAvatar(size: 72),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,13 +131,15 @@ class _SummaryCard extends StatelessWidget {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const SizedBox(height: 3),
+                  appSvgIcon('card_cube', size: 16, color: FigmaPalette.inkStrong),
                   const SizedBox(height: 2),
-                  appSvgIcon('card_cube', size: 14, color: FigmaPalette.inkStrong),
-                  const DottedConnector(height: 22, width: 14, color: FigmaPalette.label),
-                  appSvgIcon('card_flag', size: 14, color: FigmaPalette.inkStrong),
+                  const DottedConnector(height: 24, width: 16, color: FigmaPalette.label),
+                  const SizedBox(height: 2),
+                  appSvgIcon('card_flag', size: 16, color: FigmaPalette.inkStrong),
                 ],
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,7 +149,7 @@ class _SummaryCard extends StatelessWidget {
                       subtitle: detail.fromSubtitle,
                       date: detail.fromDate,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _RoutePoint(
                       city: detail.toCity,
                       subtitle: detail.toSubtitle,
@@ -156,20 +168,20 @@ class _SummaryCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Row(
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
-                      color: FigmaPalette.primary.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(10),
+                      color: FigmaPalette.paymentIconBg,
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     alignment: Alignment.center,
                     child: const Icon(LucideIcons.banknote, size: 20, color: FigmaPalette.primary),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -183,15 +195,7 @@ class _SummaryCard extends StatelessWidget {
                           color: FigmaPalette.gray700,
                         ),
                       ),
-                      Text(
-                        detail.priceLabel,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          height: 20 / 14,
-                          fontWeight: FontWeight.w600,
-                          color: FigmaPalette.primary,
-                        ),
-                      ),
+                      _PriceText(detail.priceLabel),
                     ],
                   ),
                 ],
@@ -199,6 +203,36 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Payment price: numeric part at 14sp, the trailing currency token at 12sp
+/// (both 600 / primary blue) — matches the Figma per-character styling where
+/// e.g. "so'm" / "USD" / "UZS" renders smaller than the amount.
+class _PriceText extends StatelessWidget {
+  const _PriceText(this.price);
+  final String price;
+
+  @override
+  Widget build(BuildContext context) {
+    final i = price.lastIndexOf(' ');
+    final hasSuffix = i > 0 && i < price.length - 1;
+    final amount = hasSuffix ? price.substring(0, i + 1) : price;
+    final suffix = hasSuffix ? price.substring(i + 1) : '';
+    return Text.rich(
+      TextSpan(
+        text: amount,
+        style: const TextStyle(
+          fontSize: 14,
+          height: 20 / 14,
+          fontWeight: FontWeight.w600,
+          color: FigmaPalette.primary,
+        ),
+        children: hasSuffix
+            ? [TextSpan(text: suffix, style: const TextStyle(fontSize: 12))]
+            : null,
       ),
     );
   }
@@ -231,7 +265,7 @@ class _RoutePoint extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               date,
               style: const TextStyle(
@@ -247,7 +281,7 @@ class _RoutePoint extends StatelessWidget {
           subtitle,
           style: const TextStyle(
             fontSize: 12,
-            height: 15 / 12,
+            height: 14.5 / 12,
             fontWeight: FontWeight.w500,
             color: FigmaPalette.label,
           ),
@@ -280,11 +314,21 @@ class _SpecsCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) const Divider(height: 1, thickness: 1, color: FigmaPalette.divider),
+            if (i > 0) const Divider(height: 9, thickness: 1, color: FigmaPalette.divider),
             _SpecRow(icon: rows[i].$1, label: rows[i].$2, value: rows[i].$3),
           ],
-          const Divider(height: 1, thickness: 1, color: FigmaPalette.divider),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+          // Full-bleed strong divider: overflows the card's 16px padding to
+          // reach both card edges (card width == screen width - 16*2 margins).
+          SizedBox(
+            height: 1,
+            child: OverflowBox(
+              minWidth: MediaQuery.sizeOf(context).width - 32,
+              maxWidth: MediaQuery.sizeOf(context).width - 32,
+              child: const ColoredBox(color: FigmaPalette.dividerStrong),
+            ),
+          ),
+          const SizedBox(height: 12),
           Text(
             '${'detail.section.comment'.tr(ref)}:',
             style: const TextStyle(
@@ -318,14 +362,25 @@ class _SpecRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: FigmaPalette.primary),
-          const SizedBox(width: 10),
-          Text(
+    return Row(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: FigmaPalette.chipBg,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 16, color: FigmaPalette.primary),
+        ),
+        const SizedBox(width: 8),
+        // Label column (left-aligned, ~half the remaining width).
+        Expanded(
+          child: Text(
             '$label:',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 12,
               height: 18 / 12,
@@ -333,23 +388,23 @@ class _SpecRow extends StatelessWidget {
               color: FigmaPalette.gray700,
             ),
           ),
-          const Spacer(),
-          Flexible(
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontSize: 12,
-                height: 18 / 12,
-                fontWeight: FontWeight.w500,
-                color: FigmaPalette.ink,
-              ),
+        ),
+        const SizedBox(width: 8),
+        // Value column (left-aligned, starts at a fixed x — NOT right-aligned).
+        Expanded(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12,
+              height: 18 / 12,
+              fontWeight: FontWeight.w500,
+              color: FigmaPalette.ink,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -370,7 +425,7 @@ class _ContactCard extends ConsumerWidget {
           Row(
             children: [
               const TruckAvatar(size: 48),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,7 +461,7 @@ class _ContactCard extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           const Divider(height: 1, thickness: 1, color: FigmaPalette.divider),
           const SizedBox(height: 12),
           Row(
@@ -462,7 +517,7 @@ class _ContactLink extends StatelessWidget {
             color: FigmaPalette.label,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Text(
           value,
           style: const TextStyle(
@@ -487,17 +542,17 @@ class _ChipButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: FigmaPalette.chipBg,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(6),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+        borderRadius: BorderRadius.circular(6),
+        child: SizedBox(
+          height: 32,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 16, color: FigmaPalette.ink),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Text(
                 label,
                 style: const TextStyle(
@@ -529,7 +584,7 @@ class _Card extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: const [
           BoxShadow(color: FigmaPalette.cardShadow, offset: Offset(0, 2), blurRadius: 8),
         ],

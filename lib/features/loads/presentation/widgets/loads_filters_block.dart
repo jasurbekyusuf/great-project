@@ -54,11 +54,12 @@ class _LoadsFiltersBlockState extends ConsumerState<LoadsFiltersBlock> {
                     value: widget.origin == null
                         ? null
                         : '${widget.origin!.country} · ${widget.origin!.title}',
-                    placeholder: widget.originPlaceholder ?? 'loads.originPlace'.tr(ref),
+                    placeholder:
+                        widget.originPlaceholder ?? 'loads.originPlace'.tr(ref),
                     onTap: () async {
                       final picked = await showSelectLocationDrawer(
                         context: context,
-                        title: 'loads.originPlace'.tr(ref),
+                        isDestination: false,
                         currentId: widget.origin?.id,
                       );
                       widget.onOriginChanged?.call(picked);
@@ -70,11 +71,12 @@ class _LoadsFiltersBlockState extends ConsumerState<LoadsFiltersBlock> {
                     value: widget.destination == null
                         ? null
                         : '${widget.destination!.country} · ${widget.destination!.title}',
-                    placeholder: widget.destPlaceholder ?? 'loads.destPlace'.tr(ref),
+                    placeholder:
+                        widget.destPlaceholder ?? 'loads.destPlace'.tr(ref),
                     onTap: () async {
                       final picked = await showSelectLocationDrawer(
                         context: context,
-                        title: 'loads.destPlace'.tr(ref),
+                        isDestination: true,
                         currentId: widget.destination?.id,
                       );
                       widget.onDestinationChanged?.call(picked);

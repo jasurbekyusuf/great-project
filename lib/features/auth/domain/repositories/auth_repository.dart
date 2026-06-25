@@ -2,6 +2,7 @@ import 'package:loadme_mobile/core/errors/app_failure.dart' show AppFailure;
 import 'package:loadme_mobile/core/result/result.dart';
 import 'package:loadme_mobile/features/auth/domain/entities/auth_check_result.dart';
 import 'package:loadme_mobile/features/auth/domain/entities/auth_session.dart';
+import 'package:loadme_mobile/features/auth/domain/entities/verify_otp_result.dart';
 
 /// Domain contract for authentication operations.
 ///
@@ -11,21 +12,32 @@ import 'package:loadme_mobile/features/auth/domain/entities/auth_session.dart';
 abstract interface class AuthRepository {
   AsyncResult<AuthSession> login({required String phone, required String password});
 
-  AsyncResult<AuthCheckResult> checkUserPhone(String phone);
-
-  AsyncResult<AuthSession?> verifyOtp({
+  /// Sends an OTP via [channel] (`'sms'` | `'telegram'`) and reports whether
+  /// this is a login or a registration.
+  AsyncResult<AuthCheckResult> checkUserPhone({
     required String phone,
-    required String smsId,
-    required String otp,
-    required bool userFound,
+    required String channel,
   });
 
-  AsyncResult<AuthSession> register({
-    required String fullName,
-    String? companyName,
+  /// Verifies the OTP. On the login branch a session is returned (tokens
+  /// persisted, profile fetched); on the registration branch a
+  /// `registration_token` is returned instead.
+  AsyncResult<VerifyOtpResult> verifyOtp({
     required String phone,
-    required String smsId,
-    required String otp,
+    required String channel,
+    required String purpose,
+    required String code,
+  });
+
+  /// Finalises registration with the `registration_token` from verify. [role]
+  /// is the app role (carrier|broker|shipper); the data layer maps
+  /// carrier → driver for the backend.
+  AsyncResult<AuthSession> register({
+    required String registrationToken,
+    required String role,
+    required String personType,
+    String? fullName,
+    String? companyName,
   });
 
   AsyncResult<void> logout();

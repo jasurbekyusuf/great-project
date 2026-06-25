@@ -25,6 +25,15 @@ abstract final class FigmaPalette {
   static const divider = Color(0xFFEAECF0); // gray/200
   static const dividerStrong = Color(0xFFE1E4EA);
   static const avatarBg = Color(0xFFE0E0E0);
+  static const paymentIconBg = Color(0xFFDBE7FF); // payment chip icon box
+
+  // Xabarlar (notifications) card palette — Figma 6969:25057 / 25085.
+  static const notifIconTile = Color(0xFFEAEFF5); // 40x40 icon tile bg
+  static const notifCardRead = Color(0xFFFCFCFD); // read card surface
+  static const notifTitle = Color(0xFF0B1020); // unread title
+  static const inkMuted = Color(0xFF576075); // group label / read text
+  static const inkBody = Color(0xFF303236); // card body text
+  static const unreadDot = Color(0xFFF44336); // 7px red unread dot
 
   // Accents
   static const star = Color(0xFFFEC84B);

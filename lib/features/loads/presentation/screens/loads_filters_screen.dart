@@ -5,6 +5,8 @@ import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
+import 'package:loadme_mobile/shared/design_system/ds_multi_select_drawer.dart';
+import 'package:loadme_mobile/shared/design_system/ds_truck_type_drawer.dart';
 import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
 import 'package:loadme_mobile/shared/widgets/frosted_header.dart';
 import 'package:loadme_mobile/shared/widgets/select_location_drawer.dart';
@@ -29,19 +31,16 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
   LocationItem? _from;
   LocationItem? _to;
   String? _radius;
-  String? _truckType;
-  String? _poster;
+  List<String> _selectedTrucks = [];
+  List<String> _selectedPosters = [];
 
   static const _radii = ['10 km', '25 km', '50 km', '100 km', '200 km'];
-  static const _truckTypes = [
-    'Tent / Shtora',
-    'Refrigerator',
-    'Isuzu NQR / NPR',
-    'Trailer',
-    "Konteyner 20'",
-    "Konteyner 40'",
+  static const _posters = [
+    'Hammasi',
+    'Yuk egasi',
+    'LoadMe AI',
+    'Logist / Dispatcher'
   ];
-  static const _posters = ['Hammasi', 'Haydovchi', 'Yuk egasi', 'Vositachi'];
 
   @override
   Widget build(BuildContext context) {
@@ -56,22 +55,26 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                 children: [
                   _routeCard(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _FilterTile(
                     icon: const Icon(LucideIcons.truck,
-                        size: 22, color: FigmaPalette.primary),
+                        size: 20, color: FigmaPalette.primary),
                     label: 'Transport turi',
-                    value: _truckType ?? 'Transport turini tanlang',
-                    placeholder: _truckType == null,
+                    value: _selectedTrucks.isEmpty
+                        ? 'Transport turini tanlang'
+                        : _selectedTrucks.join(', '),
+                    placeholder: _selectedTrucks.isEmpty,
                     onTap: _pickTruckType,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _FilterTile(
                     icon: const Icon(LucideIcons.user,
-                        size: 22, color: FigmaPalette.primary),
+                        size: 20, color: FigmaPalette.primary),
                     label: 'E’lon egasi',
-                    value: _poster ?? 'E’lon egasini tanlang',
-                    placeholder: _poster == null,
+                    value: _selectedPosters.isEmpty
+                        ? 'E’lon egasini tanlang'
+                        : _selectedPosters.join(', '),
+                    placeholder: _selectedPosters.isEmpty,
                     onTap: _pickPoster,
                   ),
                 ],
@@ -90,9 +93,9 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      padding: const EdgeInsets.all(12),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -116,7 +119,7 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
                 ),
               ],
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             // Right content.
             Expanded(
               child: Column(
@@ -128,20 +131,21 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
                         Expanded(
                           child: _Field(
                             label: 'Qayerdan',
-                            value: _from?.title ?? 'Yuklash manzili',
+                            isRequired: true,
+                            value: _from?.title ?? 'Yuk olish manzili',
                             placeholder: _from == null,
                             onTap: _pickFrom,
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 14),
                         const VerticalDivider(
                           width: 1,
                           thickness: 1,
                           color: FigmaPalette.divider,
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 14),
                         SizedBox(
-                          width: 92,
+                          width: 84,
                           child: _Field(
                             label: 'Radius',
                             value: _radius ?? 'Tanlang',
@@ -156,7 +160,7 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
                   const Divider(
                     height: 1,
                     thickness: 1,
-                    color: FigmaPalette.divider,
+                    color: Color(0xFFD5D9E1),
                   ),
                   const SizedBox(height: 10),
                   _Field(
@@ -177,7 +181,7 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
   Future<void> _pickFrom() async {
     final v = await showSelectLocationDrawer(
       context: context,
-      title: 'Qayerdan',
+      isDestination: false,
       currentId: _from?.id,
     );
     if (v != null) setState(() => _from = v);
@@ -186,7 +190,7 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
   Future<void> _pickTo() async {
     final v = await showSelectLocationDrawer(
       context: context,
-      title: 'Qayerga',
+      isDestination: true,
       currentId: _to?.id,
     );
     if (v != null) setState(() => _to = v);
@@ -198,13 +202,22 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
   }
 
   Future<void> _pickTruckType() async {
-    final v = await _pickFromList('Transport turi', _truckTypes, _truckType);
-    if (v != null) setState(() => _truckType = v);
+    final v = await showDsTruckTypeDrawer(
+      context: context,
+      initialSelected: _selectedTrucks,
+    );
+    if (v != null) setState(() => _selectedTrucks = v);
   }
 
   Future<void> _pickPoster() async {
-    final v = await _pickFromList('E’lon egasi', _posters, _poster);
-    if (v != null) setState(() => _poster = v);
+    final v = await showDsMultiSelectDrawer<String>(
+      context: context,
+      title: 'Kim joylagan',
+      items:
+          _posters.map((e) => DsMultiSelectItem(value: e, label: e)).toList(),
+      initialSelected: _selectedPosters,
+    );
+    if (v != null) setState(() => _selectedPosters = v);
   }
 
   Future<String?> _pickFromList(
@@ -216,8 +229,7 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
       context: context,
       title: title,
       currentValue: current,
-      items:
-          items.map((t) => DsActionDrawerItem(value: t, label: t)).toList(),
+      items: items.map((t) => DsActionDrawerItem(value: t, label: t)).toList(),
     );
   }
 
@@ -226,16 +238,21 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
       _from = null;
       _to = null;
       _radius = null;
-      _truckType = null;
-      _poster = null;
+      _selectedTrucks = [];
+      _selectedPosters = [];
     });
   }
 
   void _apply() {
-    final query = [_from?.title ?? '', _to?.title ?? '']
-        .where((e) => e.isNotEmpty)
-        .join(' ');
-    ref.read(loadsControllerProvider.notifier).applyQuery(query);
+    // Server-side filter: the picked place's kind decides the param
+    // (`pickup_region` / `delivery_district` / …) and its id is the value, so
+    // the whole marketplace is narrowed — exactly like the web load filter.
+    final filters = <String, String>{};
+    final from = _from;
+    final to = _to;
+    if (from != null) filters['pickup_${from.filterKey}'] = from.id;
+    if (to != null) filters['delivery_${to.filterKey}'] = to.id;
+    ref.read(loadsControllerProvider.notifier).applyLocationFilter(filters);
     // Pop back to the previous list (preserves history); fall back to /loads
     // if filters was opened as a fresh root (e.g. a deep link).
     if (context.canPop()) {
@@ -252,19 +269,19 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
 
 const _labelStyle = TextStyle(
   fontSize: 12,
-  height: 16 / 12,
-  fontWeight: FontWeight.w500,
-  color: FigmaPalette.gray700,
+  height: 14.5 / 12,
+  fontWeight: FontWeight.w400,
+  color: FigmaPalette.countLabel,
 );
 const _valueStyle = TextStyle(
   fontSize: 16,
-  height: 20 / 16,
-  fontWeight: FontWeight.w500,
-  color: FigmaPalette.ink,
+  height: 24 / 16,
+  fontWeight: FontWeight.w400,
+  color: FigmaPalette.countLabel,
 );
 const _hintStyle = TextStyle(
   fontSize: 16,
-  height: 20 / 16,
+  height: 24 / 16,
   fontWeight: FontWeight.w400,
   color: FigmaPalette.label,
 );
@@ -276,12 +293,16 @@ class _Field extends StatelessWidget {
     required this.label,
     required this.value,
     required this.placeholder,
+    this.isRequired = false,
     this.onTap,
   });
 
   final String label;
   final String value;
   final bool placeholder;
+
+  /// Figma marks mandatory fields (only "Qayerdan") with a trailing red `*`.
+  final bool isRequired;
   final VoidCallback? onTap;
 
   @override
@@ -293,7 +314,21 @@ class _Field extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label, style: _labelStyle),
+              if (isRequired)
+                Text.rich(
+                  TextSpan(
+                    text: label,
+                    style: _labelStyle,
+                    children: const [
+                      TextSpan(
+                        text: ' *',
+                        style: TextStyle(color: FigmaPalette.dangerText),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Text(label, style: _labelStyle),
               const SizedBox(height: 2),
               Text(
                 value,
@@ -304,8 +339,8 @@ class _Field extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 6),
-        const Icon(LucideIcons.chevronRight, size: 18, color: FigmaPalette.ink),
+        const SizedBox(width: 8),
+        const Icon(LucideIcons.chevronRight, size: 16, color: FigmaPalette.ink),
       ],
     );
     if (onTap == null) return row;
@@ -317,20 +352,23 @@ class _Field extends StatelessWidget {
   }
 }
 
-/// 40×40 light-gray rounded square holding a blue glyph.
+/// Gray rounded square holding a glyph. Route stops use 36/r12, the
+/// standalone filter tiles 32/r10.
 class _IconBox extends StatelessWidget {
-  const _IconBox({required this.child});
+  const _IconBox({required this.child, this.size = 36, this.radius = 12});
   final Widget child;
+  final double size;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 40,
-      height: 40,
+      width: size,
+      height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: FigmaPalette.chipBg,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFEBEBEB),
+        borderRadius: BorderRadius.circular(radius),
       ),
       child: child,
     );
@@ -361,13 +399,13 @@ class _FilterTile extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            _IconBox(child: icon),
-            const SizedBox(width: 12),
+            _IconBox(size: 32, radius: 10, child: icon),
+            const SizedBox(width: 8),
             Expanded(
               child: _Field(
                 label: label,
@@ -443,15 +481,15 @@ class _BottomBar extends StatelessWidget {
                 child: Text(
                   'Filterni tozalash',
                   style: TextStyle(
-                    fontSize: 16,
-                    height: 20 / 16,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    height: 20 / 14,
+                    fontWeight: FontWeight.w500,
                     color: FigmaPalette.dangerText,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             DsButton(label: 'Tayyor', onPressed: onApply),
           ],
         ),

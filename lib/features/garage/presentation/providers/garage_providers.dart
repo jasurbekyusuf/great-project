@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:loadme_mobile/features/garage/data/datasources/fake_garage_data_source.dart';
+import 'package:loadme_mobile/core/network/dio_client.dart';
+import 'package:loadme_mobile/features/garage/data/datasources/garage_remote_data_source.dart';
 import 'package:loadme_mobile/features/garage/data/repositories/garage_repository_impl.dart';
 import 'package:loadme_mobile/features/garage/domain/entities/garage_route.dart';
 import 'package:loadme_mobile/features/garage/domain/entities/garage_vehicle.dart';
@@ -11,11 +12,11 @@ export 'package:loadme_mobile/features/garage/domain/entities/garage_route.dart'
 export 'package:loadme_mobile/features/garage/domain/entities/garage_vehicle.dart';
 export 'package:loadme_mobile/features/garage/domain/entities/transport_detail.dart';
 
-/// Garage repository. No remote source yet, so always fake — swap in a
-/// Dio-backed `GarageDataSource` here (gated on `appEnvProvider.useFakeData`,
-/// like `loadsRepositoryProvider`) when the backend lands.
+/// Garage repository, backed by the real LoadMe truck endpoints
+/// (`GarageRemoteDataSource` over the shared [dioProvider], which already
+/// targets the active local/prod environment).
 final garageRepositoryProvider = Provider<GarageRepository>((ref) {
-  return GarageRepositoryImpl(FakeGarageDataSource());
+  return GarageRepositoryImpl(GarageRemoteDataSource(ref.watch(dioProvider)));
 });
 
 /// Vehicles for the Transportlar tab.

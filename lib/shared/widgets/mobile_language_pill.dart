@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:loadme_mobile/core/theme/figma_palette.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+/// Figma auth language pill ("Keling boshlaymiz!" — Authorization).
+/// Light-gray r10 chip: translate glyph · language label · chevron-down.
 class MobileLanguagePill extends StatelessWidget {
   const MobileLanguagePill({super.key, required this.label, required this.onTap});
 
@@ -10,31 +14,31 @@ class MobileLanguagePill extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
         decoration: BoxDecoration(
-          color: const Color(0xFFF2F3F7),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFE4E7EC)),
+          color: FigmaPalette.chipBg,
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 24,
-              height: 16,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE6F4EA),
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: const Text('UZ', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700)),
-            ),
-            const SizedBox(width: 8),
+            const Icon(LucideIcons.languages,
+                size: 20, color: FigmaPalette.countLabel),
+            const SizedBox(width: 4),
             Text(
               label,
-              style: const TextStyle(fontSize: 16, height: 1.5, fontWeight: FontWeight.w500, color: Color(0xFF101828)),
+              style: const TextStyle(
+                fontSize: 14,
+                height: 20 / 14,
+                fontWeight: FontWeight.w400,
+                color: FigmaPalette.countLabel,
+              ),
             ),
+            const SizedBox(width: 4),
+            const Icon(LucideIcons.chevronDown,
+                size: 20, color: FigmaPalette.countLabel),
           ],
         ),
       ),

@@ -6,6 +6,7 @@ import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 import 'package:loadme_mobile/features/garage/presentation/providers/garage_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
+import 'package:loadme_mobile/shared/design_system/ds_truck_type_drawer.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/design_system/ds_success_modal.dart';
 import 'package:loadme_mobile/shared/widgets/frosted_header.dart';
@@ -26,14 +27,14 @@ class MagnitScreen extends ConsumerStatefulWidget {
 class _MagnitScreenState extends ConsumerState<MagnitScreen> {
   final _price = TextEditingController();
   final _comment = TextEditingController();
+  final _maxWeight = TextEditingController();
 
   LocationItem? _from;
   LocationItem? _to;
   String? _radius;
-  String? _transport;
+  List<String> _transports = [];
   String? _cargoType;
   String? _period;
-  String? _weightVolume;
   bool _expanded = true;
   bool _submitting = false;
 
@@ -41,6 +42,7 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
   void dispose() {
     _price.dispose();
     _comment.dispose();
+    _maxWeight.dispose();
     super.dispose();
   }
 
@@ -49,7 +51,7 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
   Future<void> _pickLocation({required bool isFrom}) async {
     final v = await showSelectLocationDrawer(
       context: context,
-      title: (isFrom ? 'magnit.from' : 'magnit.to').tr(ref),
+      isDestination: !isFrom,
       currentId: (isFrom ? _from : _to)?.id,
     );
     if (v != null) setState(() => isFrom ? _from = v : _to = v);
@@ -72,19 +74,11 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
   }
 
   Future<void> _pickTransport() async {
-    final v = await showDsActionDrawer<String>(
+    final v = await showDsTruckTypeDrawer(
       context: context,
-      title: 'magnit.transport'.tr(ref),
-      currentValue: _transport,
-      items: const [
-        DsActionDrawerItem(value: 'Tent / Shtora', label: 'Tent / Shtora'),
-        DsActionDrawerItem(value: 'Refrigerator', label: 'Refrigerator'),
-        DsActionDrawerItem(value: 'Isuzu NQR / NPR', label: 'Isuzu NQR / NPR'),
-        DsActionDrawerItem(value: 'Trailer', label: 'Trailer'),
-        DsActionDrawerItem(value: 'Flatbed', label: 'Flatbed'),
-      ],
+      initialSelected: _transports,
     );
-    if (v != null) setState(() => _transport = v);
+    if (v != null) setState(() => _transports = v);
   }
 
   Future<void> _pickCargoType() async {
@@ -106,28 +100,13 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
       title: 'magnit.period'.tr(ref),
       currentValue: _period,
       items: [
-        DsActionDrawerItem(value: '6h', label: 'magnit.period.6h'.tr(ref)),
-        DsActionDrawerItem(value: '24h', label: 'magnit.period.24h'.tr(ref)),
+        DsActionDrawerItem(value: '1d', label: 'magnit.period.1d'.tr(ref)),
         DsActionDrawerItem(value: '3d', label: 'magnit.period.3d'.tr(ref)),
-        DsActionDrawerItem(value: '7d', label: 'magnit.period.7d'.tr(ref)),
+        DsActionDrawerItem(value: '1w', label: 'magnit.period.1w'.tr(ref)),
+        DsActionDrawerItem(value: '10d', label: 'magnit.period.10d'.tr(ref)),
       ],
     );
     if (v != null) setState(() => _period = v);
-  }
-
-  Future<void> _pickWeightVolume() async {
-    final v = await showDsActionDrawer<String>(
-      context: context,
-      title: 'magnit.weightVolume'.tr(ref),
-      currentValue: _weightVolume,
-      items: const [
-        DsActionDrawerItem(value: '< 5 t', label: '< 5 t'),
-        DsActionDrawerItem(value: '5 - 10 t', label: '5 - 10 t'),
-        DsActionDrawerItem(value: '10 - 20 t', label: '10 - 20 t'),
-        DsActionDrawerItem(value: '> 20 t', label: '> 20 t'),
-      ],
-    );
-    if (v != null) setState(() => _weightVolume = v);
   }
 
   Future<void> _editText({
@@ -154,10 +133,10 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
 
   GarageRoute _buildRoute() {
     final price = _price.text.trim();
-    final wv = RegExp(r'\d+').firstMatch(_weightVolume ?? '');
+    final wv = RegExp(r'\d+').firstMatch(_maxWeight.text);
     return GarageRoute(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
-      name: _transport ?? "Yo'nalish",
+      name: _transports.isEmpty ? "Yo'nalish" : _transports.join(', '),
       priceLabel: price.isEmpty ? 'Kelishiladi' : "$price so'm",
       fromCity: _from?.title ?? '',
       fromCountry: _from?.country ?? '',
@@ -222,9 +201,9 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
                   _MagnitField(
                     icon: Icons.local_shipping_outlined,
                     label: 'magnit.transport'.tr(ref),
-                    required: true,
-                    value: _transport,
+                    value: _transports.isEmpty ? null : _transports.join(', '),
                     placeholder: 'magnit.transportHint'.tr(ref),
+                    isRequired: true,
                     onTap: _pickTransport,
                   ),
                   const SizedBox(height: 16),
@@ -268,9 +247,13 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
                     _MagnitField(
                       icon: LucideIcons.weight,
                       label: 'magnit.weightVolume'.tr(ref),
-                      value: _weightVolume,
+                      value: _maxWeight.text.isEmpty ? null : _maxWeight.text,
                       placeholder: 'magnit.weightVolumeHint'.tr(ref),
-                      onTap: _pickWeightVolume,
+                      onTap: () => _editText(
+                        title: 'magnit.weightVolume'.tr(ref),
+                        controller: _maxWeight,
+                        keyboardType: TextInputType.number,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     _MagnitField(
@@ -399,9 +382,9 @@ class _RouteCard extends StatelessWidget {
                     chipSize: 36,
                     chipRadius: 12,
                     label: fromLabel,
-                    required: true,
                     value: fromValue,
                     placeholder: fromHint,
+                    isRequired: true,
                     onTap: onFrom,
                   ),
                 ),
@@ -460,7 +443,7 @@ class _MagnitField extends StatelessWidget {
     required this.placeholder,
     required this.onTap,
     this.value,
-    this.required = false,
+    this.isRequired = false,
   });
 
   final IconData icon;
@@ -468,7 +451,7 @@ class _MagnitField extends StatelessWidget {
   final String placeholder;
   final VoidCallback onTap;
   final String? value;
-  final bool required;
+  final bool isRequired;
 
   @override
   Widget build(BuildContext context) {
@@ -484,9 +467,9 @@ class _MagnitField extends StatelessWidget {
           child: _FieldInner(
             icon: icon,
             label: label,
-            required: required,
             value: value,
             placeholder: placeholder,
+            isRequired: isRequired,
             onTap: null,
           ),
         ),
@@ -503,19 +486,19 @@ class _FieldInner extends StatelessWidget {
     required this.onTap,
     this.icon,
     this.value,
-    this.required = false,
     this.chipSize = 32,
     this.chipRadius = 10,
+    this.isRequired = false,
   });
 
   final IconData? icon;
   final String label;
   final String placeholder;
   final String? value;
-  final bool required;
   final double chipSize;
   final double chipRadius;
   final VoidCallback? onTap;
+  final bool isRequired;
 
   @override
   Widget build(BuildContext context) {
@@ -543,19 +526,29 @@ class _FieldInner extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              RichText(
-                text: TextSpan(
-                  style: t.caption.copyWith(
-                    fontWeight: FontWeight.w400,
-                    height: 15 / 12,
-                    color: const Color(0xFF0B1020),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: t.caption.copyWith(
+                      fontWeight: FontWeight.w400,
+                      height: 14.5 / 12,
+                      color: const Color(0xFF0B1020),
+                    ),
                   ),
-                  children: [
-                    TextSpan(text: label),
-                    if (required)
-                      TextSpan(text: ' *', style: TextStyle(color: c.red700)),
+                  if (isRequired) ...[
+                    const SizedBox(width: 2),
+                    Text(
+                      '*',
+                      style: t.caption.copyWith(
+                        fontWeight: FontWeight.w400,
+                        height: 14.5 / 12,
+                        color: const Color(0xFFB42318),
+                      ),
+                    ),
                   ],
-                ),
+                ],
               ),
               const SizedBox(height: 2),
               Text(
@@ -568,7 +561,7 @@ class _FieldInner extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        Icon(LucideIcons.chevronRight, size: 18, color: c.textPrimary),
+        Icon(LucideIcons.chevronRight, size: 16, color: c.textPrimary),
       ],
     );
 
@@ -605,16 +598,16 @@ class _CollapseToggle extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(8),
           child: SizedBox(
-            height: 36,
+            height: 40,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(label, style: t.bodyMedium.copyWith(fontWeight: FontWeight.w400, color: const Color(0xFF0B1020))),
+                Text(label, style: t.bodyMedium.copyWith(fontWeight: FontWeight.w400, color: c.primary)),
                 const SizedBox(width: 6),
                 Icon(
                   expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
                   size: 20,
-                  color: const Color(0xFF0B1020),
+                  color: c.primary,
                 ),
               ],
             ),

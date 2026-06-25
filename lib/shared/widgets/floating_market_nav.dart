@@ -20,13 +20,22 @@ class FloatingMarketNav extends StatelessWidget {
     super.key,
     required this.activeIndex,
     required this.onTap,
+    this.secondLabel = 'Garaj',
+    this.secondIcon = LucideIcons.warehouse,
+    this.fabIcon = LucideIcons.magnet,
   });
 
-  /// 0..4 (Asosiy, Garaj, FAB, Xabarlar, Profil) or null for nothing active.
+  /// 0..4 (Asosiy, Garaj/Yuklarim, FAB, Xabarlar, Profil) or null.
   final int? activeIndex;
 
   /// Called with the tapped nav index (0..4).
   final ValueChanged<int> onTap;
+
+  // Slot 1 + the centre FAB vary by role — carrier: "Garaj" + magnet (Magnit);
+  // shipper / broker: "Yuklarim" + plus (post a load).
+  final String secondLabel;
+  final IconData secondIcon;
+  final IconData fabIcon;
 
   // Figma `Nav_bar` (frame 6435:34667 → Frame 2087329689):
   //   pill 356×60, radius 32, shadow 0 1 6 rgba(0,0,0,0.16)
@@ -100,8 +109,8 @@ class FloatingMarketNav extends StatelessWidget {
                             ),
                             Expanded(
                               child: _NavSlot(
-                                label: 'Garaj',
-                                icon: LucideIcons.warehouse,
+                                label: secondLabel,
+                                icon: secondIcon,
                                 active: activeIndex == 1,
                                 onTap: () => onTap(1),
                               ),
@@ -136,6 +145,7 @@ class FloatingMarketNav extends StatelessWidget {
                 bottom: _pillHeight - _fabSize / 2,
                 child: _CenterFab(
                   active: activeIndex == 2,
+                  icon: fabIcon,
                   onTap: () => onTap(2),
                 ),
               ),
@@ -192,9 +202,14 @@ class _NavSlot extends StatelessWidget {
 }
 
 class _CenterFab extends StatelessWidget {
-  const _CenterFab({required this.active, required this.onTap});
+  const _CenterFab({
+    required this.active,
+    required this.icon,
+    required this.onTap,
+  });
 
   final bool active;
+  final IconData icon;
   final VoidCallback onTap;
 
   @override
@@ -217,11 +232,11 @@ class _CenterFab extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: const SizedBox(
+          child: SizedBox(
             width: FloatingMarketNav._fabSize,
             height: FloatingMarketNav._fabSize,
-            // Magnet icon (lucide) — matches the Figma centre FAB illustration.
-            child: Icon(LucideIcons.magnet, color: Colors.white, size: 28),
+            // Carrier: magnet (Magnit); shipper/broker: plus (post a load).
+            child: Icon(icon, color: Colors.white, size: 28),
           ),
         ),
       ),

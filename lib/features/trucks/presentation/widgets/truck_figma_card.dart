@@ -55,16 +55,28 @@ class TruckFigmaCard extends StatelessWidget {
             children: [
               _Avatar(url: avatarUrl),
               const SizedBox(width: 8),
+              // Name sits in a gray chip (Figma: #F2F4F7, r6, pad 4), hugging
+              // its text on the left while the price stays pinned right.
               Expanded(
-                child: Text(
-                  truckName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 18 / 14,
-                    fontWeight: FontWeight.w500,
-                    color: FigmaPalette.ink,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: FigmaPalette.chipBg,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      truckName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 18 / 14,
+                        fontWeight: FontWeight.w500,
+                        color: FigmaPalette.ink,
+                      ),
+                    ),
                   ),
                 ),
               ),

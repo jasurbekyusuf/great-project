@@ -135,8 +135,16 @@ class _LicensePlate extends StatelessWidget {
     final region = space == -1 ? trimmed : trimmed.substring(0, space);
     final number = space == -1 ? '' : trimmed.substring(space + 1);
 
-    const plateStyle = TextStyle(
+    // The region ("30") reads smaller than the plate number (Figma 6593:19490:
+    // region 15.75 vs number 22.75 — kept proportional here).
+    const regionStyle = TextStyle(
       fontSize: 13,
+      height: 1,
+      fontWeight: FontWeight.w700,
+      color: FigmaPalette.ink,
+    );
+    const numberStyle = TextStyle(
+      fontSize: 18,
       height: 1,
       fontWeight: FontWeight.w700,
       color: FigmaPalette.ink,
@@ -156,30 +164,32 @@ class _LicensePlate extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Text(region, style: plateStyle),
+            child: Text(region, style: regionStyle),
           ),
           Container(width: 1, color: FigmaPalette.ink),
+          // Number + UZ flag strip share one cell — no divider between them.
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Text(number, style: plateStyle),
-          ),
-          Container(width: 1, color: FigmaPalette.ink),
-          // UZ strip — three flag stripes + code.
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _flagBar(),
-                const SizedBox(height: 1),
-                const Text(
-                  'UZ',
-                  style: TextStyle(
-                    fontSize: 7,
-                    height: 1,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1271A1),
-                  ),
+                Text(number, style: numberStyle),
+                const SizedBox(width: 4),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _flagBar(),
+                    const SizedBox(height: 1),
+                    const Text(
+                      'UZ',
+                      style: TextStyle(
+                        fontSize: 7,
+                        height: 1,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1271A1),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

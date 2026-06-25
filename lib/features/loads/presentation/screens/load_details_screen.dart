@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/utils/address_format.dart';
+import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
 import 'package:loadme_mobile/shared/design_system/ds_confirmation_modal.dart';
@@ -11,6 +12,7 @@ import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
 import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
 import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
 import 'package:loadme_mobile/shared/widgets/load_card_parts.dart';
+import 'package:loadme_mobile/shared/widgets/mobile_auth_required_sheet.dart';
 import 'package:loadme_mobile/shared/widgets/route_map.dart';
 import 'package:loadme_mobile/shared/widgets/swipe_back_wrapper.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -159,6 +161,9 @@ class _Body extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // No session → guest. Tapping "Bog'lanish" then opens the login prompt
+    // instead of the (authed-only) contact action.
+    final isGuest = ref.watch(authControllerProvider).valueOrNull == null;
     return Column(
       children: [
         Expanded(
@@ -167,17 +172,23 @@ class _Body extends ConsumerWidget {
             children: [
               _RouteCard(load: load),
               const SizedBox(height: 8),
-              const _DetailsCard(),
+              _DetailsCard(load: load),
               const SizedBox(height: 8),
               _MapCard(load: load),
               const SizedBox(height: 8),
-              const _OwnerCard(),
+              _OwnerCard(load: load),
             ],
           ),
         ),
         _BottomBar(
           ownerMode: ownerMode,
           isActive: isActive,
+          onContact: () {
+            if (isGuest) {
+              showMobileAuthRequiredSheet(context);
+            }
+            // Authed contact action (Telegram / WhatsApp) is wired separately.
+          },
           onArchiveToggle: () => _ownerToggle(context, ref),
           onEdit: () => context.push('/edit-load/${load.guid}'),
         ),
@@ -207,7 +218,8 @@ class _Body extends ConsumerWidget {
             closedPlatform: isActive ? 'loadme' : null,
           );
       messenger.showSnackBar(SnackBar(
-          content: Text(isActive ? 'Yuk arxivlandi' : 'Qayta faollashtirildi')));
+          content:
+              Text(isActive ? 'Yuk arxivlandi' : 'Qayta faollashtirildi')));
       router.go('/my-loads');
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.toString())));
@@ -272,15 +284,16 @@ class _RouteCard extends StatelessWidget {
                   children: [
                     _stopText(
                       city: addressCity(load.fromAddress),
-                      region:
-                          addressRegion(load.fromAddress, 'Qashqadaryo, UZB'),
-                      date: '4-iyun',
+                      region: addressRegion(
+                          load.fromAddress, load.fromCountry ?? ''),
+                      date: _uzDate(load.pickupDate) ?? '',
                     ),
                     const SizedBox(height: 8),
                     _stopText(
                       city: addressCity(load.toAddress),
-                      region: addressRegion(load.toAddress, 'Kamchatka, RUS'),
-                      date: '8-iyun',
+                      region:
+                          addressRegion(load.toAddress, load.toCountry ?? ''),
+                      date: _uzDate(load.deliveryDate) ?? '',
                     ),
                   ],
                 ),
@@ -288,25 +301,37 @@ class _RouteCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // Naqd / Avans price box
+          // Naqd / Avans price box — banknote chip + two money columns that hug
+          // their text, split by a 1×32 hairline (Figma 270988543).
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: FigmaPalette.chipBg,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                Expanded(
-                  child: _money(
-                      'Naqd', '220 000 000 so’m', FigmaPalette.moneyGreen),
-                ),
                 Container(
-                    width: 1, height: 28, color: FigmaPalette.dividerStrong),
-                const SizedBox(width: 12),
-                Expanded(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: FigmaPalette.paymentIconBg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(LucideIcons.banknote,
+                      size: 20, color: FigmaPalette.primary),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
                   child: _money(
-                      'Avans', '30 000 000 so’m', FigmaPalette.gray700),
+                      'Naqd', load.priceLabel ?? '—', FigmaPalette.moneyGreen),
+                ),
+                const SizedBox(width: 10),
+                Container(width: 1, height: 32, color: FigmaPalette.label),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: _money('Avans', '—', FigmaPalette.gray700),
                 ),
               ],
             ),
@@ -344,8 +369,8 @@ class _RouteCard extends StatelessWidget {
             Text(
               date,
               style: const TextStyle(
-                fontSize: 12,
-                height: 20 / 12,
+                fontSize: 14,
+                height: 20 / 14,
                 fontWeight: FontWeight.w500,
                 color: FigmaPalette.label,
               ),
@@ -367,30 +392,66 @@ class _RouteCard extends StatelessWidget {
   }
 
   Widget _money(String label, String value, Color valueColor) {
+    // Currency token (e.g. "so’m") renders one step smaller than the amount,
+    // matching the Figma per-character styling.
+    final i = value.lastIndexOf(' ');
+    final hasSuffix = i > 0 && i < value.length - 1;
+    final amount = hasSuffix ? value.substring(0, i + 1) : value;
+    final suffix = hasSuffix ? value.substring(i + 1) : '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
           style: const TextStyle(
             fontSize: 12,
+            height: 18 / 12,
             fontWeight: FontWeight.w500,
             color: FigmaPalette.gray700,
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          value,
+        Text.rich(
+          TextSpan(
+            text: amount,
+            style: TextStyle(
+              fontSize: 14,
+              height: 20 / 14,
+              fontWeight: FontWeight.w600,
+              color: valueColor,
+            ),
+            children: hasSuffix
+                ? [TextSpan(text: suffix, style: const TextStyle(fontSize: 12))]
+                : null,
+          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: valueColor,
-          ),
         ),
       ],
     );
+  }
+
+  // "2026-06-04T..." → "4-iyun" using Uzbek month names.
+  String? _uzDate(String? iso) {
+    if (iso == null) return null;
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return null;
+    const months = [
+      'yanvar',
+      'fevral',
+      'mart',
+      'aprel',
+      'may',
+      'iyun',
+      'iyul',
+      'avgust',
+      'sentabr',
+      'oktabr',
+      'noyabr',
+      'dekabr',
+    ];
+    return '${dt.day}-${months[dt.month - 1]}';
   }
 }
 
@@ -399,18 +460,8 @@ class _RouteCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _DetailsCard extends StatelessWidget {
-  const _DetailsCard();
-
-  static const _rows = <(IconData, String, String)>[
-    (LucideIcons.snowflake, 'Transport turi:', 'Refer'),
-    (LucideIcons.thermometer, 'Harorat:', '-2°  +12°'),
-    (LucideIcons.package, 'Mahsulot:', 'Gilos'),
-    (LucideIcons.arrowDownToLine, 'Yuklash turi:', 'Dagruz (To’liq)'),
-    (LucideIcons.mapPin, 'Radius (Yukgacha):', '10 km'),
-    (LucideIcons.route, 'Masofa:', '400 km'),
-    (LucideIcons.weight, 'Og’irlik:', '4 t'),
-    (LucideIcons.box, 'Yuk hajmi:', '-'),
-  ];
+  const _DetailsCard({required this.load});
+  final LoadEntity load;
 
   @override
   Widget build(BuildContext context) {
@@ -418,7 +469,21 @@ class _DetailsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final r in _rows) _row(r.$1, r.$2, r.$3),
+          _row(LucideIcons.truck, 'Transport turi:',
+              value: load.truckType ?? '—'),
+          _row(LucideIcons.forklift, 'Yuklash turi:',
+              value: load.isPartial ? 'Qisman' : "To'liq"),
+          _row(LucideIcons.mapPin, 'Radius (Yukgacha):',
+              value: load.radiusKm != null ? '${load.radiusKm} km' : '—'),
+          _row(LucideIcons.route, 'Masofa:',
+              value: load.distanceKm != null ? '${load.distanceKm} km' : '—'),
+          _row(LucideIcons.weight, 'Og’irlik:',
+              value:
+                  load.weightT != null ? '${formatQty(load.weightT!)} t' : '—'),
+          _row(LucideIcons.box, 'Yuk hajmi:',
+              value: load.volumeM3 != null
+                  ? '${formatQty(load.volumeM3!)} m³'
+                  : '—'),
           const SizedBox(height: 8),
           const Divider(
               height: 1, thickness: 1, color: FigmaPalette.dividerStrong),
@@ -427,14 +492,15 @@ class _DetailsCard extends StatelessWidget {
             'Izoh:',
             style: TextStyle(
               fontSize: 12,
+              height: 18 / 12,
               fontWeight: FontWeight.w500,
               color: FigmaPalette.label,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Temperature inside truck may depend on the weather outside',
-            style: TextStyle(
+          Text(
+            load.comment ?? '—',
+            style: const TextStyle(
               fontSize: 12,
               height: 18 / 12,
               fontWeight: FontWeight.w500,
@@ -446,28 +512,50 @@ class _DetailsCard extends StatelessWidget {
     );
   }
 
-  Widget _row(IconData icon, String label, String value) {
+  // One spec row: gray-boxed blue icon · label and value as two equal columns
+  // (Figma 1321315320 — the value left-aligns into its own column, it is *not*
+  // pushed to the right edge).
+  Widget _row(IconData icon, String label, {required String value}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7.5),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: FigmaPalette.primary),
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: FigmaPalette.chipBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: FigmaPalette.primary),
+          ),
           const SizedBox(width: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: FigmaPalette.gray700,
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                height: 18 / 12,
+                fontWeight: FontWeight.w500,
+                color: FigmaPalette.gray700,
+              ),
             ),
           ),
-          const Spacer(),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: FigmaPalette.ink,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                height: 18 / 12,
+                fontWeight: FontWeight.w500,
+                color: FigmaPalette.ink,
+              ),
             ),
           ),
         ],
@@ -550,7 +638,8 @@ class _MapCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _OwnerCard extends StatelessWidget {
-  const _OwnerCard();
+  const _OwnerCard({required this.load});
+  final LoadEntity load;
 
   @override
   Widget build(BuildContext context) {
@@ -561,50 +650,60 @@ class _OwnerCard extends StatelessWidget {
           // Name + rating | role badge
           Row(
             children: [
-              appSvgIcon('card_verified', size: 16),
-              const SizedBox(width: 6),
-              const Text(
-                'ExportView LTD',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: FigmaPalette.ink,
+              if (load.verified) ...[
+                appSvgIcon('card_verified', size: 16),
+                const SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text(
+                  load.ownerName ?? 'LoadMe',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 18 / 14,
+                    fontWeight: FontWeight.w500,
+                    color: FigmaPalette.ink,
+                  ),
                 ),
               ),
-              const SizedBox(width: 6),
-              const Text('4.5',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: FigmaPalette.ink)),
-              const SizedBox(width: 2),
-              appSvgIcon('card_star', size: 14),
+              if (load.ownerRating != null) ...[
+                const SizedBox(width: 6),
+                Text(load.ownerRating!.toStringAsFixed(1),
+                    style: const TextStyle(
+                        fontSize: 14,
+                        height: 18 / 14,
+                        fontWeight: FontWeight.w500,
+                        color: FigmaPalette.ink)),
+                const SizedBox(width: 2),
+                appSvgIcon('card_star', size: 14),
+              ],
               const Spacer(),
-              const RoleBadge(label: 'Yuk egasi'),
+              if (load.roleBadge != null) RoleBadge(label: load.roleBadge!),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _contactCol('Telegram:', '@calltome')),
+              Expanded(child: _contactCol('Telegram:', load.telegram ?? '—')),
               const SizedBox(width: 12),
-              Expanded(child: _contactCol('Whatsapp:', '@callmexport')),
+              Expanded(child: _contactCol('Whatsapp:', load.whatsapp ?? '—')),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: _OutlineBtn(
+                child: _ActionChip(
                   icon: LucideIcons.star,
                   label: 'Baholash',
                   onTap: () {},
                 ),
               ),
-              const SizedBox(width: 9),
+              const SizedBox(width: 12),
               Expanded(
-                child: _OutlineBtn(
-                  icon: LucideIcons.flag,
+                child: _ActionChip(
+                  icon: LucideIcons.scrollText,
                   label: 'Shikoyat qilish',
                   onTap: () {},
                 ),
@@ -640,8 +739,11 @@ class _OwnerCard extends StatelessWidget {
   }
 }
 
-class _OutlineBtn extends StatelessWidget {
-  const _OutlineBtn(
+// Gray-filled pill (Figma 1321315331 / 1711112378) — a 16px icon + 12/500
+// label on the neutral chip background. Used for the Baholash / Shikoyat
+// owner-card actions.
+class _ActionChip extends StatelessWidget {
+  const _ActionChip(
       {required this.icon, required this.label, required this.onTap});
   final IconData icon;
   final String label;
@@ -649,34 +751,35 @@ class _OutlineBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        height: 40,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: FigmaPalette.dividerStrong),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 18, color: FigmaPalette.tertiary),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: FigmaPalette.tertiary,
+    return Material(
+      color: FigmaPalette.chipBg,
+      borderRadius: BorderRadius.circular(6),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          height: 32,
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: FigmaPalette.gray700),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 18 / 12,
+                    fontWeight: FontWeight.w500,
+                    color: FigmaPalette.gray700,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -691,12 +794,14 @@ class _BottomBar extends StatelessWidget {
   const _BottomBar({
     required this.ownerMode,
     required this.isActive,
+    required this.onContact,
     required this.onArchiveToggle,
     required this.onEdit,
   });
 
   final bool ownerMode;
   final bool isActive;
+  final VoidCallback onContact;
   final VoidCallback onArchiveToggle;
   final VoidCallback onEdit;
 
@@ -733,7 +838,7 @@ class _BottomBar extends StatelessWidget {
               : _SolidBtn(
                   label: 'Bog’lanish',
                   color: FigmaPalette.primary,
-                  onTap: () {},
+                  onTap: onContact,
                 ),
         ),
       ),

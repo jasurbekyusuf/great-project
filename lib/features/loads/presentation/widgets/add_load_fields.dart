@@ -22,7 +22,8 @@ class AddLoadLabel extends StatelessWidget {
           style: t.bodyMedium.copyWith(color: c.textPrimary),
           children: [
             TextSpan(text: text),
-            if (required) TextSpan(text: ' *', style: TextStyle(color: c.error)),
+            if (required)
+              TextSpan(text: ' *', style: TextStyle(color: c.error)),
           ],
         ),
       ),

@@ -6,21 +6,22 @@ import 'package:loadme_mobile/features/auth/domain/repositories/auth_repository.
 
 class RegisterInput extends Equatable {
   const RegisterInput({
-    required this.fullName,
-    required this.phone,
-    required this.smsId,
-    required this.otp,
+    required this.registrationToken,
+    required this.role,
+    required this.personType,
+    this.fullName,
     this.companyName,
   });
 
-  final String fullName;
+  final String registrationToken;
+  final String role;
+  final String personType;
+  final String? fullName;
   final String? companyName;
-  final String phone;
-  final String smsId;
-  final String otp;
 
   @override
-  List<Object?> get props => [fullName, companyName, phone, smsId, otp];
+  List<Object?> get props =>
+      [registrationToken, role, personType, fullName, companyName];
 }
 
 class RegisterUseCase implements UseCase<RegisterInput, AuthSession> {
@@ -29,10 +30,10 @@ class RegisterUseCase implements UseCase<RegisterInput, AuthSession> {
 
   @override
   AsyncResult<AuthSession> call(RegisterInput input) => _repository.register(
+        registrationToken: input.registrationToken,
+        role: input.role,
+        personType: input.personType,
         fullName: input.fullName,
         companyName: input.companyName,
-        phone: input.phone,
-        smsId: input.smsId,
-        otp: input.otp,
       );
 }

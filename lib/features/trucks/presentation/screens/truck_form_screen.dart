@@ -6,6 +6,7 @@ import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/garage/presentation/providers/garage_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
+import 'package:loadme_mobile/shared/design_system/ds_truck_type_drawer.dart';
 import 'package:loadme_mobile/shared/widgets/swipe_back_wrapper.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -27,14 +28,9 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
   final _measureController = TextEditingController();
 
   String? _model;
-  String? _truckType;
+  List<String> _selectedTrucks = [];
   String? _photoUrl;
   var _submitting = false;
-
-  static const _truckTypes = [
-    'Tent / Shtora', 'Refrigerator', 'Isuzu NQR / NPR', 'Trailer',
-    "Container 20'", "Container 40'", 'Flatbed',
-  ];
 
   bool get _isEdit => widget.truckId != null;
 
@@ -46,14 +42,11 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
   }
 
   Future<void> _pickTruckType() async {
-    final v = await showDsActionDrawer<String>(
+    final v = await showDsTruckTypeDrawer(
       context: context,
-      title: 'Transport turi',
-      currentValue: _truckType,
-      items:
-          _truckTypes.map((t) => DsActionDrawerItem(value: t, label: t)).toList(),
+      initialSelected: _selectedTrucks,
     );
-    if (v != null) setState(() => _truckType = v);
+    if (v != null) setState(() => _selectedTrucks = v);
   }
 
   Future<void> _pickModel() async {
@@ -118,7 +111,9 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
                       icon: LucideIcons.truck,
                       label: 'Transport turi',
                       hint: 'Transportni tanlang',
-                      value: _truckType,
+                      value: _selectedTrucks.isEmpty
+                          ? null
+                          : _selectedTrucks.join(', '),
                       onTap: _pickTruckType,
                     ),
                     const SizedBox(height: 8),
@@ -165,7 +160,7 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
   Future<void> _submit() async {
     final errors = <String>[];
     if (_model == null) errors.add('Model: tanlash kerak');
-    if (_truckType == null) errors.add('Transport turi: tanlash kerak');
+    if (_selectedTrucks.isEmpty) errors.add('Transport turi: tanlash kerak');
     if (_plateController.text.trim().isEmpty) {
       errors.add('Transport raqami: kiritish kerak');
     }
@@ -185,7 +180,7 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
             GarageVehicle(
               id: DateTime.now().microsecondsSinceEpoch.toString(),
               name: _model ?? '',
-              model: _truckType ?? '',
+              model: _selectedTrucks.join(', '),
               plate: _plateController.text.trim(),
               photoUrl: _photoUrl,
             ),
@@ -660,10 +655,14 @@ class _PlateField extends StatelessWidget {
   InputDecoration _dec(String hint, TextStyle base) => InputDecoration(
         counterText: '',
         isCollapsed: true,
+        filled: false,
         contentPadding: EdgeInsets.zero,
         border: InputBorder.none,
         enabledBorder: InputBorder.none,
         focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
         hintText: hint,
         hintStyle: base.copyWith(color: const Color(0xFFC2C8D2)),
       );
@@ -914,7 +913,14 @@ class _CapacitySheetState extends State<_CapacitySheet> {
                       ),
                       decoration: InputDecoration(
                         isCollapsed: true,
+                        filled: false,
+                        contentPadding: EdgeInsets.zero,
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
                         hintText: _hint,
                         hintStyle: const TextStyle(
                           fontSize: 16,

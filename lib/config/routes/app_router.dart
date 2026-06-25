@@ -2,10 +2,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:loadme_mobile/features/auth/presentation/providers/current_user_provider.dart';
 import 'package:loadme_mobile/features/auth/presentation/screens/auth_splash_screen.dart';
 import 'package:loadme_mobile/features/auth/presentation/screens/auth_welcome_screen.dart';
-import 'package:loadme_mobile/features/auth/presentation/screens/forgot_password_screen.dart';
-import 'package:loadme_mobile/features/auth/presentation/screens/login_screen.dart';
 import 'package:loadme_mobile/features/auth/presentation/screens/onboarding_screen.dart';
 import 'package:loadme_mobile/features/auth/presentation/screens/phone_verification_screen.dart';
 import 'package:loadme_mobile/features/auth/presentation/screens/register_screen.dart';
@@ -22,6 +21,7 @@ import 'package:loadme_mobile/features/loads/presentation/screens/loads_filters_
 import 'package:loadme_mobile/features/loads/presentation/screens/my_loads_screen.dart';
 import 'package:loadme_mobile/features/magnit/presentation/screens/magnit_screen.dart';
 import 'package:loadme_mobile/features/market/presentation/screens/market_screen.dart';
+import 'package:loadme_mobile/features/notifications/presentation/screens/notification_detail_screen.dart';
 import 'package:loadme_mobile/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:loadme_mobile/features/profile/presentation/screens/default_commission_screen.dart';
 import 'package:loadme_mobile/features/profile/presentation/screens/profile_edit_screen.dart';
@@ -29,9 +29,6 @@ import 'package:loadme_mobile/features/profile/presentation/screens/profile_scre
 import 'package:loadme_mobile/features/profile/presentation/screens/profile_statistics_screen.dart';
 import 'package:loadme_mobile/features/profile/presentation/screens/saved_screen.dart';
 import 'package:loadme_mobile/features/profile/presentation/screens/support_feedback_screen.dart';
-import 'package:loadme_mobile/features/trucks/presentation/screens/my_truck_detail_screen.dart';
-import 'package:loadme_mobile/features/trucks/presentation/screens/my_trucks_screen.dart';
-import 'package:loadme_mobile/features/trucks/presentation/screens/post_truck_detail_screen.dart';
 import 'package:loadme_mobile/features/trucks/presentation/screens/post_truck_form_screen.dart';
 import 'package:loadme_mobile/features/trucks/presentation/screens/truck_form_screen.dart';
 import 'package:loadme_mobile/shared/widgets/scaffold_with_nav.dart';
@@ -56,7 +53,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final inGuest = loc.startsWith('/guest');
 
       if (!isAuthed && !inAuth && !inGuest) return '/guest';
-      if (isAuthed && (inAuth || inGuest)) return '/add-truck';
+      if (isAuthed && (inAuth || inGuest)) {
+        // Role-aware home (mirrors web getPostLoginPath): carrier looks for
+        // cargo (loads); shipper / broker look for trucks.
+        final role = ref.read(currentUserRoleSyncProvider);
+        return role == 'carrier' ? '/loads' : '/trucks';
+      }
       return null;
     },
     routes: [
@@ -84,10 +86,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/auth/splash', builder: (_, __) => const AuthSplashScreen()),
       GoRoute(path: '/auth/onboarding', builder: (_, __) => const OnboardingScreen()),
       GoRoute(path: '/auth/welcome', builder: (_, __) => const AuthWelcomeScreen()),
-      GoRoute(path: '/auth/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/auth/verify', builder: (_, __) => const PhoneVerificationScreen()),
       GoRoute(path: '/auth/register', builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: '/auth/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
 
       // ---- Authed shell with bottom nav (4 independent stacks) -------------
       StatefulShellRoute.indexedStack(
@@ -148,10 +148,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ],
               ),
               GoRoute(
-                path: '/my-trucks',
-                builder: (_, __) => const MyTrucksScreen(),
-              ),
-              GoRoute(
                 path: '/edit-load/:id',
                 builder: (_, state) =>
                     LoadFormScreen(loadId: state.pathParameters['id']),
@@ -201,6 +197,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/notifications',
                 builder: (_, __) => const NotificationsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'announcement',
+                    builder: (_, __) => const NotificationDetailScreen(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -224,21 +226,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/my-load/:id',
         builder: (_, state) => LoadDetailsScreen(
-          id: state.pathParameters['id']!,
-          ownerMode: true,
-          isActive: state.uri.queryParameters['active'] != 'false',
-        ),
-      ),
-      GoRoute(
-        path: '/my-truck/:id',
-        builder: (_, state) => MyTruckDetailScreen(
-          id: state.pathParameters['id']!,
-          isActive: state.uri.queryParameters['active'] != 'false',
-        ),
-      ),
-      GoRoute(
-        path: '/my-post-truck-detail/:id',
-        builder: (_, state) => PostTruckDetailScreen(
           id: state.pathParameters['id']!,
           ownerMode: true,
           isActive: state.uri.queryParameters['active'] != 'false',

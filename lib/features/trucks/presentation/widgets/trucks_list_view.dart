@@ -30,33 +30,59 @@ class TrucksListView extends ConsumerWidget {
       ),
       data: (items) {
         if (items.isEmpty) return DsEmptyState(title: 'common.notFound'.tr(ref));
+        final notifier = ref.read(trucksControllerProvider.notifier);
+        final hasMore = notifier.hasMore;
         return RefreshIndicator(
-          onRefresh: () async => ref.invalidate(trucksControllerProvider),
-          child: ListView.separated(
-            // Bottom inset clears the floating frosted nav (≈110px).
-            padding: EdgeInsets.fromLTRB(s.lg, 0, s.lg, 110),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => SizedBox(height: s.sm),
-            itemBuilder: (_, i) {
-              final d = items[i];
-              return TruckFigmaCard(
-                truckName: d.truckType,
-                priceLabel: d.priceLabel,
-                fromCity: addressCity(d.truck.fromAddress),
-                fromCountry: d.fromCountry,
-                toCity: addressCity(d.truck.toAddress),
-                toCountry: d.toCountry,
-                distanceKm: d.distanceKm,
-                weightT: d.weightT,
-                loadKind: d.loadKind,
-                timeAgo: d.timeAgo,
-                onTap: () => context.push(
-                  guest
-                      ? '/guest-post-truck/${d.truck.guid}'
-                      : '/post-truck/${d.truck.guid}',
-                ),
-              );
+          onRefresh: () => notifier.refresh(),
+          // Fire `loadMore` ~400px before the bottom so the next page is already
+          // arriving by the time the user reaches the current tail.
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (n) {
+              if (n.metrics.axis == Axis.vertical &&
+                  n.metrics.pixels >= n.metrics.maxScrollExtent - 400) {
+                notifier.loadMore();
+              }
+              return false;
             },
+            child: ListView.separated(
+              // Bottom inset clears the floating frosted nav (≈110px).
+              padding: EdgeInsets.fromLTRB(s.lg, 0, s.lg, 110),
+              // One extra row for the tail spinner while more pages exist.
+              itemCount: items.length + (hasMore ? 1 : 0),
+              separatorBuilder: (_, __) => SizedBox(height: s.sm),
+              itemBuilder: (_, i) {
+                if (i >= items.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  );
+                }
+                final d = items[i];
+                return TruckFigmaCard(
+                  truckName: d.truckType,
+                  priceLabel: d.priceLabel,
+                  fromCity: addressCity(d.truck.fromAddress),
+                  fromCountry: d.fromCountry,
+                  toCity: addressCity(d.truck.toAddress),
+                  toCountry: d.toCountry,
+                  distanceKm: d.distanceKm,
+                  weightT: d.weightT,
+                  loadKind: d.loadKind,
+                  timeAgo: d.timeAgo,
+                  onTap: () => context.push(
+                    guest
+                        ? '/guest-post-truck/${d.truck.guid}'
+                        : '/post-truck/${d.truck.guid}',
+                  ),
+                );
+              },
+            ),
           ),
         );
       },

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loadme_mobile/core/storage/providers.dart';
 
-// Supported app locales — must match `assets/l10n/app_*.arb`.
+// Supported app locales — must match the translation maps in
+// `core/services/app_l10n.dart`.
 // `cyr` is treated as `uz_Cyrl` (Cyrillic Uzbek) and falls back to `uz` strings.
 const supportedAppLocales = [
   Locale('uz'),

@@ -184,10 +184,21 @@ class RoleBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = label.toLowerCase();
     final danger = l.contains('egasi') || l.contains('shipper');
+    final ai = l.contains('loadme') || l.contains('ai');
+    // Figma role pills all share a gray chip bg except the danger one:
+    //   • "Yuk egasi" → red text #B42318 on #FEF3F2
+    //   • "LoadMe AI" → ink text #101828 on #F2F4F7
+    //   • other (e.g. "Logist") → blue text #004EEB on #F2F4F7
+    final Color bg = danger ? FigmaPalette.dangerBg : FigmaPalette.chipBg;
+    final Color fg = danger
+        ? FigmaPalette.dangerText
+        : ai
+            ? FigmaPalette.ink
+            : FigmaPalette.primary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: danger ? FigmaPalette.dangerBg : FigmaPalette.roleBlueBg,
+        color: bg,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -196,7 +207,7 @@ class RoleBadge extends StatelessWidget {
           fontSize: 12,
           height: 18 / 12,
           fontWeight: FontWeight.w500,
-          color: danger ? FigmaPalette.dangerText : FigmaPalette.primary,
+          color: fg,
         ),
       ),
     );
@@ -238,7 +249,7 @@ class VehicleTypeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: FigmaPalette.chipBg,
         borderRadius: BorderRadius.circular(6),

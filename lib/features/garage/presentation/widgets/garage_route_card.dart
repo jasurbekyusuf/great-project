@@ -6,9 +6,12 @@ import 'package:loadme_mobile/shared/widgets/card_action_menu.dart';
 import 'package:loadme_mobile/shared/widgets/load_card_parts.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-/// Figma "Yo'nalishlarim" route card (node 6602-20760, frame 2087329702):
-/// avatar + stacked name/price + 3-dot menu, route block, then footer stats
-/// with an iOS active/paused toggle.
+/// Figma "Yo'nalishlarim" route card (node 6751-17736, frame 2087329702):
+/// avatar + name/plate on the left with the price pinned right, a route block,
+/// then a "Magnit funksiyasi" row with an iOS toggle.
+///
+/// The redesign dropped the visible 3-dot menu, so edit/archive/delete now live
+/// on a long-press of the card (kept reachable, but invisible per the design).
 class GarageRouteCard extends StatelessWidget {
   const GarageRouteCard({
     super.key,
@@ -18,26 +21,27 @@ class GarageRouteCard extends StatelessWidget {
     required this.fromCountry,
     required this.toCity,
     required this.toCountry,
-    required this.distanceKm,
-    required this.weightT,
-    required this.loadKind,
     required this.active,
+    required this.magnitLabel,
     required this.onToggle,
     required this.menuActions,
+    this.plate = '',
     this.onTap,
     this.avatarUrl,
   });
 
   final String name;
+  final String plate;
   final String priceLabel;
   final String fromCity;
   final String fromCountry;
   final String toCity;
   final String toCountry;
-  final int distanceKm;
-  final double weightT;
-  final String loadKind;
   final bool active;
+
+  /// Resolved label for the toggle row — "Magnit funksiyasi" (off) or
+  /// "Magnit funksiyasi yoqilgan" (on); supplied by the screen via l10n.
+  final String magnitLabel;
   final ValueChanged<bool> onToggle;
   final List<CardMenuAction> menuActions;
   final VoidCallback? onTap;
@@ -45,14 +49,14 @@ class GarageRouteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FigmaCardShell(
+    final card = FigmaCardShell(
       onTap: onTap ?? () {},
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header: avatar + name/price + 3-dot menu ──────────────
+          // ── Header: avatar + name/plate | price ───────────────────
           Row(
             children: [
               TruckAvatar(url: avatarUrl),
@@ -73,23 +77,35 @@ class GarageRouteCard extends StatelessWidget {
                         color: FigmaPalette.ink,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      priceLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        height: 20 / 14,
-                        fontWeight: FontWeight.w600,
-                        color: FigmaPalette.primary,
+                    if (plate.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        plate,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          height: 14.5 / 12,
+                          fontWeight: FontWeight.w400,
+                          color: FigmaPalette.muted,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              _MenuButton(actions: menuActions),
+              Text(
+                priceLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 20 / 14,
+                  fontWeight: FontWeight.w600,
+                  color: FigmaPalette.primary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -105,7 +121,8 @@ class GarageRouteCard extends StatelessWidget {
                 children: [
                   const SizedBox(height: 3),
                   appSvgIcon('card_cube', size: 12, color: FigmaPalette.inkStrong),
-                  const DottedConnector(height: 14, width: 12, color: FigmaPalette.label),
+                  const DottedConnector(
+                      height: 14, width: 12, color: FigmaPalette.label),
                   appSvgIcon('card_flag', size: 12, color: FigmaPalette.inkStrong),
                 ],
               ),
@@ -127,32 +144,30 @@ class GarageRouteCard extends StatelessWidget {
           const Divider(height: 1, thickness: 1, color: FigmaPalette.divider),
           const SizedBox(height: 6),
 
-          // ── Footer: stats + active toggle ─────────────────────────
+          // ── Footer: Magnit-function row + iOS toggle ──────────────
           Row(
             children: [
-              RouteStatChip(
-                icon: appSvgIcon('card_route', size: 16, color: FigmaPalette.inkStrong),
-                text: '$distanceKm km',
-                gap: 3,
+              // The magnet glyph only shows when the function is off; the "on"
+              // row is text-only (Figma 6751:17736).
+              if (!active) ...[
+                const Icon(LucideIcons.magnet, size: 20, color: FigmaPalette.ink),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Text(
+                  magnitLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 18 / 14,
+                    fontWeight: FontWeight.w400,
+                    color: FigmaPalette.ink,
+                  ),
+                ),
               ),
-              const SizedBox(width: 8),
-              const CardVDivider(),
-              const SizedBox(width: 8),
-              RouteStatChip(
-                icon: appSvgIcon('card_weight', size: 16, color: FigmaPalette.inkStrong),
-                text: '${formatQty(weightT)} t',
-                gap: 3,
-              ),
-              const SizedBox(width: 8),
-              const CardVDivider(),
-              const SizedBox(width: 8),
-              RouteStatChip(
-                icon: appSvgIcon('card_full', size: 16, color: FigmaPalette.inkStrong),
-                text: loadKind,
-                gap: 3,
-              ),
-              const Spacer(),
-              // iOS-style toggle (Figma 51×31, track #65C466 when on).
+              const SizedBox(width: 16),
+              // iOS toggle (Figma 51×31, track #65C466 on / #E9E9EA off).
               SizedBox(
                 height: 31,
                 child: FittedBox(
@@ -169,27 +184,14 @@ class GarageRouteCard extends StatelessWidget {
         ],
       ),
     );
-  }
-}
 
-class _MenuButton extends StatelessWidget {
-  const _MenuButton({required this.actions});
-  final List<CardMenuAction> actions;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => showCardActionMenu(context: context, actions: actions),
-        child: const SizedBox(
-          width: 32,
-          height: 32,
-          child: Icon(LucideIcons.ellipsisVertical, size: 20, color: FigmaPalette.ink),
-        ),
-      ),
+    // Edit/archive/delete moved off the (now-removed) 3-dot menu onto a
+    // long-press, so the action set stays reachable without a visible trigger.
+    if (menuActions.isEmpty) return card;
+    return GestureDetector(
+      onLongPress: () =>
+          showCardActionMenu(context: context, actions: menuActions),
+      child: card,
     );
   }
 }

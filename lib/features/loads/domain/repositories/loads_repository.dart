@@ -2,7 +2,14 @@ import 'package:loadme_mobile/core/result/result.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 
 abstract interface class LoadsRepository {
-  AsyncResult<List<LoadEntity>> getLoads({required int page, required int limit});
+  AsyncResult<List<LoadEntity>> getLoads({
+    required int page,
+    required int limit,
+    Map<String, String>? filters,
+  });
+
+  /// Total number of public loads (the marketplace header count).
+  AsyncResult<int> getLoadsCount();
 
   AsyncResult<List<LoadEntity>> getMyLoads({
     required int page,

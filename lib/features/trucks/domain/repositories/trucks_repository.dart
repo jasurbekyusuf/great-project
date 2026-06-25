@@ -5,6 +5,9 @@ import 'package:loadme_mobile/features/trucks/domain/entities/truck_entity.dart'
 abstract interface class TrucksRepository {
   AsyncResult<List<TruckEntity>> getTrucks({required int page, required int limit});
 
+  /// Total number of public truck routes (the marketplace header count).
+  AsyncResult<int> getTrucksCount();
+
   AsyncResult<List<TruckEntity>> getMyPostTrucks({
     required int page,
     required int limit,

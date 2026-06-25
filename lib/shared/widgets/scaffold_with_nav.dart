@@ -1,8 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/features/auth/presentation/providers/current_user_provider.dart';
 import 'package:loadme_mobile/shared/widgets/floating_market_nav.dart';
 import 'package:loadme_mobile/shared/widgets/mobile_auth_required_sheet.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+/// The nav slot shown as an overlay over the shell — Xabarlar (3) or Magnit
+/// (2). Those routes are pushed on top of the current branch instead of being
+/// real shell branches, so `context.push` does not change the URL (it is
+/// imperative) and the pill can't infer them from the route. We carry the
+/// active overlay slot here instead: set on push, cleared on pop / branch tap.
+final navOverlayProvider = StateProvider<int?>((ref) => null);
 
 /// Hosts the bottom navigation bar and a [StatefulNavigationShell] body.
 ///
@@ -33,35 +44,58 @@ class ScaffoldWithNav extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // An open Xabarlar/Magnit overlay wins the highlight; otherwise fall back
+    // to the active shell branch.
+    final overlay = ref.watch(navOverlayProvider);
+    final isCarrier = ref.watch(currentUserRoleSyncProvider) == 'carrier';
     return Scaffold(
       // Frosted-glass nav floats over the content, which scrolls behind it.
       extendBody: true,
       body: shell,
       bottomNavigationBar: FloatingMarketNav(
-        activeIndex: _branchToNav[shell.currentIndex],
-        onTap: (i) => _handleTap(context, i),
+        activeIndex: overlay ?? _branchToNav[shell.currentIndex],
+        // Carrier: Garaj + magnet (Magnit). Shipper/broker: Yuklarim + plus.
+        secondLabel: isCarrier ? 'Garaj' : 'Yuklarim',
+        secondIcon: isCarrier ? LucideIcons.warehouse : LucideIcons.package,
+        fabIcon: isCarrier ? LucideIcons.magnet : LucideIcons.plus,
+        onTap: (i) => unawaited(_handleTap(context, ref, i)),
       ),
     );
   }
 
-  void _handleTap(BuildContext context, int navIndex) {
+  Future<void> _handleTap(
+    BuildContext context,
+    WidgetRef ref,
+    int navIndex,
+  ) async {
+    final overlay = ref.read(navOverlayProvider.notifier);
+
     // Xabarlar — push the notifications screen on top of the current branch.
     if (navIndex == 3) {
       if (guest) {
-        showMobileAuthRequiredSheet(context);
+        unawaited(showMobileAuthRequiredSheet(context));
         return;
       }
-      context.push('/notifications');
+      if (ref.read(navOverlayProvider) == 3) return; // already open
+      overlay.state = 3;
+      await context.push('/notifications');
+      // `push` completes when the route is popped (back / swipe) — restore the
+      // branch highlight, unless another overlay opened meanwhile.
+      if (ref.read(navOverlayProvider) == 3) overlay.state = null;
       return;
     }
 
-    // Magnit — push the magnet alert form over the current branch.
+    final isCarrier = ref.read(currentUserRoleSyncProvider) == 'carrier';
+
+    // Centre FAB — carrier: Magnit alert form; shipper/broker: post a load.
     if (navIndex == 2) {
       if (guest) {
-        showMobileAuthRequiredSheet(context);
+        unawaited(showMobileAuthRequiredSheet(context));
         return;
       }
-      context.push('/magnit');
+      overlay.state = 2;
+      await context.push(isCarrier ? '/magnit' : '/add-load');
+      if (ref.read(navOverlayProvider) == 2) overlay.state = null;
       return;
     }
 
@@ -70,10 +104,21 @@ class ScaffoldWithNav extends ConsumerWidget {
 
     // Guest mode can only use Asosiy (branch 0 = Search).
     if (guest && targetBranch != 0) {
-      showMobileAuthRequiredSheet(context);
+      unawaited(showMobileAuthRequiredSheet(context));
       return;
     }
 
+    // Switching to a real branch clears any overlay highlight.
+    overlay.state = null;
+
+    // Role-aware landing for shipper/broker: Asosiy → trucks search,
+    // Yuklarim → My loads. Carriers keep loads search + Garaj via goBranch.
+    if (!isCarrier && (targetBranch == 0 || targetBranch == 2)) {
+      if (context.mounted) {
+        context.go(targetBranch == 0 ? '/trucks' : '/my-loads');
+      }
+      return;
+    }
     shell.goBranch(
       targetBranch,
       initialLocation: targetBranch == shell.currentIndex,

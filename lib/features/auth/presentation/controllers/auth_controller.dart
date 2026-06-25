@@ -1,14 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:loadme_mobile/config/env/app_env.dart';
 import 'package:loadme_mobile/core/errors/app_failure.dart';
 import 'package:loadme_mobile/core/logging/app_logger.dart';
 import 'package:loadme_mobile/core/network/dio_client.dart';
 import 'package:loadme_mobile/core/storage/providers.dart';
 import 'package:loadme_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
-import 'package:loadme_mobile/features/auth/data/datasources/fake_auth_remote_data_source.dart';
 import 'package:loadme_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:loadme_mobile/features/auth/domain/entities/auth_check_result.dart';
 import 'package:loadme_mobile/features/auth/domain/entities/auth_session.dart';
+import 'package:loadme_mobile/features/auth/domain/entities/verify_otp_result.dart';
 import 'package:loadme_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:loadme_mobile/features/auth/domain/use_cases/check_user_phone_use_case.dart';
 import 'package:loadme_mobile/features/auth/domain/use_cases/get_cached_session_use_case.dart';
@@ -21,10 +20,9 @@ import 'package:loadme_mobile/features/auth/domain/use_cases/verify_otp_use_case
 // DI wiring (data + domain)
 // -----------------------------------------------------------------------------
 
-final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
-  if (ref.watch(appEnvProvider).useFakeData) return FakeAuthRemoteDataSource();
-  return AuthRemoteDataSource(ref.watch(dioProvider));
-});
+final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>(
+  (ref) => AuthRemoteDataSource(ref.watch(dioProvider)),
+);
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepositoryImpl(
@@ -89,40 +87,50 @@ class AuthController extends AsyncNotifier<AuthSession?> {
     );
   }
 
-  Future<(AuthCheckResult?, AppFailure?)> checkUserPhone(String phone) async {
-    final result = await ref.read(checkUserPhoneUseCaseProvider).call(phone);
+  Future<(AuthCheckResult?, AppFailure?)> checkUserPhone({
+    required String phone,
+    required String channel,
+  }) async {
+    final result = await ref
+        .read(checkUserPhoneUseCaseProvider)
+        .call(SendOtpParams(phone: phone, channel: channel));
     return result.fold((f) => (null, f), (r) => (r, null));
   }
 
-  Future<(AuthSession?, AppFailure?)> verifyOtp({
+  Future<(VerifyOtpResult?, AppFailure?)> verifyOtp({
     required String phone,
-    required String smsId,
-    required String otp,
-    required bool userFound,
+    required String channel,
+    required String purpose,
+    required String code,
   }) async {
     final result = await ref.read(verifyOtpUseCaseProvider).call(
-          VerifyOtpInput(phone: phone, smsId: smsId, otp: otp, userFound: userFound),
+          VerifyOtpInput(
+            phone: phone,
+            channel: channel,
+            purpose: purpose,
+            code: code,
+          ),
         );
-    return result.fold((f) => (null, f), (session) {
-      if (session != null) state = AsyncData(session);
-      return (session, null);
+    return result.fold((f) => (null, f), (res) {
+      if (res.session != null) state = AsyncData(res.session);
+      return (res, null);
     });
   }
 
   Future<(AuthSession?, AppFailure?)> register({
-    required String fullName,
+    required String registrationToken,
+    required String role,
+    required String personType,
+    String? fullName,
     String? companyName,
-    required String phone,
-    required String smsId,
-    required String otp,
   }) async {
     final result = await ref.read(registerUseCaseProvider).call(
           RegisterInput(
+            registrationToken: registrationToken,
+            role: role,
+            personType: personType,
             fullName: fullName,
             companyName: companyName,
-            phone: phone,
-            smsId: smsId,
-            otp: otp,
           ),
         );
     return result.fold((f) => (null, f), (session) {

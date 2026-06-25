@@ -1,12 +1,30 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+/// Authenticated user as surfaced by `GET /users/me/`.
+///
+/// Plain immutable class (no codegen): the backend nests the display fields in
+/// a `profile` object while keeping `id`/`phone_number`/`role` at the top, so a
+/// hand-written mapping in the data source is clearer than generated JSON glue.
+class ProfileEntity {
+  const ProfileEntity({
+    required this.guid,
+    required this.fullName,
+    this.phone,
+    this.companyName,
+    this.role,
+    this.avatarUrl,
+    this.rating,
+    this.verified = false,
+  });
 
-part 'profile_entity.freezed.dart';
+  final String guid;
+  final String fullName;
+  final String? phone;
+  final String? companyName;
 
-@freezed
-class ProfileEntity with _$ProfileEntity {
-  const factory ProfileEntity({
-    required String guid,
-    required String fullName,
-    String? phone,
-  }) = _ProfileEntity;
+  /// App-side role: `shipper` | `broker` | `carrier` (backend `driver` → carrier).
+  final String? role;
+
+  /// Absolute avatar URL (relative `/media/...` paths are prefixed with origin).
+  final String? avatarUrl;
+  final double? rating;
+  final bool verified;
 }

@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 
+/// Figma "Login" splash (Authorization → 6937:25297): a plain white screen with
+/// the LoadMe logo lockup (181×128) centered, shown briefly before onboarding.
 class AuthSplashScreen extends StatefulWidget {
   const AuthSplashScreen({super.key});
 
@@ -22,14 +23,15 @@ class _AuthSplashScreenState extends State<AuthSplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.local_shipping_rounded, size: 64, color: context.colors.primary),
-            SizedBox(height: context.space.md),
-            Text('Loadme', style: Theme.of(context).textTheme.headlineMedium),
-          ],
+        child: SizedBox(
+          width: 181,
+          height: 128,
+          child: Image.asset(
+            'assets/images/loadme_splash_logo.png',
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     );

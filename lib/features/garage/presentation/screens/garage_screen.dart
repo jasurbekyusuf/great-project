@@ -9,6 +9,7 @@ import 'package:loadme_mobile/features/garage/presentation/widgets/garage_vehicl
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/design_system/ds_confirmation_modal.dart';
 import 'package:loadme_mobile/shared/design_system/ds_empty_state.dart';
+import 'package:loadme_mobile/shared/design_system/ds_illustration_empty.dart';
 import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
 import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
 import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
@@ -100,17 +101,10 @@ class _TransportsList extends ConsumerWidget {
           ),
           data: (vehicles) {
             if (vehicles.isEmpty) {
-              return DsEmptyState(
-                title: 'garage.empty.transports'.tr(ref),
-                // Figma "New design" empty (node 6782:11096): 199x168 3D
-                // illustration exported at 4x (PNG includes a ~16px shadow
-                // halo → 231x200 keeps the core art at 199x168).
-                icon: Image.asset(
-                  'assets/images/empty_garage.png',
-                  width: 231,
-                  height: 200,
-                  fit: BoxFit.contain,
-                ),
+              // Figma Transportlar empty (6782:10897): illustration → 16 → text.
+              return DsIllustrationEmpty(
+                asset: 'assets/images/empty_garage.png',
+                message: 'garage.empty.transports'.tr(ref),
                 actionLabel: 'common.add'.tr(ref),
                 onAction: () => context.push('/add-truck'),
               );
@@ -200,15 +194,17 @@ class _RoutesList extends ConsumerWidget {
                 final r = routes[i];
                 return GarageRouteCard(
                   name: r.name,
+                  plate: r.plate,
                   priceLabel: r.priceLabel,
                   fromCity: r.fromCity,
                   fromCountry: r.fromCountry,
                   toCity: r.toCity,
                   toCountry: r.toCountry,
-                  distanceKm: r.distanceKm,
-                  weightT: r.weightT,
-                  loadKind: r.loadKind,
                   active: r.active,
+                  magnitLabel: (r.active
+                          ? 'garage.route.magnitOn'
+                          : 'garage.route.magnit')
+                      .tr(ref),
                   avatarUrl: r.avatarUrl,
                   onToggle: (_) =>
                       ref.read(garageRoutesProvider.notifier).toggleActive(r.id),

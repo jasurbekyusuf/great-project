@@ -9,15 +9,20 @@ import 'package:loadme_mobile/features/loads/domain/repositories/loads_repositor
 // =============================================================================
 
 class PaginatedInput extends Equatable {
-  const PaginatedInput({this.page = 1, this.limit = 10});
+  const PaginatedInput({this.page = 1, this.limit = 10, this.filters});
   final int page;
   final int limit;
+
+  /// Server-side location filter (`pickup_region` / `delivery_district` → id).
+  /// Null/empty means the unfiltered public feed.
+  final Map<String, String>? filters;
   @override
-  List<Object?> get props => [page, limit];
+  List<Object?> get props => [page, limit, filters];
 }
 
 class MyLoadsInput extends Equatable {
-  const MyLoadsInput({this.page = 1, this.limit = 10, required this.isActive, this.userGuid});
+  const MyLoadsInput(
+      {this.page = 1, this.limit = 10, required this.isActive, this.userGuid});
   final int page;
   final int limit;
   final bool isActive;
@@ -42,7 +47,8 @@ class SaveLoadInput extends Equatable {
 }
 
 class UpdateLoadStatusInput extends Equatable {
-  const UpdateLoadStatusInput({required this.guid, required this.isActive, this.closedPlatform});
+  const UpdateLoadStatusInput(
+      {required this.guid, required this.isActive, this.closedPlatform});
   final String guid;
   final bool isActive;
   final String? closedPlatform;
@@ -58,8 +64,11 @@ class FetchLoadsUseCase implements UseCase<PaginatedInput, List<LoadEntity>> {
   const FetchLoadsUseCase(this._repo);
   final LoadsRepository _repo;
   @override
-  AsyncResult<List<LoadEntity>> call(PaginatedInput input) =>
-      _repo.getLoads(page: input.page, limit: input.limit);
+  AsyncResult<List<LoadEntity>> call(PaginatedInput input) => _repo.getLoads(
+        page: input.page,
+        limit: input.limit,
+        filters: input.filters,
+      );
 }
 
 class FetchMyLoadsUseCase implements UseCase<MyLoadsInput, List<LoadEntity>> {

@@ -1,159 +1,485 @@
 import 'package:flutter/material.dart';
-import 'package:loadme_mobile/core/theme/theme_extensions.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loadme_mobile/core/theme/figma_palette.dart';
+import 'package:loadme_mobile/features/locations/domain/entities/location_entity.dart';
+import 'package:loadme_mobile/features/locations/presentation/providers/locations_providers.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-// Mirrors web `SelectLocationDrawer` / `SelectDestinationDrawer`:
-// search-able list of regions/cities with country grouping. Backed by a fake
-// in-memory dataset until backend wiring is added.
+// Figma "Yuk olish manzili" / "Yetkazish manzili" location search
+// (Frame 2087329767). A full-screen sheet that slides up over the caller with
+// rounded top corners, an auto-focused 56-tall input and a white suggestions
+// card. The list is the real `/locations/search/` directory (same endpoint the
+// web load filter uses), debounced through [locationSearchProvider].
+
+/// The user's picked place. Carries the [kind] + [id] so the loads feed can be
+/// filtered server-side (`pickup_<filterKey>` / `delivery_<filterKey>` = [id]).
 class LocationItem {
-  const LocationItem({required this.id, required this.title, required this.country});
+  const LocationItem({
+    required this.id,
+    required this.title,
+    required this.country,
+    this.kind = LocationFilterKind.region,
+    this.regionName,
+  });
+
+  /// Builds the lightweight selection item from a directory entity.
+  factory LocationItem.fromEntity(LocationEntity e) => LocationItem(
+        id: e.id,
+        title: e.name,
+        country: e.countryName ?? '',
+        kind: e.kind,
+        regionName: e.regionName,
+      );
+
   final String id;
   final String title;
-  final String country; // ISO-2: UZ, KZ, KG, RU, TJ
+
+  /// Country label (e.g. "Oʻzbekiston") — empty for a country pick.
+  final String country;
+
+  /// Whether [id] is a country / region / district — picks the filter param.
+  final LocationFilterKind kind;
+
+  /// Parent region (district picks), for disambiguation in callers.
+  final String? regionName;
+
+  /// `/loads/available/` param suffix: `country` | `region` | `district`.
+  String get filterKey => kind.name;
 }
 
-const _fakeLocations = <LocationItem>[
-  LocationItem(id: 'uz-tashkent', title: 'Tashkent', country: 'UZ'),
-  LocationItem(id: 'uz-samarkand', title: 'Samarqand', country: 'UZ'),
-  LocationItem(id: 'uz-bukhara', title: 'Buxoro', country: 'UZ'),
-  LocationItem(id: 'uz-andijan', title: 'Andijon', country: 'UZ'),
-  LocationItem(id: 'uz-fergana', title: "Farg'ona", country: 'UZ'),
-  LocationItem(id: 'uz-namangan', title: 'Namangan', country: 'UZ'),
-  LocationItem(id: 'uz-nukus', title: 'Nukus', country: 'UZ'),
-  LocationItem(id: 'uz-khiva', title: 'Xiva', country: 'UZ'),
-  LocationItem(id: 'kz-almaty', title: 'Almaty', country: 'KZ'),
-  LocationItem(id: 'kz-astana', title: 'Astana', country: 'KZ'),
-  LocationItem(id: 'kz-shymkent', title: 'Shymkent', country: 'KZ'),
-  LocationItem(id: 'kg-bishkek', title: 'Bishkek', country: 'KG'),
-  LocationItem(id: 'kg-osh', title: 'Osh', country: 'KG'),
-  LocationItem(id: 'ru-moscow', title: 'Moscow', country: 'RU'),
-  LocationItem(id: 'ru-spb', title: 'Saint Petersburg', country: 'RU'),
-  LocationItem(id: 'ru-kazan', title: 'Kazan', country: 'RU'),
-  LocationItem(id: 'tj-dushanbe', title: 'Dushanbe', country: 'TJ'),
-];
+// Icon-box fill behind the pickup/delivery glyph (Figma #EBEBEB — distinct from
+// the lighter chip grey used elsewhere).
+const _kIconBoxBg = Color(0xFFEBEBEB);
 
+/// Slides up the Figma location-search sheet and resolves with the tapped
+/// [LocationItem] (or `null` if dismissed). [isDestination] swaps the pickup
+/// styling (cube glyph, "Yuk olish manzili", "Mening joylashuvim") for the
+/// delivery one (flag glyph, "Yetkazish manzili", "Har qanday joyga").
+///
+/// [currentId] is accepted for source compatibility; the redesign shows no
+/// per-row selection state so it is currently unused.
 Future<LocationItem?> showSelectLocationDrawer({
   required BuildContext context,
-  required String title,
+  bool isDestination = false,
   String? currentId,
 }) {
-  return showModalBottomSheet<LocationItem>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+  return Navigator.of(context).push<LocationItem>(
+    PageRouteBuilder<LocationItem>(
+      opaque: false,
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 260),
+      reverseTransitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (_, __, ___) =>
+          _LocationSearchPage(isDestination: isDestination),
+      transitionsBuilder: (_, anim, __, child) => SlideTransition(
+        position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+            .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+        child: child,
+      ),
     ),
-    builder: (ctx) => _SelectLocationSheet(title: title, currentId: currentId),
   );
 }
 
-class _SelectLocationSheet extends StatefulWidget {
-  const _SelectLocationSheet({required this.title, required this.currentId});
-  final String title;
-  final String? currentId;
+class _LocationSearchPage extends ConsumerStatefulWidget {
+  const _LocationSearchPage({required this.isDestination});
+  final bool isDestination;
 
   @override
-  State<_SelectLocationSheet> createState() => _SelectLocationSheetState();
+  ConsumerState<_LocationSearchPage> createState() =>
+      _LocationSearchPageState();
 }
 
-class _SelectLocationSheetState extends State<_SelectLocationSheet> {
+class _LocationSearchPageState extends ConsumerState<_LocationSearchPage> {
+  final _controller = TextEditingController();
   String _query = '';
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    final t = context.types;
+    final dest = widget.isDestination;
+    final topInset = MediaQuery.of(context).padding.top;
+    final keyboard = MediaQuery.of(context).viewInsets.bottom;
+    final q = _query.trim();
 
-    final q = _query.trim().toLowerCase();
-    final filtered = q.isEmpty
-        ? _fakeLocations
-        : _fakeLocations
-            .where((e) =>
-                e.title.toLowerCase().contains(q) ||
-                e.country.toLowerCase().contains(q))
-            .toList();
+    // The suggestions card is the "Har qanday…" action row followed by the live
+    // results (or a loading / empty / error status row once a query is typed).
+    final children = <Widget>[
+      _ActionRow(
+        icon: dest ? LucideIcons.mapPinned : LucideIcons.navigation,
+        label: dest ? 'Har qanday joyga' : 'Mening joylashuvim',
+        onTap: () => Navigator.of(context).pop(),
+      ),
+    ];
+    if (q.isNotEmpty) {
+      ref.watch(locationSearchProvider(q)).when(
+            data: (items) {
+              if (items.isEmpty) {
+                children
+                  ..add(const _RowDivider())
+                  ..add(const _StatusRow.message('Hech narsa topilmadi'));
+              } else {
+                for (final e in items) {
+                  children
+                    ..add(const _RowDivider())
+                    ..add(_CityRow(
+                      loc: e,
+                      onTap: () =>
+                          Navigator.of(context).pop(LocationItem.fromEntity(e)),
+                    ));
+                }
+              }
+            },
+            loading: () => children
+              ..add(const _RowDivider())
+              ..add(const _StatusRow.loading()),
+            error: (_, __) => children
+              ..add(const _RowDivider())
+              ..add(const _StatusRow.message('Qidirishda xatolik')),
+          );
+    }
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.85,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
-      builder: (_, scroll) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: Column(
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 5,
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(color: c.gray300, borderRadius: BorderRadius.circular(999)),
+    return Padding(
+      // Leave the OS status-bar strip so the caller peeks above the sheet's
+      // rounded top corners, mirroring the iOS modal in Figma.
+      padding: EdgeInsets.only(top: topInset),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        child: Material(
+          color: FigmaPalette.pageBg,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + keyboard),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header: ✕ + title (Frame Checkbox, gap 16).
+                  Row(
+                    children: [
+                      _CloseButton(onTap: () => Navigator.of(context).pop()),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          dest ? 'Yetkazish manzili' : 'Yuk olish manzili',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            height: 24 / 16,
+                            fontWeight: FontWeight.w600,
+                            color: FigmaPalette.ink,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Input (always focused → blue border).
+                  _SearchInput(
+                    controller: _controller,
+                    isDestination: dest,
+                    onChanged: (v) => setState(() => _query = v),
+                    onClear: () {
+                      _controller.clear();
+                      setState(() => _query = '');
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // Suggestions card — hugs its content, scrolls when it grows.
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: children,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 24×24 tap target holding the Figma ✕ glyph.
+class _CloseButton extends StatelessWidget {
+  const _CloseButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: const SizedBox(
+        width: 24,
+        height: 24,
+        child: Icon(LucideIcons.x, size: 20, color: FigmaPalette.ink),
+      ),
+    );
+  }
+}
+
+/// Figma Input [343×56] — white, r16, blue 1.5 border, an #EBEBEB icon box and
+/// the search field, plus a clear-✕ that appears once text is entered.
+class _SearchInput extends StatelessWidget {
+  const _SearchInput({
+    required this.controller,
+    required this.isDestination,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  final TextEditingController controller;
+  final bool isDestination;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasText = controller.text.isNotEmpty;
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: FigmaPalette.primary, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: _kIconBoxBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              isDestination ? LucideIcons.flag : LucideIcons.box,
+              size: 20,
+              color: FigmaPalette.primary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              autofocus: true,
+              onChanged: onChanged,
+              cursorColor: FigmaPalette.primary,
+              cursorWidth: 1.5,
+              style: const TextStyle(
+                fontSize: 16,
+                height: 24 / 16,
+                leadingDistribution: TextLeadingDistribution.even,
+                fontWeight: FontWeight.w400,
+                color: FigmaPalette.countLabel,
+              ),
+              decoration: InputDecoration(
+                isCollapsed: true,
+                filled: false,
+                contentPadding: EdgeInsets.zero,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                hintText: isDestination ? 'Qayerga' : 'Qayerdan',
+                hintStyle: const TextStyle(
+                  fontSize: 16,
+                  height: 24 / 16,
+                  leadingDistribution: TextLeadingDistribution.even,
+                  fontWeight: FontWeight.w400,
+                  color: FigmaPalette.label,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Row(
-                  children: [
-                    Expanded(child: Text(widget.title, style: t.h3)),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close_rounded),
+            ),
+          ),
+          if (hasText) ...[
+            const SizedBox(width: 12),
+            GestureDetector(
+              onTap: onClear,
+              behavior: HitTestBehavior.opaque,
+              child: const Icon(LucideIcons.circleX,
+                  size: 20, color: FigmaPalette.label),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// First suggestion row — "Mening joylashuvim" (pickup) / "Har qanday joyga"
+/// (delivery) with a leading navigation / map-pin glyph.
+class _ActionRow extends StatelessWidget {
+  const _ActionRow(
+      {required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.fromLTRB(12, 0, 14, 0),
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: [
+            SizedBox(
+              width: 24,
+              child: Icon(icon, size: 20, color: FigmaPalette.inkStrong),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 18 / 14,
+                  fontWeight: FontWeight.w400,
+                  color: FigmaPalette.inkStrong,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// City suggestion row — a pin glyph, the place name and a muted
+/// "region, country" subtitle (Figma 343×52, grows for the second line).
+class _CityRow extends StatelessWidget {
+  const _CityRow({required this.loc, required this.onTap});
+  final LocationEntity loc;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = loc.subtitle;
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 52),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 24,
+              child:
+                  Icon(LucideIcons.mapPin, size: 18, color: FigmaPalette.label),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    loc.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 18 / 14,
+                      fontWeight: FontWeight.w400,
+                      color: FigmaPalette.inkStrong,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        height: 16 / 12,
+                        fontWeight: FontWeight.w400,
+                        color: FigmaPalette.label,
+                      ),
                     ),
                   ],
-                ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: TextField(
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    hintText: 'Qidirish...',
-                    prefixIcon: Icon(Icons.search_rounded, color: c.textMuted),
-                    isDense: true,
-                  ),
-                  onChanged: (v) => setState(() => _query = v),
-                ),
-              ),
-              Expanded(
-                child: filtered.isEmpty
-                    ? Center(child: Text('Topilmadi', style: t.body.copyWith(color: c.textMuted)))
-                    : ListView.separated(
-                        controller: scroll,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => Divider(height: 1, color: c.borderSubtle),
-                        itemBuilder: (_, i) {
-                          final loc = filtered[i];
-                          final active = loc.id == widget.currentId;
-                          return InkWell(
-                            onTap: () => Navigator.pop(context, loc),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(color: c.primary50, borderRadius: BorderRadius.circular(4)),
-                                    child: Text(
-                                      loc.country,
-                                      style: t.caption.copyWith(color: c.primary, fontWeight: FontWeight.w700),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(child: Text(loc.title, style: t.bodyLgMedium)),
-                                  if (active) Icon(Icons.check_rounded, color: c.primary),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
+  }
+}
+
+/// A loading / empty / error placeholder row inside the suggestions card.
+class _StatusRow extends StatelessWidget {
+  const _StatusRow.loading()
+      : _loading = true,
+        _message = null;
+  const _StatusRow.message(String message)
+      : _loading = false,
+        _message = message;
+
+  final bool _loading;
+  final String? _message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 52,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: _loading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: FigmaPalette.primary,
+              ),
+            )
+          : Text(
+              _message ?? '',
+              style: const TextStyle(
+                fontSize: 14,
+                height: 18 / 14,
+                fontWeight: FontWeight.w400,
+                color: FigmaPalette.label,
+              ),
+            ),
+    );
+  }
+}
+
+/// Full-bleed hairline between suggestion rows.
+class _RowDivider extends StatelessWidget {
+  const _RowDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(height: 1, thickness: 1, color: FigmaPalette.divider);
   }
 }

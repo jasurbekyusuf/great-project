@@ -1,7 +1,6 @@
 import 'package:loadme_mobile/core/result/guard.dart';
 import 'package:loadme_mobile/core/result/result.dart';
 import 'package:loadme_mobile/features/loads/data/datasources/loads_remote_data_source.dart';
-import 'package:loadme_mobile/features/loads/data/dtos/load_dto.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 import 'package:loadme_mobile/features/loads/domain/repositories/loads_repository.dart';
 
@@ -15,11 +14,16 @@ class LoadsRepositoryImpl implements LoadsRepository {
       Guard.run(block, tag: _tag);
 
   @override
-  AsyncResult<List<LoadEntity>> getLoads({required int page, required int limit}) =>
-      _guard(() async {
-        final response = await _remote.getLoads(page: page, limit: limit);
-        return response.result.map(_mapLoad).toList();
-      });
+  AsyncResult<List<LoadEntity>> getLoads({
+    required int page,
+    required int limit,
+    Map<String, String>? filters,
+  }) =>
+      _guard(
+          () => _remote.getLoads(page: page, limit: limit, filters: filters));
+
+  @override
+  AsyncResult<int> getLoadsCount() => _guard(_remote.getLoadsCount);
 
   @override
   AsyncResult<List<LoadEntity>> getMyLoads({
@@ -28,19 +32,16 @@ class LoadsRepositoryImpl implements LoadsRepository {
     required bool isActive,
     String? userGuid,
   }) =>
-      _guard(() async {
-        final response = await _remote.getUserLoads(
-          page: page,
-          limit: limit,
-          isActive: isActive,
-          userGuid: userGuid,
-        );
-        return response.result.map(_mapLoad).toList();
-      });
+      _guard(() => _remote.getUserLoads(
+            page: page,
+            limit: limit,
+            isActive: isActive,
+            userGuid: userGuid,
+          ));
 
   @override
   AsyncResult<LoadEntity> getLoadById(String id) =>
-      _guard(() async => _mapLoad(await _remote.getLoadById(id)));
+      _guard(() => _remote.getLoadById(id));
 
   @override
   AsyncResult<void> addLoad({
@@ -79,13 +80,4 @@ class LoadsRepositoryImpl implements LoadsRepository {
             isActive: isActive,
             closedPlatform: closedPlatform,
           ));
-
-  LoadEntity _mapLoad(LoadDto e) => LoadEntity(
-        guid: e.guid ?? '',
-        fromAddress: e.fromAddress ?? '-',
-        toAddress: e.toAddress ?? '-',
-        comment: e.comment,
-        pickupDate: e.pickupDate,
-        price: e.price?.toDouble(),
-      );
 }

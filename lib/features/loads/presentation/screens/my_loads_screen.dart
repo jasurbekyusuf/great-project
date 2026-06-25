@@ -2,62 +2,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
-import 'package:loadme_mobile/core/theme/theme_extensions.dart';
+import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_display_providers.dart';
 import 'package:loadme_mobile/features/loads/presentation/models/load_display.dart';
 import 'package:loadme_mobile/features/loads/presentation/widgets/load_figma_card.dart';
 import 'package:loadme_mobile/shared/design_system/ds_confirmation_modal.dart';
-import 'package:loadme_mobile/shared/design_system/ds_empty_state.dart';
+import 'package:loadme_mobile/shared/design_system/ds_illustration_empty.dart';
 import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
 import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
-import 'package:loadme_mobile/shared/widgets/app_scaffold.dart';
-import 'package:loadme_mobile/shared/widgets/mobile_segmented_tab.dart';
+import 'package:loadme_mobile/shared/widgets/floating_market_nav.dart';
+import 'package:loadme_mobile/shared/widgets/frosted_header.dart';
 import 'package:loadme_mobile/shared/widgets/owner_action_sheet.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+/// Figma "Mening yuklarim" (Yuk egasi section — empty 6780:10328 / filled
+/// 6804:10991). A [FrostedHeader] over a list of [LoadFigmaCard] items with a
+/// sticky full-width "Yuk qo’shish" CTA. The redesign drops the Faol/Tarix
+/// segmented tab the old screen had — only active loads are shown.
 class MyLoadsScreen extends ConsumerWidget {
   const MyLoadsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(myLoadsDisplayProvider);
-    final controller = ref.watch(myLoadsControllerProvider.notifier);
-    final selectedIndex = controller.tab == MyLoadsTab.active ? 0 : 1;
 
-    return AppScaffold(
-      title: 'nav.myLoads'.tr(ref),
-      // Tab root inside StatefulShellRoute — there's nothing for back to pop.
-      showBack: false,
-      // Bottom nav provided by ScaffoldWithNav.
-      padded: false, // ListView already adds 16px horizontal — match Search screen.
-      actions: [
-        IconButton(onPressed: () => context.push('/add-load'), icon: const Icon(Icons.add)),
-      ],
+    return Scaffold(
+      backgroundColor: FigmaPalette.sheetBg,
       body: Column(
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(context.space.lg, context.space.md, context.space.lg, context.space.md),
-            // Web uses default CustomTab (white pill on gray). No blue variant.
-            child: MobileSegmentedTab(
-              items: ['myloads.tab.active'.tr(ref), 'myloads.tab.history'.tr(ref)],
-              selectedIndex: selectedIndex,
-              onChanged: (i) => ref
-                  .read(myLoadsControllerProvider.notifier)
-                  .setTab(i == 0 ? MyLoadsTab.active : MyLoadsTab.history),
-            ),
-          ),
+          const FrostedHeader(title: 'Mening yuklarim'),
           Expanded(
             child: state.when(
               loading: () => const DsLoader(),
               error: (e, _) => DsErrorState(
                 message: e.toString(),
-                onRetry: () => ref.read(myLoadsControllerProvider.notifier).refresh(),
+                onRetry: () =>
+                    ref.read(myLoadsControllerProvider.notifier).refresh(),
               ),
-              data: (items) => _MyLoadsList(
-                items: items,
-                isActiveTab: selectedIndex == 0,
-                emptyTitle: (selectedIndex == 0 ? 'myloads.empty.active' : 'myloads.empty.history').tr(ref),
-              ),
+              data: (items) => _MyLoadsList(items: items),
             ),
           ),
         ],
@@ -67,17 +50,12 @@ class MyLoadsScreen extends ConsumerWidget {
 }
 
 class _MyLoadsList extends ConsumerWidget {
-  const _MyLoadsList({
-    required this.items,
-    required this.isActiveTab,
-    required this.emptyTitle,
-  });
+  const _MyLoadsList({required this.items});
 
   final List<LoadDisplay> items;
-  final bool isActiveTab;
-  final String emptyTitle;
 
-  Future<void> _openActions(BuildContext context, WidgetRef ref, LoadDisplay d) async {
+  Future<void> _openActions(
+      BuildContext context, WidgetRef ref, LoadDisplay d) async {
     final item = d.load;
     await showOwnerActionSheet(
       context,
@@ -86,33 +64,32 @@ class _MyLoadsList extends ConsumerWidget {
         OwnerAction(
           icon: Icons.visibility_outlined,
           label: 'owner.view'.tr(ref),
-          onTap: () => context.push('/my-load/${item.guid}?active=$isActiveTab'),
+          onTap: () => context.push('/my-load/${item.guid}?active=true'),
         ),
-        if (isActiveTab)
-          OwnerAction(
-            icon: Icons.edit_outlined,
-            label: 'common.edit'.tr(ref),
-            onTap: () => context.push('/edit-load/${item.guid}'),
-          ),
         OwnerAction(
-          icon: isActiveTab ? Icons.inventory_2_outlined : Icons.refresh_rounded,
-          label: (isActiveTab ? 'owner.archive' : 'owner.reactivate').tr(ref),
-          destructive: isActiveTab,
+          icon: Icons.edit_outlined,
+          label: 'common.edit'.tr(ref),
+          onTap: () => context.push('/edit-load/${item.guid}'),
+        ),
+        OwnerAction(
+          icon: Icons.inventory_2_outlined,
+          label: 'owner.archive'.tr(ref),
+          destructive: true,
           onTap: () async {
             final ok = await showDsConfirmation(
               context,
-              title: (isActiveTab ? 'owner.archive' : 'owner.reactivate').tr(ref),
-              message: (isActiveTab ? 'owner.archiveMessage' : 'owner.reactivateMessage').tr(ref),
-              confirmText: (isActiveTab ? 'owner.archive' : 'owner.reactivate').tr(ref),
+              title: 'owner.archive'.tr(ref),
+              message: 'owner.archiveMessage'.tr(ref),
+              confirmText: 'owner.archive'.tr(ref),
               cancelText: 'common.cancel'.tr(ref),
-              intent: isActiveTab ? DsConfirmIntent.warning : DsConfirmIntent.primary,
-              icon: isActiveTab ? Icons.inventory_2_outlined : Icons.refresh_rounded,
+              intent: DsConfirmIntent.warning,
+              icon: Icons.inventory_2_outlined,
             );
             if (!ok) return;
             await ref.read(myLoadsControllerProvider.notifier).updateStatus(
                   guid: item.guid,
-                  isActive: !isActiveTab,
-                  closedPlatform: isActiveTab ? 'loadme' : null,
+                  isActive: false,
+                  closedPlatform: 'loadme',
                 );
           },
         ),
@@ -123,49 +100,96 @@ class _MyLoadsList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (items.isEmpty) {
-      // Figma "New design" Mening yuklarim empty (node 6806:15041): the box
-      // illustration + "Qo'shish". History tab has no add action, so the
-      // button is hidden there (illustration + message only).
-      return DsEmptyState(
-        title: emptyTitle,
-        icon: Image.asset(
-          'assets/images/empty_loads.png',
-          width: 231,
-          height: 200,
-          fit: BoxFit.contain,
-        ),
-        actionLabel: isActiveTab ? 'common.add'.tr(ref) : null,
-        onAction: isActiveTab ? () => context.push('/add-load') : null,
+      // Figma empty (6780:10328): box illustration → 8 → text → 40 → "Qo'shish".
+      return DsIllustrationEmpty(
+        asset: 'assets/images/empty_loads.png',
+        message: 'myloads.empty.active'.tr(ref),
+        gap: 8,
+        actionLabel: 'common.add'.tr(ref),
+        onAction: () => context.push('/add-load'),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: () => ref.read(myLoadsControllerProvider.notifier).refresh(),
-      child: ListView.separated(
-        padding: EdgeInsets.fromLTRB(context.space.lg, 0, context.space.lg, context.space.lg),
-        itemCount: items.length,
-        separatorBuilder: (_, __) => SizedBox(height: context.space.sm),
-        itemBuilder: (_, index) {
-          final d = items[index];
-          return GestureDetector(
-            onLongPress: () => _openActions(context, ref, d),
-            child: LoadFigmaCard(
-              load: d.load,
-              ownerName: d.ownerName,
-              ownerRating: d.ownerRating,
-              fromCountry: d.fromCountry,
-              toCountry: d.toCountry,
-              deadHeadKm: d.deadHeadKm,
-              volumeM3: d.volumeM3,
-              weightT: d.weightT,
-              distanceKm: d.distanceKm,
-              loadKind: d.loadKind,
-              priceLabel: d.priceLabel,
-              timeAgo: d.timeAgo,
-              onTap: () => context.push('/my-load/${d.load.guid}?active=$isActiveTab'),
+    return Column(
+      children: [
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () =>
+                ref.read(myLoadsControllerProvider.notifier).refresh(),
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, index) {
+                final d = items[index];
+                return GestureDetector(
+                  onLongPress: () => _openActions(context, ref, d),
+                  child: LoadFigmaCard(
+                    load: d.load,
+                    ownerName: d.ownerName,
+                    ownerRating: d.ownerRating,
+                    fromCountry: d.fromCountry,
+                    toCountry: d.toCountry,
+                    deadHeadKm: d.deadHeadKm,
+                    volumeM3: d.volumeM3,
+                    weightT: d.weightT,
+                    distanceKm: d.distanceKm,
+                    loadKind: d.loadKind,
+                    priceLabel: d.priceLabel,
+                    timeAgo: d.timeAgo,
+                    onTap: () =>
+                        context.push('/my-load/${d.load.guid}?active=true'),
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ),
+        // Sticky "+ Yuk qo’shish" CTA, lifted to clear the floating nav.
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+                16, 8, 16, FloatingMarketNav.reservedHeight),
+            child: _AddLoadButton(onTap: () => context.push('/add-load')),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddLoadButton extends StatelessWidget {
+  const _AddLoadButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: FigmaPalette.primary,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: const SizedBox(
+          height: 52,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(LucideIcons.plus, size: 20, color: Colors.white),
+              SizedBox(width: 8),
+              Text(
+                'Yuk qo’shish',
+                style: TextStyle(
+                  fontSize: 16,
+                  height: 20 / 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

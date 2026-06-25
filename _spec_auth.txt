@@ -1,0 +1,1489 @@
+SECTION Authorization [3745x1952]
+  FRAME Login [375x812]  {fill=#FFFFFF}
+    FRAME Frame 2087329728 [375x477]  {dir=VERTICAL, gap=32, pad=12/12/12/16}
+      FRAME Frame 2087329849 [351x449]  {dir=VERTICAL, gap=32}
+        FRAME Frame 2087329856 [351x34]  {dir=HORIZONTAL, gap=16}
+          FRAME Buttons [133x34]  {dir=HORIZONTAL, gap=4, pad=8/12/8/12, r=10, fill=#F2F4F7}
+            FRAME Frame [20x20]
+              VECTOR Vector [5x5]
+              VECTOR Vector [7x8]
+              VECTOR Vector [10x0]
+              VECTOR Vector [1x0]
+              VECTOR Vector [8x8]
+              VECTOR Vector [5x0]
+            TEXT Text [69x20]  "O’zbekcha"  fs=14.0 w=400 lh=20.0 col=#0B1020
+            FRAME Frame [20x20]
+              VECTOR Vector [10x5]
+        FRAME Frame 2087329853 [351x383]  {dir=VERTICAL, gap=24, pad=8/0/8/0}
+          FRAME Frame 2087329846 [335x39]  {dir=VERTICAL, gap=12}
+            TEXT Text [335x39]  "Keling boshlaymiz !"  fs=32.0 w=600 lh=38.7 col=#131313
+          FRAME Frame 2087329857 [335x248]  {dir=VERTICAL, gap=16}
+            INSTANCE Segmented Control [335x40]  {dir=HORIZONTAL, gap=2, pad=2/2/2/2, r=12, fill=#F2F3F5}
+              INSTANCE Tab Item [164x36]  {dir=HORIZONTAL}
+                FRAME Layout [164x36]  {dir=HORIZONTAL, r=10, fill=#FFFFFF}
+                  FRAME Content [61x36]  {dir=HORIZONTAL, gap=6}
+                    TEXT ↳ Label [61x20]  "Sms-kod"  fs=14.0 w=500 lh=20.0 col=#101828
+              INSTANCE Tab Item [164x36]  {dir=HORIZONTAL}
+                FRAME Layout [164x36]  {dir=HORIZONTAL, r=8}
+                  FRAME Content [63x36]  {dir=HORIZONTAL, gap=6}
+                    TEXT ↳ Label [63x20]  "Telegram"  fs=14.0 w=500 lh=20.0 col=#101828
+            TEXT Text [335x44]  "Telefon raqamingizni kiriting. Biz unga "  fs=14.0 w=400 lh=22.0 col=#303236
+            FRAME Frame 2087329848 [335x56]  {dir=HORIZONTAL, gap=10}
+              FRAME Input [99x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+                FRAME flag-icons-uz [24x18]  {r=3}
+                  VECTOR Vector [24x6]  {fill=#1EB53A}
+                  VECTOR Vector [24x6]  {fill=#0099B5}
+                  VECTOR Vector [24x6]  {fill=#CE1126}
+                  VECTOR Vector [24x6]  {fill=#FFFFFF}
+                  VECTOR Vector [4x4]  {fill=#FFFFFF}
+                  VECTOR Vector [4x4]  {fill=#0099B5}
+                  GROUP Group [8x5]
+                    GROUP uz-e [1x5]
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-e [1x5]
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-e [1x5]
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-d [1x1]
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [0x0]
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-b [1x0]
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-d [1x1]
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [0x0]
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-b [1x0]
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-d [1x1]
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [0x0]
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-b [1x0]
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                FRAME Frame 2087329700 [41x24]  {dir=HORIZONTAL, gap=8}
+                  TEXT Text [41x24]  "+998"  fs=16.0 w=400 lh=24.0 col=#0B1020
+              FRAME Input [226x56]  {dir=HORIZONTAL, gap=12, pad=12/10/12/10, r=12, fill=#F2F4F7}
+                FRAME Frame 2087329700 [202x24]  {dir=HORIZONTAL, gap=8}
+                  FRAME Frame 2087329695 [108x24]  {dir=HORIZONTAL, gap=-2}
+                    TEXT Text [6x24]  "|"  fs=16.0 w=400 lh=24.0 col=#131313
+                    TEXT Text [104x24]  "00 000 00 00"  fs=16.0 w=400 lh=24.0 col=#98A2B3
+          INSTANCE Buttons [335x48]  {dir=HORIZONTAL, gap=8, pad=18/10/18/12, r=14, fill=#004EEB}
+            TEXT Text [74x20]  "Kodni olish"  fs=14.0 w=600 lh=20.0 col=#FFFFFF
+    INSTANCE iPhone keyboard (Numeric [375x291]  {fill=#CED2D9}
+      INSTANCE _Keyboard Light Helper [375x291]
+        FRAME 0 [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Number [16x30]  "0"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 1 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Number [12x30]  "1"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 2 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "ABC"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [15x30]  "2"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 3 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "DEF"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "3"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 4 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "GHI"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "4"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 5 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "JKL"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [15x30]  "5"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 6 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "MNO"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "6"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 7 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "PQRS"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [14x30]  "7"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 8 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "TUV"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "8"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 9 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "WXYZ"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "9"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE _Glyphs / Delete [32x32]
+          VECTOR glyph [23x17]  {fill=#000000}
+        BOOLEAN_OPERATION + * # [49x14]
+          VECTOR # [13x13]  {fill=#C4C4C4}
+          VECTOR * [13x12]  {fill=#C4C4C4}
+          VECTOR + [13x13]  {fill=#C4C4C4}
+        RECTANGLE dragger [135x5]  {r=5, fill=#000000}
+    INSTANCE Status Bar [375x44]
+      INSTANCE Notch [375x30]
+      FRAME Status Icons [69x14]  {dir=HORIZONTAL, gap=4}
+        INSTANCE Network Signal / Light [20x14]
+          VECTOR Path [3x8]  {fill=#D1D1D6}
+          VECTOR Path [3x6]  {fill=#D1D1D6}
+          VECTOR Path [3x4]  {fill=#D1D1D6}
+          VECTOR Empty Bar [3x10]  {fill=#3C3C43}
+          VECTOR Path [3x8]  {fill=#000000}
+          VECTOR Path [3x6]  {fill=#000000}
+          VECTOR Path [3x4]  {fill=#000000}
+        INSTANCE WiFi Signal / Light [16x14]
+          VECTOR Path [4x3]  {fill=#000000}
+          VECTOR Path [9x3]  {fill=#000000}
+          VECTOR Path [14x4]  {fill=#000000}
+        INSTANCE Battery / Light [25x14]
+          VECTOR Rectangle 23 [1x4]  {r=[0.0, 0.0, 0.0, 0.0], fill=#3C3C43}
+          VECTOR Rectangle 21 (Stroke) [23x12]  {fill=#3C3C43}
+          RECTANGLE Rectangle 20 [19x8]  {r=1, fill=#000000}
+      INSTANCE Indicator [6x6]
+      INSTANCE Time / Light [54x21]  {r=20}
+        FRAME 9:41 [33x15]
+          VECTOR 9:41 [28x11]  {fill=#000000}
+  FRAME Login [375x812]  {fill=#FFFFFF}
+    FRAME Frame 2087329728 [375x489]  {dir=VERTICAL, gap=32, pad=12/12/12/16}
+      FRAME Frame 2087329849 [351x461]  {dir=VERTICAL, gap=32}
+        FRAME Frame 2087329856 [351x34]  {dir=HORIZONTAL, gap=16}
+          FRAME Buttons [133x34]  {dir=HORIZONTAL, gap=4, pad=8/12/8/12, r=10, fill=#F2F4F7}
+            FRAME Frame [20x20]
+              VECTOR Vector [5x5]
+              VECTOR Vector [7x8]
+              VECTOR Vector [10x0]
+              VECTOR Vector [1x0]
+              VECTOR Vector [8x8]
+              VECTOR Vector [5x0]
+            TEXT Text [69x20]  "O’zbekcha"  fs=14.0 w=400 lh=20.0 col=#0B1020
+            FRAME Frame [20x20]
+              VECTOR Vector [10x5]
+        FRAME Frame 2087329853 [351x395]  {dir=VERTICAL, gap=24, pad=8/0/8/0}
+          FRAME Frame 2087329846 [335x39]  {dir=VERTICAL, gap=12}
+            TEXT Text [335x39]  "Keling boshlaymiz!"  fs=32.0 w=600 lh=38.7 col=#0B1020
+          FRAME Frame 2087329860 [335x172]  {dir=VERTICAL, gap=16}
+            INSTANCE Segmented Control [335x40]  {dir=HORIZONTAL, gap=2, pad=2/2/2/2, r=12, fill=#F2F3F5}
+              INSTANCE Tab Item [164x36]  {dir=HORIZONTAL}
+                FRAME Layout [164x36]  {dir=HORIZONTAL, r=10, fill=#FFFFFF}
+                  FRAME Content [61x36]  {dir=HORIZONTAL, gap=6}
+                    TEXT ↳ Label [61x20]  "Sms-kod"  fs=14.0 w=500 lh=20.0 col=#101828
+              INSTANCE Tab Item [164x36]  {dir=HORIZONTAL}
+                FRAME Layout [164x36]  {dir=HORIZONTAL, r=8}
+                  FRAME Content [63x36]  {dir=HORIZONTAL, gap=6}
+                    TEXT ↳ Label [63x20]  "Telegram"  fs=14.0 w=500 lh=20.0 col=#101828
+            TEXT Text [335x44]  "Telefon raqamingizni kiriting. Biz unga "  fs=14.0 w=400 lh=22.0 col=#303236
+            FRAME Frame 2087329848 [335x56]  {dir=HORIZONTAL, gap=10}
+              FRAME Input [99x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+                FRAME flag-icons-uz [24x18]  {r=3}
+                  VECTOR Vector [24x6]  {fill=#1EB53A}
+                  VECTOR Vector [24x6]  {fill=#0099B5}
+                  VECTOR Vector [24x6]  {fill=#CE1126}
+                  VECTOR Vector [24x6]  {fill=#FFFFFF}
+                  VECTOR Vector [4x4]  {fill=#FFFFFF}
+                  VECTOR Vector [4x4]  {fill=#0099B5}
+                  GROUP Group [8x5]
+                    GROUP uz-e [1x5]
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-e [1x5]
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-e [1x5]
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-d [1x1]
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [0x0]
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-b [1x0]
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-d [1x1]
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [0x0]
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-b [1x0]
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-d [1x1]
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [0x0]
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-b [1x0]
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                FRAME Frame 2087329700 [41x24]  {dir=HORIZONTAL, gap=8}
+                  TEXT Text [41x24]  "+998"  fs=16.0 w=400 lh=24.0 col=#0B1020
+              FRAME Input [226x56]  {dir=HORIZONTAL, gap=6, pad=12/10/12/10, r=12, fill=#F2F4F7}
+                FRAME Frame 2087329700 [202x24]  {dir=HORIZONTAL, gap=8}
+                  FRAME Frame 2087329695 [104x24]  {dir=HORIZONTAL, gap=-2}
+                    TEXT Text [104x24]  "00 000 00 00"  fs=16.0 w=400 lh=24.0 col=#98A2B3
+    FRAME Frame 1711112371 [375x100]  {dir=VERTICAL}
+      FRAME Frame 2087329721 [375x72]  {dir=VERTICAL, gap=8, pad=16/12/16/12}
+        FRAME Frame 2087329854 [343x48]  {dir=VERTICAL, gap=8}
+          INSTANCE Buttons [343x48]  {dir=HORIZONTAL, gap=8, pad=18/10/18/12, r=14, fill=#004EEB}
+            TEXT Text [74x20]  "Kodni olish"  fs=14.0 w=600 lh=20.0 col=#FFFFFF
+      INSTANCE Nav Bar [375x28]
+        RECTANGLE Home Indicator [134x5]  {r=100, fill=#98A2B3}
+    INSTANCE Status Bar [375x44]
+      INSTANCE Notch [375x30]
+      FRAME Status Icons [69x14]  {dir=HORIZONTAL, gap=4}
+        INSTANCE Network Signal / Light [20x14]
+          VECTOR Path [3x8]  {fill=#D1D1D6}
+          VECTOR Path [3x6]  {fill=#D1D1D6}
+          VECTOR Path [3x4]  {fill=#D1D1D6}
+          VECTOR Empty Bar [3x10]  {fill=#3C3C43}
+          VECTOR Path [3x8]  {fill=#000000}
+          VECTOR Path [3x6]  {fill=#000000}
+          VECTOR Path [3x4]  {fill=#000000}
+        INSTANCE WiFi Signal / Light [16x14]
+          VECTOR Path [4x3]  {fill=#000000}
+          VECTOR Path [9x3]  {fill=#000000}
+          VECTOR Path [14x4]  {fill=#000000}
+        INSTANCE Battery / Light [25x14]
+          VECTOR Rectangle 23 [1x4]  {r=[0.0, 0.0, 0.0, 0.0], fill=#3C3C43}
+          VECTOR Rectangle 21 (Stroke) [23x12]  {fill=#3C3C43}
+          RECTANGLE Rectangle 20 [19x8]  {r=1, fill=#000000}
+      INSTANCE Indicator [6x6]
+      INSTANCE Time / Light [54x21]  {r=20}
+        FRAME 9:41 [33x15]
+          VECTOR 9:41 [28x11]  {fill=#000000}
+  FRAME Login [375x812]  {fill=#FFFFFF}
+    FRAME Frame 2087329728 [375x616]  {dir=VERTICAL, gap=32, pad=12/16/12/16}
+      FRAME Frame 2087329849 [351x584]  {dir=VERTICAL, gap=32}
+        FRAME Frame 2087329856 [351x34]  {dir=HORIZONTAL, gap=16}
+          FRAME Buttons [133x34]  {dir=HORIZONTAL, gap=4, pad=8/12/8/12, r=10, fill=#F2F4F7}
+            FRAME Frame [20x20]
+              VECTOR Vector [5x5]
+              VECTOR Vector [7x8]
+              VECTOR Vector [10x0]
+              VECTOR Vector [1x0]
+              VECTOR Vector [8x8]
+              VECTOR Vector [5x0]
+            TEXT Text [69x20]  "O’zbekcha"  fs=14.0 w=400 lh=20.0 col=#0B1020
+            FRAME Frame [20x20]
+              VECTOR Vector [10x5]
+        FRAME Frame 2087329853 [351x518]  {dir=VERTICAL, gap=32, pad=8/0/8/0}
+          FRAME Frame 2087329864 [335x39]  {dir=VERTICAL, gap=12}
+            TEXT Text [335x39]  "O’zingiz haqingizda"  fs=32.0 w=600 lh=38.7 col=#0B1020
+          FRAME Frame 2087329850 [335x447]  {dir=VERTICAL, gap=32}
+            FRAME Frame 2087329862 [335x142]  {dir=VERTICAL, gap=8}
+              TEXT Text [335x22]  "Foydalanuvchi turini tanlang"  fs=16.0 w=500 lh=22.0 col=#0B1020
+              FRAME Frame 2087329848 [335x112]  {dir=HORIZONTAL, gap=8}
+                FRAME Input [106x112]  {dir=VERTICAL, gap=10, pad=12/12/12/12, r=16, fill=#F2F4F7}
+                  FRAME Frame [40x40]  {dir=HORIZONTAL, r=12, fill=#D6E6FF}
+                    FRAME Frame [24x24]
+                      VECTOR Vector [12x14]
+                      VECTOR Vector [6x0]
+                      VECTOR Vector [8x10]
+                      VECTOR Vector [4x4]
+                      VECTOR Vector [4x4]
+                  TEXT Text [82x19]  "Haydovchi"  fs=14.0 w=400 lh=19.0 col=#004EEB
+                FRAME Input [106x112]  {dir=VERTICAL, gap=10, pad=12/12/12/12, r=16, fill=#F2F4F7}
+                  FRAME Frame [40x40]  {dir=HORIZONTAL, r=12, fill=#E4E9F2}
+                    FRAME Frame [24x24]
+                      VECTOR Vector [18x16]
+                      VECTOR Vector [9x6]
+                  TEXT Text [82x38]  "Logist/Dispetcher"  fs=14.0 w=400 lh=19.0 col=#0B1020
+                FRAME Input [106x112]  {dir=VERTICAL, gap=10, pad=12/12/12/12, r=16, fill=#F2F4F7}
+                  FRAME Frame [40x40]  {dir=HORIZONTAL, r=12, fill=#E4E9F2}
+                    FRAME Frame [24x24]
+                      VECTOR Vector [18x20]
+                      VECTOR Vector [17x5]
+                      VECTOR Vector [0x10]
+                  TEXT Text [82x19]  "Yuk egasi"  fs=14.0 w=400 lh=19.0 col=#0B1020
+            FRAME Frame 2087329863 [335x94]  {dir=VERTICAL, gap=8}
+              TEXT Text [335x22]  "Ishlash shaklini tanlang"  fs=16.0 w=500 lh=22.0 col=#0B1020
+              FRAME Frame 2087329848 [335x64]  {dir=HORIZONTAL, gap=8}
+                FRAME Input [164x64]  {dir=HORIZONTAL, gap=12, pad=12/12/12/12, r=16, fill=#F2F4F7}
+                  FRAME Frame [40x40]  {dir=HORIZONTAL, r=12, fill=#D6E6FF}
+                    FRAME Frame [20x20]
+                      VECTOR Vector [12x5]
+                      VECTOR Vector [7x7]
+                  TEXT Text [59x19]  "Jismoniy"  fs=14.0 w=400 lh=19.0 col=#004EEB
+                FRAME Input [164x64]  {dir=HORIZONTAL, gap=12, pad=12/12/12/12, r=16, fill=#F2F4F7}
+                  FRAME Frame [40x40]  {dir=HORIZONTAL, r=12, fill=#E4E9F2}
+                    FRAME Frame [24x24]
+                      VECTOR Vector [4x0]
+                      VECTOR Vector [4x0]
+                      VECTOR Vector [4x5]
+                      VECTOR Vector [20x14]
+                      VECTOR Vector [12x18]
+                  TEXT Text [46x19]  "Yuridik"  fs=14.0 w=400 lh=19.0 col=#303236
+            FRAME Frame 2087329864 [335x86]  {dir=VERTICAL, gap=8}
+              TEXT Text [335x22]  "Ism va familiyangiz"  fs=16.0 w=500 lh=22.0 col=#0B1020
+              FRAME Input [335x56]  {dir=HORIZONTAL, gap=6, pad=12/10/12/10, r=12, fill=#F2F4F7}
+                FRAME Frame 2087329700 [202x24]  {dir=HORIZONTAL, gap=8}
+                  FRAME Frame 2087329695 [54x24]  {dir=HORIZONTAL, gap=-2}
+                    TEXT Text [54x24]  "Kiriting"  fs=16.0 w=400 lh=24.0 col=#98A2B3
+    FRAME Frame 1711112371 [375x152]  {dir=VERTICAL}
+      FRAME Frame 2087329721 [375x124]  {dir=VERTICAL, gap=8, pad=16/12/16/12}
+        FRAME Frame 2087329854 [343x48]  {dir=VERTICAL, gap=8}
+          INSTANCE Buttons [343x48]  {dir=HORIZONTAL, gap=8, pad=18/10/18/12, r=14, fill=#004EEB}
+            TEXT Text [84x20]  "Davom etish"  fs=14.0 w=600 lh=20.0 col=#FFFFFF
+        TEXT Text [318x44]  "Davom etish orqali foydalanish shartlari"  fs=14.0 w=400 lh=22.0 col=#303236
+      INSTANCE Nav Bar [375x28]
+        RECTANGLE Home Indicator [134x5]  {r=100, fill=#98A2B3}
+    INSTANCE Status Bar [375x44]
+      INSTANCE Notch [375x30]
+      FRAME Status Icons [69x14]  {dir=HORIZONTAL, gap=4}
+        INSTANCE Network Signal / Light [20x14]
+          VECTOR Path [3x8]  {fill=#D1D1D6}
+          VECTOR Path [3x6]  {fill=#D1D1D6}
+          VECTOR Path [3x4]  {fill=#D1D1D6}
+          VECTOR Empty Bar [3x10]  {fill=#3C3C43}
+          VECTOR Path [3x8]  {fill=#000000}
+          VECTOR Path [3x6]  {fill=#000000}
+          VECTOR Path [3x4]  {fill=#000000}
+        INSTANCE WiFi Signal / Light [16x14]
+          VECTOR Path [4x3]  {fill=#000000}
+          VECTOR Path [9x3]  {fill=#000000}
+          VECTOR Path [14x4]  {fill=#000000}
+        INSTANCE Battery / Light [25x14]
+          VECTOR Rectangle 23 [1x4]  {r=[0.0, 0.0, 0.0, 0.0], fill=#3C3C43}
+          VECTOR Rectangle 21 (Stroke) [23x12]  {fill=#3C3C43}
+          RECTANGLE Rectangle 20 [19x8]  {r=1, fill=#000000}
+      INSTANCE Indicator [6x6]
+      INSTANCE Time / Light [54x21]  {r=20}
+        FRAME 9:41 [33x15]
+          VECTOR 9:41 [28x11]  {fill=#000000}
+  FRAME Login [375x812]  {fill=#FFFFFF}
+    FRAME Frame 2087329728 [375x616]  {dir=VERTICAL, gap=32, pad=12/16/12/16}
+      FRAME Frame 2087329849 [351x584]  {dir=VERTICAL, gap=32}
+        FRAME Frame 2087329853 [351x584]  {dir=VERTICAL, gap=32, pad=8/0/8/0}
+          FRAME Frame 2087329864 [335x39]  {dir=VERTICAL, gap=12}
+            TEXT Text [335x39]  "O’zingiz haqingizda"  fs=32.0 w=600 lh=38.7 col=#0B1020
+          FRAME Frame 2087329850 [335x513]  {dir=VERTICAL, gap=32}
+            FRAME Frame 2087329862 [335x133]  {dir=VERTICAL, gap=8}
+              TEXT Text [335x22]  "Foydalanuvchi turini tanlang"  fs=16.0 w=500 lh=22.0 col=#0B1020
+              FRAME Frame 2087329848 [335x103]  {dir=HORIZONTAL, gap=8}
+                FRAME Input [106x103]  {dir=VERTICAL, gap=20, pad=12/12/12/12, r=16, fill=#F2F4F7}
+                  FRAME Frame [40x40]  {dir=HORIZONTAL, r=12, fill=#D6E6FF}
+                    FRAME Frame [24x24]
+                      VECTOR Vector [12x14]
+                      VECTOR Vector [6x0]
+                      VECTOR Vector [8x10]
+                      VECTOR Vector [4x4]
+                      VECTOR Vector [4x4]
+                  TEXT Text [82x19]  "Haydovchi"  fs=14.0 w=400 lh=19.0 col=#004EEB
+                FRAME Input [106x103]  {dir=VERTICAL, gap=20, pad=12/12/12/12, r=16, fill=#F2F4F7}
+                  FRAME Frame [40x40]  {dir=HORIZONTAL, r=12, fill=#E4E9F2}
+                    FRAME Frame [24x24]
+                      VECTOR Vector [18x16]
+                      VECTOR Vector [9x6]
+                  TEXT Text [82x19]  "Logist"  fs=14.0 w=400 lh=19.0 col=#0B1020
+                FRAME Input [106x103]  {dir=VERTICAL, gap=20, pad=12/12/12/12, r=16, fill=#F2F4F7}
+                  FRAME Frame [40x40]  {dir=HORIZONTAL, r=12, fill=#E4E9F2}
+                    FRAME Frame [24x24]
+                      VECTOR Vector [18x20]
+                      VECTOR Vector [17x5]
+                      VECTOR Vector [0x10]
+                  TEXT Text [82x19]  "Yuk egasi"  fs=14.0 w=400 lh=19.0 col=#0B1020
+            FRAME Frame 2087329863 [335x94]  {dir=VERTICAL, gap=8}
+              TEXT Text [335x22]  "Ishlash shaklini tanlang"  fs=16.0 w=500 lh=22.0 col=#0B1020
+              FRAME Frame 2087329848 [335x64]  {dir=HORIZONTAL, gap=8}
+                FRAME Input [164x64]  {dir=HORIZONTAL, gap=12, pad=12/12/12/12, r=16, fill=#F2F4F7}
+                  FRAME Frame [40x40]  {dir=HORIZONTAL, r=12, fill=#E4E9F2}
+                    FRAME Frame [20x20]
+                      VECTOR Vector [12x5]
+                      VECTOR Vector [7x7]
+                  TEXT Text [59x19]  "Jismoniy"  fs=14.0 w=400 lh=19.0 col=#0B1020
+                FRAME Input [164x64]  {dir=HORIZONTAL, gap=12, pad=12/12/12/12, r=16, fill=#F2F4F7}
+                  FRAME Frame [40x40]  {dir=HORIZONTAL, r=12, fill=#D6E6FF}
+                    FRAME Frame [24x24]
+                      VECTOR Vector [4x0]
+                      VECTOR Vector [4x0]
+                      VECTOR Vector [4x5]
+                      VECTOR Vector [20x14]
+                      VECTOR Vector [12x18]
+                  TEXT Text [46x19]  "Yuridik"  fs=14.0 w=400 lh=19.0 col=#004EEB
+            FRAME Frame 2087329864 [335x86]  {dir=VERTICAL, gap=8}
+              TEXT Text [335x22]  "Tashkilot nomi"  fs=16.0 w=500 lh=22.0 col=#0B1020
+              FRAME Input [335x56]  {dir=HORIZONTAL, gap=6, pad=12/10/12/10, r=12, fill=#F2F4F7}
+                FRAME Frame 2087329700 [202x24]  {dir=HORIZONTAL, gap=8}
+                  FRAME Frame 2087329695 [54x24]  {dir=HORIZONTAL, gap=-2}
+                    TEXT Text [54x24]  "Kiriting"  fs=16.0 w=400 lh=24.0 col=#98A2B3
+    FRAME Frame 1711112371 [375x152]  {dir=VERTICAL}
+      FRAME Frame 2087329721 [375x124]  {dir=VERTICAL, gap=8, pad=16/12/16/12}
+        FRAME Frame 2087329854 [343x48]  {dir=VERTICAL, gap=8}
+          INSTANCE Buttons [343x48]  {dir=HORIZONTAL, gap=8, pad=18/10/18/12, r=14, fill=#004EEB}
+            TEXT Text [84x20]  "Davom etish"  fs=14.0 w=600 lh=20.0 col=#FFFFFF
+        TEXT Text [318x44]  "Davom etish orqali foydalanish shartlari"  fs=14.0 w=400 lh=22.0 col=#303236
+      INSTANCE Nav Bar [375x28]
+        RECTANGLE Home Indicator [134x5]  {r=100, fill=#98A2B3}
+    INSTANCE Status Bar [375x44]
+      INSTANCE Notch [375x30]
+      FRAME Status Icons [69x14]  {dir=HORIZONTAL, gap=4}
+        INSTANCE Network Signal / Light [20x14]
+          VECTOR Path [3x8]  {fill=#D1D1D6}
+          VECTOR Path [3x6]  {fill=#D1D1D6}
+          VECTOR Path [3x4]  {fill=#D1D1D6}
+          VECTOR Empty Bar [3x10]  {fill=#3C3C43}
+          VECTOR Path [3x8]  {fill=#000000}
+          VECTOR Path [3x6]  {fill=#000000}
+          VECTOR Path [3x4]  {fill=#000000}
+        INSTANCE WiFi Signal / Light [16x14]
+          VECTOR Path [4x3]  {fill=#000000}
+          VECTOR Path [9x3]  {fill=#000000}
+          VECTOR Path [14x4]  {fill=#000000}
+        INSTANCE Battery / Light [25x14]
+          VECTOR Rectangle 23 [1x4]  {r=[0.0, 0.0, 0.0, 0.0], fill=#3C3C43}
+          VECTOR Rectangle 21 (Stroke) [23x12]  {fill=#3C3C43}
+          RECTANGLE Rectangle 20 [19x8]  {r=1, fill=#000000}
+      INSTANCE Indicator [6x6]
+      INSTANCE Time / Light [54x21]  {r=20}
+        FRAME 9:41 [33x15]
+          VECTOR 9:41 [28x11]  {fill=#000000}
+  FRAME Login [375x812]  {fill=#FFFFFF}
+    FRAME Frame 2087329728 [375x477]  {dir=VERTICAL, gap=32, pad=12/12/12/16}
+      FRAME Frame 2087329849 [351x449]  {dir=VERTICAL, gap=32}
+        FRAME Frame 2087329856 [351x34]  {dir=HORIZONTAL, gap=16, pad=8/0/8/0}
+          FRAME Buttons [133x34]  {dir=HORIZONTAL, gap=4, pad=8/12/8/12, r=10, fill=#F2F4F7}
+            FRAME Frame [20x20]
+              VECTOR Vector [5x5]
+              VECTOR Vector [7x8]
+              VECTOR Vector [10x0]
+              VECTOR Vector [1x0]
+              VECTOR Vector [8x8]
+              VECTOR Vector [5x0]
+            TEXT Text [69x20]  "O’zbekcha"  fs=14.0 w=400 lh=20.0 col=#0B1020
+            FRAME Frame [20x20]
+              VECTOR Vector [10x5]
+        FRAME Frame 2087329853 [351x383]  {dir=VERTICAL, gap=24, pad=8/0/8/0}
+          FRAME Frame 2087329846 [335x39]  {dir=VERTICAL, gap=12}
+            TEXT Text [335x39]  "Keling boshlaymiz!"  fs=32.0 w=600 lh=38.7 col=#0B1020
+          FRAME Frame 2087329859 [335x248]  {dir=VERTICAL, gap=16}
+            INSTANCE Segmented Control [335x40]  {dir=HORIZONTAL, gap=2, pad=2/2/2/2, r=12, fill=#F2F3F5}
+              INSTANCE Tab Item [164x36]  {dir=HORIZONTAL}
+                FRAME Layout [164x36]  {dir=HORIZONTAL, r=10, fill=#FFFFFF}
+                  FRAME Content [61x36]  {dir=HORIZONTAL, gap=6}
+                    TEXT ↳ Label [61x20]  "Sms-kod"  fs=14.0 w=500 lh=20.0 col=#101828
+              INSTANCE Tab Item [164x36]  {dir=HORIZONTAL}
+                FRAME Layout [164x36]  {dir=HORIZONTAL, r=8}
+                  FRAME Content [63x36]  {dir=HORIZONTAL, gap=6}
+                    TEXT ↳ Label [63x20]  "Telegram"  fs=14.0 w=500 lh=20.0 col=#101828
+            TEXT Text [335x44]  "Telefon raqamingizni kiriting. Biz unga "  fs=14.0 w=400 lh=22.0 col=#303236
+            FRAME Frame 2087329848 [335x56]  {dir=HORIZONTAL, gap=10}
+              FRAME Input [99x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+                FRAME flag-icons-uz [24x18]  {r=3}
+                  VECTOR Vector [24x6]  {fill=#1EB53A}
+                  VECTOR Vector [24x6]  {fill=#0099B5}
+                  VECTOR Vector [24x6]  {fill=#CE1126}
+                  VECTOR Vector [24x6]  {fill=#FFFFFF}
+                  VECTOR Vector [4x4]  {fill=#FFFFFF}
+                  VECTOR Vector [4x4]  {fill=#0099B5}
+                  GROUP Group [8x5]
+                    GROUP uz-e [1x5]
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-e [1x5]
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-e [1x5]
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                      GROUP uz-d [1x1]
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [0x0]
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          GROUP uz-b [1x0]
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                            VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        GROUP uz-c [1x1]
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          GROUP uz-b [1x1]
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                            VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-d [1x1]
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [0x0]
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-b [1x0]
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-d [1x1]
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [0x0]
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-b [1x0]
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                    GROUP uz-d [1x1]
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [0x0]
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x0]  {fill=#FFFFFF}
+                        GROUP uz-b [1x0]
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                          VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-b [1x0]
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                        VECTOR uz-a [1x0]  {fill=#FFFFFF}
+                      GROUP uz-c [1x1]
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                        GROUP uz-b [1x1]
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                          VECTOR uz-a [0x1]  {fill=#FFFFFF}
+                FRAME Frame 2087329700 [41x24]  {dir=HORIZONTAL, gap=8}
+                  TEXT Text [41x24]  "+998"  fs=16.0 w=400 lh=24.0 col=#0B1020
+              FRAME Input [226x56]  {dir=HORIZONTAL, gap=12, pad=12/10/12/10, r=12, fill=#F2F4F7}
+                FRAME Frame 2087329700 [170x24]  {dir=HORIZONTAL, gap=8}
+                  FRAME Frame 2087329695 [104x24]  {dir=HORIZONTAL, gap=-2}
+                    TEXT Text [100x24]  "99 123 45 67"  fs=16.0 w=400 lh=24.0 col=#131313
+                    TEXT Text [6x24]  "|"  fs=16.0 w=400 lh=24.0 col=#0B1020
+                FRAME Frame [20x20]
+                  VECTOR Vector [10x10]
+                  VECTOR Vector [10x10]
+          FRAME Frame 2087329854 [335x48]  {dir=VERTICAL, gap=8}
+            INSTANCE Buttons [335x48]  {dir=HORIZONTAL, gap=8, pad=18/10/18/12, r=14, fill=#004EEB}
+              TEXT Text [74x20]  "Kodni olish"  fs=14.0 w=600 lh=20.0 col=#FFFFFF
+    INSTANCE iPhone keyboard (Numeric [375x291]  {fill=#CED2D9}
+      INSTANCE _Keyboard Light Helper [375x291]
+        FRAME 0 [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Number [16x30]  "0"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 1 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Number [12x30]  "1"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 2 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "ABC"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [15x30]  "2"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 3 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "DEF"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "3"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 4 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "GHI"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "4"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 5 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "JKL"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [15x30]  "5"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 6 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "MNO"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "6"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 7 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "PQRS"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [14x30]  "7"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 8 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "TUV"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "8"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 9 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "WXYZ"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "9"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE _Glyphs / Delete [32x32]
+          VECTOR glyph [23x17]  {fill=#000000}
+        BOOLEAN_OPERATION + * # [49x14]
+          VECTOR # [13x13]  {fill=#C4C4C4}
+          VECTOR * [13x12]  {fill=#C4C4C4}
+          VECTOR + [13x13]  {fill=#C4C4C4}
+        RECTANGLE dragger [135x5]  {r=5, fill=#000000}
+    INSTANCE Status Bar [375x44]
+      INSTANCE Notch [375x30]
+      FRAME Status Icons [69x14]  {dir=HORIZONTAL, gap=4}
+        INSTANCE Network Signal / Light [20x14]
+          VECTOR Path [3x8]  {fill=#D1D1D6}
+          VECTOR Path [3x6]  {fill=#D1D1D6}
+          VECTOR Path [3x4]  {fill=#D1D1D6}
+          VECTOR Empty Bar [3x10]  {fill=#3C3C43}
+          VECTOR Path [3x8]  {fill=#000000}
+          VECTOR Path [3x6]  {fill=#000000}
+          VECTOR Path [3x4]  {fill=#000000}
+        INSTANCE WiFi Signal / Light [16x14]
+          VECTOR Path [4x3]  {fill=#000000}
+          VECTOR Path [9x3]  {fill=#000000}
+          VECTOR Path [14x4]  {fill=#000000}
+        INSTANCE Battery / Light [25x14]
+          VECTOR Rectangle 23 [1x4]  {r=[0.0, 0.0, 0.0, 0.0], fill=#3C3C43}
+          VECTOR Rectangle 21 (Stroke) [23x12]  {fill=#3C3C43}
+          RECTANGLE Rectangle 20 [19x8]  {r=1, fill=#000000}
+      INSTANCE Indicator [6x6]
+      INSTANCE Time / Light [54x21]  {r=20}
+        FRAME 9:41 [33x15]
+          VECTOR 9:41 [28x11]  {fill=#000000}
+  FRAME Login [375x812]  {fill=#FFFFFF}
+    FRAME Frame 2087329728 [375x477]  {dir=VERTICAL, gap=32, pad=12/12/12/16}
+      FRAME Frame 2087329849 [351x449]  {dir=VERTICAL, gap=32}
+        FRAME Frame 2087329856 [351x34]  {dir=HORIZONTAL, gap=16}
+          INSTANCE chevron-left [24x24]
+            VECTOR Icon [6x12]
+        FRAME Frame 2087329853 [351x383]  {dir=VERTICAL, gap=32, pad=8/0/8/0}
+          FRAME Frame 2087329846 [335x95]  {dir=VERTICAL, gap=12}
+            TEXT Text [335x39]  "Kodni kiriting"  fs=32.0 w=600 lh=38.7 col=#0B1020
+            TEXT Text [335x44]  "+998 9 **** 67 raqamga yuborilgan tasdiq"  fs=14.0 w=400 lh=22.0 col=#303236
+          FRAME Frame 2087329848 [335x176]  {dir=HORIZONTAL, gap=8}
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=12, pad=12/10/12/10, r=12, fill=#F2F4F7}
+              FRAME Frame 2087329700 [6x24]  {dir=HORIZONTAL, gap=8}
+                FRAME Frame 2087329695 [6x24]  {dir=HORIZONTAL, gap=-2}
+                  TEXT Text [6x24]  "|"  fs=16.0 w=400 lh=24.0 col=#0B1020
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              FRAME Frame 2087329700 [6x24]  {dir=HORIZONTAL, gap=8}
+                FRAME Frame 2087329695 [6x24]  {dir=HORIZONTAL, gap=-2}
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              FRAME Frame 2087329700 [6x24]  {dir=HORIZONTAL, gap=8}
+                FRAME Frame 2087329695 [6x24]  {dir=HORIZONTAL, gap=-2}
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              FRAME Frame 2087329700 [6x24]  {dir=HORIZONTAL, gap=8}
+                FRAME Frame 2087329695 [6x24]  {dir=HORIZONTAL, gap=-2}
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              FRAME Frame 2087329700 [6x24]  {dir=HORIZONTAL, gap=8}
+                FRAME Frame 2087329695 [6x24]  {dir=HORIZONTAL, gap=-2}
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              FRAME Frame 2087329700 [6x24]  {dir=HORIZONTAL, gap=8}
+                FRAME Frame 2087329695 [6x24]  {dir=HORIZONTAL, gap=-2}
+          FRAME Buttons [335x48]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=14, fill=#FFFFFF}
+            FRAME Frame [20x20]
+              VECTOR Vector [15x15]
+              VECTOR Vector [4x4]
+              VECTOR Vector [3x6]
+            TEXT Text [248x20]  "Kodni qayta yuborish"  fs=14.0 w=500 lh=20.0 col=#818A9C
+            TEXT Text [27x20]  "51 s"  fs=14.0 w=600 lh=20.0 col=#303236
+    INSTANCE iPhone keyboard (Numeric [375x291]  {fill=#CED2D9}
+      INSTANCE _Keyboard Light Helper [375x291]
+        FRAME 0 [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Number [16x30]  "0"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 1 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Number [12x30]  "1"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 2 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "ABC"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [15x30]  "2"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 3 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "DEF"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "3"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 4 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "GHI"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "4"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 5 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "JKL"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [15x30]  "5"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 6 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "MNO"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "6"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 7 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "PQRS"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [14x30]  "7"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 8 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "TUV"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "8"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 9 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "WXYZ"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "9"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE _Glyphs / Delete [32x32]
+          VECTOR glyph [23x17]  {fill=#000000}
+        BOOLEAN_OPERATION + * # [49x14]
+          VECTOR # [13x13]  {fill=#C4C4C4}
+          VECTOR * [13x12]  {fill=#C4C4C4}
+          VECTOR + [13x13]  {fill=#C4C4C4}
+        RECTANGLE dragger [135x5]  {r=5, fill=#000000}
+    INSTANCE Status Bar [375x44]
+      INSTANCE Notch [375x30]
+      FRAME Status Icons [69x14]  {dir=HORIZONTAL, gap=4}
+        INSTANCE Network Signal / Light [20x14]
+          VECTOR Path [3x8]  {fill=#D1D1D6}
+          VECTOR Path [3x6]  {fill=#D1D1D6}
+          VECTOR Path [3x4]  {fill=#D1D1D6}
+          VECTOR Empty Bar [3x10]  {fill=#3C3C43}
+          VECTOR Path [3x8]  {fill=#000000}
+          VECTOR Path [3x6]  {fill=#000000}
+          VECTOR Path [3x4]  {fill=#000000}
+        INSTANCE WiFi Signal / Light [16x14]
+          VECTOR Path [4x3]  {fill=#000000}
+          VECTOR Path [9x3]  {fill=#000000}
+          VECTOR Path [14x4]  {fill=#000000}
+        INSTANCE Battery / Light [25x14]
+          VECTOR Rectangle 23 [1x4]  {r=[0.0, 0.0, 0.0, 0.0], fill=#3C3C43}
+          VECTOR Rectangle 21 (Stroke) [23x12]  {fill=#3C3C43}
+          RECTANGLE Rectangle 20 [19x8]  {r=1, fill=#000000}
+      INSTANCE Indicator [6x6]
+      INSTANCE Time / Light [54x21]  {r=20}
+        FRAME 9:41 [33x15]
+          VECTOR 9:41 [28x11]  {fill=#000000}
+  FRAME Login [375x812]  {fill=#FFFFFF}
+    FRAME Frame 2087329728 [375x477]  {dir=VERTICAL, gap=32, pad=12/12/12/16}
+      FRAME Frame 2087329849 [351x449]  {dir=VERTICAL, gap=32}
+        FRAME Frame 2087329856 [351x34]  {dir=HORIZONTAL, gap=16}
+          INSTANCE chevron-left [24x24]
+            VECTOR Icon [6x12]
+        FRAME Frame 2087329853 [351x383]  {dir=VERTICAL, gap=32, pad=8/0/8/0}
+          FRAME Frame 2087329846 [335x95]  {dir=VERTICAL, gap=12}
+            TEXT Text [335x39]  "Kodni kiriting"  fs=32.0 w=600 lh=38.7 col=#131313
+            TEXT Text [335x44]  "+998 9 **** 67 raqamga yuborilgan tasdiq"  fs=14.0 w=400 lh=22.0 col=#303236
+          FRAME Frame 2087329848 [335x176]  {dir=HORIZONTAL, gap=8}
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              TEXT Text [8x24]  "1"  fs=16.0 w=400 lh=24.0 col=#0B1020
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              TEXT Text [10x24]  "6"  fs=16.0 w=400 lh=24.0 col=#0B1020
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              TEXT Text [11x24]  "3"  fs=16.0 w=400 lh=24.0 col=#0B1020
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              TEXT Text [11x24]  "4"  fs=16.0 w=400 lh=24.0 col=#0B1020
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              TEXT Text [8x24]  "1"  fs=16.0 w=400 lh=24.0 col=#0B1020
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=12, pad=12/10/12/10, r=12, fill=#F2F4F7}
+              TEXT Text [10x24]  "6"  fs=16.0 w=400 lh=24.0 col=#0B1020
+          FRAME Buttons [335x48]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=14, fill=#FFFFFF}
+            FRAME Frame [20x20]
+              VECTOR Vector [15x15]
+              VECTOR Vector [4x4]
+              VECTOR Vector [3x6]
+            TEXT Text [248x20]  "Kodni qayta yuborish"  fs=14.0 w=500 lh=20.0 col=#818A9C
+            TEXT Text [27x20]  "51 s"  fs=14.0 w=600 lh=20.0 col=#303236
+    INSTANCE iPhone keyboard (Numeric [375x291]  {fill=#CED2D9}
+      INSTANCE _Keyboard Light Helper [375x291]
+        FRAME 0 [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Number [16x30]  "0"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 1 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Number [12x30]  "1"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 2 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "ABC"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [15x30]  "2"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 3 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "DEF"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "3"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 4 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "GHI"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "4"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 5 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "JKL"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [15x30]  "5"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 6 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "MNO"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "6"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 7 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "PQRS"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [14x30]  "7"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 8 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "TUV"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "8"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 9 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "WXYZ"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "9"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE _Glyphs / Delete [32x32]
+          VECTOR glyph [23x17]  {fill=#000000}
+        BOOLEAN_OPERATION + * # [49x14]
+          VECTOR # [13x13]  {fill=#C4C4C4}
+          VECTOR * [13x12]  {fill=#C4C4C4}
+          VECTOR + [13x13]  {fill=#C4C4C4}
+        RECTANGLE dragger [135x5]  {r=5, fill=#000000}
+    INSTANCE Status Bar [375x44]
+      INSTANCE Notch [375x30]
+      FRAME Status Icons [69x14]  {dir=HORIZONTAL, gap=4}
+        INSTANCE Network Signal / Light [20x14]
+          VECTOR Path [3x8]  {fill=#D1D1D6}
+          VECTOR Path [3x6]  {fill=#D1D1D6}
+          VECTOR Path [3x4]  {fill=#D1D1D6}
+          VECTOR Empty Bar [3x10]  {fill=#3C3C43}
+          VECTOR Path [3x8]  {fill=#000000}
+          VECTOR Path [3x6]  {fill=#000000}
+          VECTOR Path [3x4]  {fill=#000000}
+        INSTANCE WiFi Signal / Light [16x14]
+          VECTOR Path [4x3]  {fill=#000000}
+          VECTOR Path [9x3]  {fill=#000000}
+          VECTOR Path [14x4]  {fill=#000000}
+        INSTANCE Battery / Light [25x14]
+          VECTOR Rectangle 23 [1x4]  {r=[0.0, 0.0, 0.0, 0.0], fill=#3C3C43}
+          VECTOR Rectangle 21 (Stroke) [23x12]  {fill=#3C3C43}
+          RECTANGLE Rectangle 20 [19x8]  {r=1, fill=#000000}
+      INSTANCE Indicator [6x6]
+      INSTANCE Time / Light [54x21]  {r=20}
+        FRAME 9:41 [33x15]
+          VECTOR 9:41 [28x11]  {fill=#000000}
+  FRAME Login [375x812]  {fill=#FFFFFF}
+    FRAME Frame 2087329728 [375x477]  {dir=VERTICAL, gap=32, pad=12/12/12/16}
+      FRAME Frame 2087329849 [351x449]  {dir=VERTICAL, gap=32}
+        FRAME Frame 2087329856 [351x34]  {dir=HORIZONTAL, gap=16}
+          INSTANCE chevron-left [24x24]
+            VECTOR Icon [6x12]
+        FRAME Frame 2087329853 [351x383]  {dir=VERTICAL, gap=32, pad=8/0/8/0}
+          FRAME Frame 2087329846 [335x95]  {dir=VERTICAL, gap=12}
+            TEXT Text [335x39]  "Kodni kiriting"  fs=32.0 w=600 lh=38.7 col=#0B1020
+            TEXT Text [335x44]  "+998 9 **** 67 raqamga yuborilgan tasdiq"  fs=14.0 w=400 lh=22.0 col=#303236
+          FRAME Frame 2087329848 [335x176]  {dir=HORIZONTAL, gap=8}
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              TEXT Text [8x24]  "1"  fs=16.0 w=400 lh=24.0 col=#0B1020
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              TEXT Text [10x24]  "6"  fs=16.0 w=400 lh=24.0 col=#0B1020
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              TEXT Text [11x24]  "3"  fs=16.0 w=400 lh=24.0 col=#0B1020
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              TEXT Text [11x24]  "4"  fs=16.0 w=400 lh=24.0 col=#0B1020
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=12, fill=#F2F4F7}
+              TEXT Text [8x24]  "1"  fs=16.0 w=400 lh=24.0 col=#0B1020
+            FRAME Input [49x56]  {dir=HORIZONTAL, gap=12, pad=12/10/12/10, r=12, fill=#F2F4F7}
+              TEXT Text [10x24]  "6"  fs=16.0 w=400 lh=24.0 col=#0B1020
+          FRAME Buttons [335x48]  {dir=HORIZONTAL, gap=6, pad=14/10/14/10, r=14, fill=#FFFFFF}
+            FRAME Frame [20x20]
+              VECTOR Vector [15x15]
+              VECTOR Vector [4x4]
+              VECTOR Vector [3x6]
+            TEXT Text [254x20]  "Kodni qayta yuborish"  fs=14.0 w=500 lh=20.0 col=#818A9C
+            TEXT Text [21x20]  "9 s"  fs=14.0 w=600 lh=20.0 col=#303236
+    INSTANCE iPhone keyboard (Numeric [375x291]  {fill=#CED2D9}
+      INSTANCE _Keyboard Light Helper [375x291]
+        FRAME 0 [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Number [16x30]  "0"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 1 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Number [12x30]  "1"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 2 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "ABC"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [15x30]  "2"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 3 [117x46]  {r=5}
+          INSTANCE Background / Primary BG [117x46]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "DEF"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "3"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 4 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "GHI"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "4"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 5 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "JKL"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [15x30]  "5"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 6 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "MNO"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "6"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 7 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "PQRS"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [14x30]  "7"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 8 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "TUV"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "8"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE 9 [117x47]  {r=5}
+          INSTANCE Background / Primary BG [117x47]  {r=5, fill=#FFFFFF}
+          TEXT Letters [117x12]  "WXYZ"  fs=10.0 w=700 lh=11.9 col=#000000
+          TEXT Number [16x30]  "9"  fs=25.0 w=400 lh=29.8 col=#000000
+        INSTANCE _Glyphs / Delete [32x32]
+          VECTOR glyph [23x17]  {fill=#000000}
+        BOOLEAN_OPERATION + * # [49x14]
+          VECTOR # [13x13]  {fill=#C4C4C4}
+          VECTOR * [13x12]  {fill=#C4C4C4}
+          VECTOR + [13x13]  {fill=#C4C4C4}
+        RECTANGLE dragger [135x5]  {r=5, fill=#000000}
+    INSTANCE Status Bar [375x44]
+      INSTANCE Notch [375x30]
+      FRAME Status Icons [69x14]  {dir=HORIZONTAL, gap=4}
+        INSTANCE Network Signal / Light [20x14]
+          VECTOR Path [3x8]  {fill=#D1D1D6}
+          VECTOR Path [3x6]  {fill=#D1D1D6}
+          VECTOR Path [3x4]  {fill=#D1D1D6}
+          VECTOR Empty Bar [3x10]  {fill=#3C3C43}
+          VECTOR Path [3x8]  {fill=#000000}
+          VECTOR Path [3x6]  {fill=#000000}
+          VECTOR Path [3x4]  {fill=#000000}
+        INSTANCE WiFi Signal / Light [16x14]
+          VECTOR Path [4x3]  {fill=#000000}
+          VECTOR Path [9x3]  {fill=#000000}
+          VECTOR Path [14x4]  {fill=#000000}
+        INSTANCE Battery / Light [25x14]
+          VECTOR Rectangle 23 [1x4]  {r=[0.0, 0.0, 0.0, 0.0], fill=#3C3C43}
+          VECTOR Rectangle 21 (Stroke) [23x12]  {fill=#3C3C43}
+          RECTANGLE Rectangle 20 [19x8]  {r=1, fill=#000000}
+      INSTANCE Indicator [6x6]
+      INSTANCE Time / Light [54x21]  {r=20}
+        FRAME 9:41 [33x15]
+          VECTOR 9:41 [28x11]  {fill=#000000}
+  FRAME Login [375x812]  {fill=#FFFFFF}
+    RECTANGLE LoadMe-07 1 [181x128]
+    FRAME Frame 1711112371 [375x28]  {dir=VERTICAL}
+      INSTANCE Nav Bar [375x28]
+        RECTANGLE Home Indicator [134x5]  {r=100, fill=#98A2B3}
+    INSTANCE Status Bar [375x44]
+      INSTANCE Notch [375x30]
+      FRAME Status Icons [69x14]  {dir=HORIZONTAL, gap=4}
+        INSTANCE Network Signal / Light [20x14]
+          VECTOR Path [3x8]  {fill=#D1D1D6}
+          VECTOR Path [3x6]  {fill=#D1D1D6}
+          VECTOR Path [3x4]  {fill=#D1D1D6}
+          VECTOR Empty Bar [3x10]  {fill=#3C3C43}
+          VECTOR Path [3x8]  {fill=#000000}
+          VECTOR Path [3x6]  {fill=#000000}
+          VECTOR Path [3x4]  {fill=#000000}
+        INSTANCE WiFi Signal / Light [16x14]
+          VECTOR Path [4x3]  {fill=#000000}
+          VECTOR Path [9x3]  {fill=#000000}
+          VECTOR Path [14x4]  {fill=#000000}
+        INSTANCE Battery / Light [25x14]
+          VECTOR Rectangle 23 [1x4]  {r=[0.0, 0.0, 0.0, 0.0], fill=#3C3C43}
+          VECTOR Rectangle 21 (Stroke) [23x12]  {fill=#3C3C43}
+          RECTANGLE Rectangle 20 [19x8]  {r=1, fill=#000000}
+      INSTANCE Indicator [6x6]
+      INSTANCE Time / Light [54x21]  {r=20}
+        FRAME 9:41 [33x15]
+          VECTOR 9:41 [28x11]  {fill=#000000}

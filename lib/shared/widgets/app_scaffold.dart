@@ -15,6 +15,7 @@ class AppScaffold extends StatelessWidget {
     this.onBack,
     this.padded = true,
     this.userRole = 'shipper',
+    this.backgroundColor,
   });
 
   final String title;
@@ -27,6 +28,9 @@ class AppScaffold extends StatelessWidget {
   final bool padded;
   final String userRole;
 
+  /// Overrides the scaffold background (defaults to `context.colors.background`).
+  final Color? backgroundColor;
+
   @override
   Widget build(BuildContext context) {
     Widget? trailingWidget = trailing;
@@ -35,7 +39,7 @@ class AppScaffold extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: context.colors.background,
+      backgroundColor: backgroundColor ?? context.colors.background,
       body: Column(
         children: [
           MobilePageHead(

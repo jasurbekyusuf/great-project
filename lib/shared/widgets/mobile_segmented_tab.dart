@@ -33,11 +33,12 @@ class MobileSegmentedTab extends StatelessWidget {
     // light mode, dark navy in dark mode). Only the thumb color changes.
     final trackColor = c.tabsTrack;
     final thumbColor = isPrimary ? c.primary : c.tabsThumb;
-    // Track and thumb radii chosen so the thumb's corner fits inside the
-    // track's corner (thumb radius < track radius − padding).
+    // Figma: track r12 with 2px padding; the active thumb is r10 so its corner
+    // sits concentric inside the track corner (10 = 12 − 2). With a 40px track
+    // the thumb is 36px tall, matching the Figma active tab.
     const trackRadius = 12.0;
-    const thumbInset = 4.0;
-    const thumbRadius = 8.0;
+    const thumbInset = 2.0;
+    const thumbRadius = 10.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -71,7 +72,9 @@ class MobileSegmentedTab extends StatelessWidget {
                       borderRadius: BorderRadius.circular(thumbRadius),
                       border: isPrimary
                           ? null
-                          : Border.all(color: Colors.black.withValues(alpha: 0.08), width: 0.5),
+                          : Border.all(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              width: 0.5),
                       boxShadow: isPrimary
                           ? [
                               BoxShadow(
@@ -109,7 +112,8 @@ class MobileSegmentedTab extends StatelessWidget {
                         behavior: HitTestBehavior.opaque,
                         onTap: () => onChanged(index),
                         child: Center(
-                          child: Text(items[index], style: t.bodyMedium.copyWith(color: color)),
+                          child: Text(items[index],
+                              style: t.bodyMedium.copyWith(color: color)),
                         ),
                       ),
                     );

@@ -4,6 +4,7 @@ class GarageRoute {
     required this.id,
     required this.name,
     required this.priceLabel,
+    this.plate = '',
     required this.fromCity,
     required this.fromCountry,
     required this.toCity,
@@ -17,6 +18,10 @@ class GarageRoute {
 
   final String id;
   final String name;
+
+  /// Vehicle licence plate shown under the name on the route card (Figma
+  /// 6751:17736). Optional — Magnit-posted routes have no plate yet.
+  final String plate;
   final String priceLabel;
   final String fromCity;
   final String fromCountry;
@@ -31,6 +36,7 @@ class GarageRoute {
   GarageRoute copyWith({bool? active}) => GarageRoute(
         id: id,
         name: name,
+        plate: plate,
         priceLabel: priceLabel,
         fromCity: fromCity,
         fromCountry: fromCountry,
