@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
+import 'package:loadme_mobile/features/auth/presentation/providers/current_user_provider.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
 import 'package:loadme_mobile/features/loads/presentation/widgets/loads_list_view.dart';
 import 'package:loadme_mobile/features/locations/domain/entities/location_entity.dart';
@@ -71,6 +72,17 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
+
+    // Tab order is role-aware. Carriers (drivers) — and unauthenticated guests,
+    // whose role is unknown — hunt for cargo, so "Yuklar" stays on the left
+    // (unchanged). Cargo owners (shipper / broker) hunt for trucks, so "Yuk
+    // mashinalari" takes the left-most slot. `_tab` remains the single source
+    // of truth — only the visual order of the two pills flips.
+    final loadsFirst =
+        widget.guest || ref.watch(currentUserRoleSyncProvider) == 'carrier';
+    final tabOrder = loadsFirst
+        ? const [MarketTab.loads, MarketTab.trucks]
+        : const [MarketTab.trucks, MarketTab.loads];
 
     return Scaffold(
       backgroundColor: FigmaPalette.pageBg,
@@ -156,9 +168,12 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             right: 16,
             height: _tabHeight,
             child: _PillTabs(
-              labels: ['loads.title'.tr(ref), 'trucks.title'.tr(ref)],
-              selectedIndex: _tab.index,
-              onChanged: (i) => setState(() => _tab = MarketTab.values[i]),
+              labels: [
+                for (final t in tabOrder)
+                  (t == MarketTab.loads ? 'loads.title' : 'trucks.title').tr(ref),
+              ],
+              selectedIndex: tabOrder.indexOf(_tab),
+              onChanged: (i) => setState(() => _tab = tabOrder[i]),
             ),
           ),
 
