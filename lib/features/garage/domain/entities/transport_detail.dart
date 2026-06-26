@@ -24,6 +24,11 @@ class TransportDetail {
     required this.contactRating,
     required this.telegram,
     required this.whatsapp,
+    this.phone,
+    this.pickupLat,
+    this.pickupLng,
+    this.deliveryLat,
+    this.deliveryLng,
   });
 
   final String id;
@@ -58,4 +63,14 @@ class TransportDetail {
   final double contactRating;
   final String telegram;
   final String whatsapp;
+
+  /// Carrier phone for the "Bog'lanish" dialer (null when the backend hides it).
+  final String? phone;
+
+  /// Pickup / delivery coordinates for the route preview. Null when the backend
+  /// omits them (the map then falls back to a city-name lookup).
+  final double? pickupLat;
+  final double? pickupLng;
+  final double? deliveryLat;
+  final double? deliveryLng;
 }

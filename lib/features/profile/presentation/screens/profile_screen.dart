@@ -12,21 +12,19 @@ import 'package:loadme_mobile/shared/design_system/ds_confirmation_modal.dart';
 import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
 import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
 
-/// Figma "Profil" (6985:12842 carrier / 7073:13659 yuk egasi). A blue gradient
-/// header with a ringed avatar, a role pill, name + phone and an edit pen; then,
-/// for carriers, a row of three quick-action cards (Qo'llanmalar / Bog'lanish /
-/// Saqlanganlar); then grouped settings rows and an app version.
+/// Figma "Profil" (6985:12842). A blue gradient header with a ringed avatar, a
+/// role pill, name + phone and an edit pen; then a row of three quick-action
+/// cards (Qo'llanmalar / Bog'lanish / Saqlanganlar); then grouped settings rows
+/// and an app version.
 ///
-/// Drivers (carrier) get the quick-action cards. Dispatchers (broker) and cargo
-/// owners (shipper) share the simpler "yuk egasi" layout where Saqlanganlar is
-/// the first settings row instead.
+/// The layout is identical for every role — only the role pill text differs
+/// (Haydovchi / Dispecher / Yuk egasi). See [_roleLabel].
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final role = ref.watch(currentUserRoleSyncProvider);
-    final isCarrier = role == 'carrier';
     final state = ref.watch(profileControllerProvider);
 
     return Scaffold(
@@ -39,18 +37,13 @@ class ProfileScreen extends ConsumerWidget {
           // Right-hand values for the settings rows.
           final locale = ref.watch(localeProvider);
           final themeMode = ref.watch(themeModeProvider);
+          final currencyCode = ref.watch(currencyProvider);
 
           final settings = <_RowData>[
-            if (!isCarrier)
-              _RowData(
-                icon: LucideIcons.bookmark,
-                title: 'Saqlanganlar',
-                onTap: () => context.push('/profile/saved'),
-              ),
             _RowData(
               icon: LucideIcons.dollarSign,
               title: 'Valyuta',
-              value: "So'm",
+              value: _currencyShort(currencyCode),
               onTap: () => _openCurrencyPicker(context, ref),
             ),
             _RowData(
@@ -62,7 +55,7 @@ class ProfileScreen extends ConsumerWidget {
             _RowData(
               icon: LucideIcons.sun,
               title: 'Ekran rejimi',
-              value: _themeLabel(themeMode),
+              value: _themeLabel(ref, themeMode),
               onTap: () => _openThemePicker(context, ref),
             ),
             _RowData(
@@ -108,15 +101,12 @@ class ProfileScreen extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Column(
                           children: [
-                            if (isCarrier) ...[
-                              _QuickActionsRow(
-                                onGuides: () => context.push('/instructions'),
-                                onContact: () =>
-                                    context.push('/profile/support-feedback'),
-                                onSaved: () => context.push('/profile/saved'),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
+                            _QuickActionsRow(
+                              onGuides: () => context.push('/instructions'),
+                              onContact: () => context.push('/profile/chat'),
+                              onSaved: () => context.push('/profile/saved'),
+                            ),
+                            const SizedBox(height: 16),
                             _SettingsGroup(rows: settings),
                             const SizedBox(height: 16),
                             _SettingsGroup(rows: [
@@ -164,42 +154,68 @@ class ProfileScreen extends ConsumerWidget {
   static String _localeLabel(Locale locale) {
     if (locale.languageCode == 'ru') return 'Русский';
     if (locale.languageCode == 'en') return 'English';
-    if (locale.scriptCode == 'Cyrl') return 'Ўзбекча';
+    if (locale.scriptCode == 'Cyrl' || locale.countryCode == 'Cyrl') {
+      return 'Ўзбекча';
+    }
     return "O'zbekcha";
   }
 
-  static String _themeLabel(ThemeMode mode) => switch (mode) {
-        ThemeMode.dark => 'Tungi',
-        ThemeMode.light => 'Kunduzgi',
-        ThemeMode.system => 'Tizim',
+  static String _themeLabel(WidgetRef ref, ThemeMode mode) => switch (mode) {
+        ThemeMode.dark => 'theme.dark'.tr(ref),
+        ThemeMode.light => 'theme.light'.tr(ref),
+        ThemeMode.system => 'theme.system'.tr(ref),
       };
 
+  // Figma currency picker (7073:13603): code → "Name (CODE)" label. The
+  // settings row shows the short name (text before the parenthesis).
+  static const _currencies = <({String code, String label})>[
+    (code: 'USD', label: 'Dollar (USD)'),
+    (code: 'UZS', label: "So'm (UZS)"),
+    (code: 'RUB', label: 'Rubl (RUB)'),
+    (code: 'EUR', label: 'Yevro (EUR)'),
+    (code: 'KZT', label: 'Tenge (KZT)'),
+    (code: 'KGS', label: 'Som (KGS)'),
+    (code: 'CNY', label: 'Yuan (CNY)'),
+    (code: 'TJS', label: 'Somoni (TJS)'),
+    (code: 'TMT', label: 'Manat (TMT)'),
+  ];
+
+  static String _currencyShort(String code) {
+    for (final c in _currencies) {
+      if (c.code == code) return c.label.split(' (').first;
+    }
+    return "So'm";
+  }
+
   Future<void> _openCurrencyPicker(BuildContext context, WidgetRef ref) async {
-    await showDsActionDrawer<String>(
+    final current = ref.read(currencyProvider);
+    final selected = await showDsSelectSheet<String>(
       context: context,
       title: 'picker.currency'.tr(ref),
-      items: const [
-        DsActionDrawerItem(value: 'USD', label: 'USD'),
-        DsActionDrawerItem(value: 'UZS', label: 'UZS'),
-        DsActionDrawerItem(value: 'RUB', label: 'RUB'),
+      items: [
+        for (final c in _currencies)
+          DsSelectItem(value: c.code, label: c.label),
       ],
-      currentValue: 'UZS',
+      currentValue: current,
+      saveLabel: 'common.save'.tr(ref),
     );
+    if (selected != null) {
+      await ref.read(currencyProvider.notifier).setCurrency(selected);
+    }
   }
 
   Future<void> _openLanguagePicker(BuildContext context, WidgetRef ref) async {
     final current = ref.read(localeProvider);
-    final selected = await showDsActionDrawer<Locale>(
+    final selected = await showDsSelectSheet<Locale>(
       context: context,
       title: 'picker.language'.tr(ref),
       items: const [
-        DsActionDrawerItem(value: Locale('uz'), label: "O'zbekcha (lotin)"),
-        DsActionDrawerItem(
-            value: Locale('uz', 'Cyrl'), label: 'Ўзбекча (кирил)'),
-        DsActionDrawerItem(value: Locale('ru'), label: 'Русский'),
-        DsActionDrawerItem(value: Locale('en'), label: 'English'),
+        DsSelectItem(value: Locale('uz', 'Cyrl'), label: 'Ўзбекча'),
+        DsSelectItem(value: Locale('uz'), label: "O'zbekcha (Lotin)"),
+        DsSelectItem(value: Locale('ru'), label: 'Русский'),
       ],
       currentValue: current,
+      saveLabel: 'common.save'.tr(ref),
     );
     if (selected != null) {
       await ref.read(localeProvider.notifier).setLocale(selected);
@@ -208,17 +224,28 @@ class ProfileScreen extends ConsumerWidget {
 
   Future<void> _openThemePicker(BuildContext context, WidgetRef ref) async {
     final current = ref.read(themeModeProvider);
-    final selected = await showDsActionDrawer<ThemeMode>(
+    final selected = await showDsSelectSheet<ThemeMode>(
       context: context,
       title: 'picker.theme'.tr(ref),
       items: [
-        DsActionDrawerItem(
-            value: ThemeMode.system, label: 'theme.system'.tr(ref)),
-        DsActionDrawerItem(
-            value: ThemeMode.light, label: 'theme.light'.tr(ref)),
-        DsActionDrawerItem(value: ThemeMode.dark, label: 'theme.dark'.tr(ref)),
+        DsSelectItem(
+          value: ThemeMode.light,
+          label: 'theme.light'.tr(ref),
+          icon: LucideIcons.sun,
+        ),
+        DsSelectItem(
+          value: ThemeMode.dark,
+          label: 'theme.dark'.tr(ref),
+          icon: LucideIcons.moon,
+        ),
+        DsSelectItem(
+          value: ThemeMode.system,
+          label: 'theme.system'.tr(ref),
+          icon: LucideIcons.sunMoon,
+        ),
       ],
       currentValue: current,
+      saveLabel: 'common.save'.tr(ref),
     );
     if (selected != null) {
       await ref.read(themeModeProvider.notifier).setThemeMode(selected);
@@ -226,14 +253,12 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
-    final ok = await showDsConfirmation(
+    final ok = await showDsCenteredConfirm(
       context,
-      title: 'profile.logoutTitle'.tr(ref),
-      message: 'profile.logoutMessage'.tr(ref),
-      confirmText: 'profile.logout'.tr(ref),
+      icon: LucideIcons.logOut,
+      title: 'profile.logoutMessage'.tr(ref),
+      confirmText: 'profile.logoutConfirm'.tr(ref),
       cancelText: 'common.cancel'.tr(ref),
-      intent: DsConfirmIntent.logout,
-      icon: Icons.logout_rounded,
     );
     if (!ok) return;
     await ref.read(profileControllerProvider.notifier).logout();
@@ -276,51 +301,61 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma frame 2087329877: 16px screen margin, internal pad t24/l16/r16/b16
+    // for the avatar+name block; the edit pen is anchored to the frame's
+    // top-right corner (24px from the screen edge, 8px below the status bar).
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-      child: Stack(
-        alignment: Alignment.topCenter,
-        children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _AvatarWithPill(avatarUrl: avatarUrl, roleLabel: roleLabel),
-              const SizedBox(height: 8),
-              Text(
-                fullName,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
-                  height: 24 / 16,
-                  fontWeight: FontWeight.w600,
-                  color: FigmaPalette.notifTitle,
-                ),
-              ),
-              const SizedBox(height: 2),
-              if (phone != null)
-                Text(
-                  phone!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 20 / 14,
-                    fontWeight: FontWeight.w400,
-                    color: FigmaPalette.inkBody,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: SizedBox(
+        width: double.infinity,
+        child: Stack(
+          alignment: Alignment.topCenter,
+          clipBehavior: Clip.none,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _AvatarWithPill(avatarUrl: avatarUrl, roleLabel: roleLabel),
+                  const SizedBox(height: 8),
+                  Text(
+                    fullName,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      height: 24 / 16,
+                      fontWeight: FontWeight.w600,
+                      color: FigmaPalette.notifTitle,
+                    ),
                   ),
-                ),
-            ],
-          ),
-          Positioned(
-            right: 0,
-            top: 8,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onEdit,
-              child: const Icon(LucideIcons.squarePen,
-                  size: 24, color: FigmaPalette.primary),
+                  const SizedBox(height: 2),
+                  if (phone != null)
+                    Text(
+                      phone!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 20 / 14,
+                        fontWeight: FontWeight.w400,
+                        color: FigmaPalette.inkBody,
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onEdit,
+                child: const Icon(LucideIcons.squarePen,
+                    size: 24, color: FigmaPalette.primary),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -336,36 +371,40 @@ class _AvatarWithPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 110,
-      height: 114,
+      height: 116,
       child: Stack(
-        alignment: Alignment.topCenter,
+        clipBehavior: Clip.none,
         children: [
-          // 102 ring: 3px #004EEB @40%, 4px inner padding.
-          Container(
-            width: 102,
-            height: 102,
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: FigmaPalette.primary.withValues(alpha: 0.40),
-                width: 3,
+          // Figma: a 102 circle with a 3px #004EEB@40% OUTSIDE ring (outer
+          // ⌀108), a 4px gap, then the 94 avatar image.
+          Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              width: 108,
+              height: 108,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: FigmaPalette.primary.withValues(alpha: 0.40),
+                  width: 3,
+                ),
+              ),
+              child: ClipOval(
+                child: avatarUrl != null
+                    ? Image.network(avatarUrl!, fit: BoxFit.cover)
+                    : Container(
+                        color: FigmaPalette.notifIconTile,
+                        alignment: Alignment.center,
+                        child: const Icon(LucideIcons.user,
+                            size: 40, color: FigmaPalette.primary),
+                      ),
               ),
             ),
-            child: ClipOval(
-              child: avatarUrl != null
-                  ? Image.network(avatarUrl!, fit: BoxFit.cover)
-                  : Container(
-                      color: FigmaPalette.notifIconTile,
-                      alignment: Alignment.center,
-                      child: const Icon(LucideIcons.user,
-                          size: 36, color: FigmaPalette.primary),
-                    ),
-            ),
           ),
-          // Role pill, overlapping the avatar bottom by 12px.
-          Positioned(
-            top: 90,
+          // Role pill, overlapping the avatar bottom (Figma: 12/18, #101828).
+          Align(
+            alignment: Alignment.bottomCenter,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
@@ -382,10 +421,10 @@ class _AvatarWithPill extends StatelessWidget {
               child: Text(
                 roleLabel,
                 style: const TextStyle(
-                  fontSize: 13,
-                  height: 18 / 13,
+                  fontSize: 12,
+                  height: 18 / 12,
                   fontWeight: FontWeight.w500,
-                  color: FigmaPalette.notifTitle,
+                  color: Color(0xFF101828),
                 ),
               ),
             ),
@@ -397,7 +436,7 @@ class _AvatarWithPill extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Quick-action cards (carrier only)
+// Quick-action cards
 // ---------------------------------------------------------------------------
 
 class _QuickActionsRow extends StatelessWidget {
@@ -604,8 +643,9 @@ class _SettingsRow extends StatelessWidget {
                 ),
               ],
               const SizedBox(width: 8),
+              // Figma chevron vector: #000000, 1.5px stroke, 4x8 glyph.
               const Icon(LucideIcons.chevronRight,
-                  size: 16, color: FigmaPalette.label),
+                  size: 16, color: Color(0xFF000000)),
             ],
           ),
         ),

@@ -3,10 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/services/app_state_providers.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:loadme_mobile/features/auth/presentation/providers/auth_flow_provider.dart';
+import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
 import 'package:loadme_mobile/shared/widgets/mobile_language_pill.dart';
 import 'package:loadme_mobile/shared/widgets/mobile_segmented_tab.dart';
 
@@ -65,79 +67,34 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
     await context.push<void>('/auth/verify');
   }
 
-  void _openLanguageSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) {
-        final locale = ref.watch(localeProvider);
-        final options = const [
-          ('uz', "O'zbekcha (lotin)", 'UZ'),
-          ('ru', 'Russkiy', 'RU'),
-          ('en', 'English', 'EN'),
-        ];
+  // Figma auth pill shows the active language's short name (6937:23686).
+  static String _pillLabel(Locale locale) {
+    if (locale.languageCode == 'ru') return 'Русский';
+    if (locale.scriptCode == 'Cyrl' || locale.countryCode == 'Cyrl') {
+      return 'Ўзбекча';
+    }
+    return "O'zbekcha";
+  }
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE4E7EC),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text('Tilni tanlang',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF101828))),
-              const SizedBox(height: 8),
-              ...options.map(
-                (e) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 28,
-                    height: 20,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE6F4EA),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(e.$3,
-                        style: const TextStyle(
-                            fontSize: 10, fontWeight: FontWeight.w700)),
-                  ),
-                  title: Text(e.$2, style: const TextStyle(fontSize: 16)),
-                  trailing: Icon(
-                    locale.languageCode == e.$1
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_off,
-                    color: locale.languageCode == e.$1
-                        ? const Color(0xFF0057FF)
-                        : const Color(0xFFD0D5DD),
-                  ),
-                  onTap: () {
-                    ref.read(localeProvider.notifier).setLocale(Locale(e.$1));
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+  /// Figma "Ilova tilini tanlang" select sheet — the very same component as the
+  /// Profil language picker ([showDsSelectSheet]): X-close header, white rounded
+  /// cards with a blue-bordered selected state, and a pinned "Saqlash" button
+  /// that confirms (it overlays the navbar via the root navigator).
+  Future<void> _openLanguageSheet() async {
+    final current = ref.read(localeProvider);
+    final selected = await showDsSelectSheet<Locale>(
+      context: context,
+      title: 'picker.language'.tr(ref),
+      items: const [
+        DsSelectItem(value: Locale('uz', 'Cyrl'), label: 'Ўзбекча'),
+        DsSelectItem(value: Locale('uz'), label: "O'zbekcha (Lotin)"),
+        DsSelectItem(value: Locale('ru'), label: 'Русский'),
+      ],
+      currentValue: current,
+      saveLabel: 'common.save'.tr(ref),
     );
+    if (selected == null || !mounted) return;
+    await ref.read(localeProvider.notifier).setLocale(selected);
   }
 
   @override
@@ -158,7 +115,7 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     MobileLanguagePill(
-                      label: "O'zbekcha",
+                      label: _pillLabel(ref.watch(localeProvider)),
                       onTap: _openLanguageSheet,
                     ),
                     const SizedBox(height: 32),

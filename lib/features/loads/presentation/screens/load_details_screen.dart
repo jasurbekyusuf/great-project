@@ -1,14 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/utils/address_format.dart';
+import 'package:loadme_mobile/core/utils/phone_launcher.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
+import 'package:loadme_mobile/features/saved/presentation/providers/saved_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_confirmation_modal.dart';
 import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
+import 'package:loadme_mobile/shared/design_system/ds_info_modal.dart';
 import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
 import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
 import 'package:loadme_mobile/shared/widgets/load_card_parts.dart';
@@ -45,6 +51,7 @@ class LoadDetailsScreen extends ConsumerWidget {
         body: Column(
           children: [
             _Header(
+              id: id,
               ownerMode: ownerMode,
               isActive: isActive,
               onEdit: () => context.push('/edit-load/$id'),
@@ -71,20 +78,53 @@ class LoadDetailsScreen extends ConsumerWidget {
 // Header — back · "Details" · bookmark / edit
 // ---------------------------------------------------------------------------
 
-class _Header extends StatelessWidget {
+class _Header extends ConsumerWidget {
   const _Header({
+    required this.id,
     required this.ownerMode,
     required this.isActive,
     required this.onEdit,
   });
 
+  final String id;
   final bool ownerMode;
   final bool isActive;
   final VoidCallback onEdit;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final canEdit = ownerMode && isActive;
+    // The bookmark saves a load you're browsing — owners (who instead get the
+    // edit pen, or view their own archived load) don't save their own loads.
+    final showSave = !ownerMode;
+    final isGuest = ref.watch(authControllerProvider).valueOrNull == null;
+    final isSaved = showSave &&
+        !isGuest &&
+        (ref.watch(savedControllerProvider).valueOrNull?.any(
+              (s) => s.id == id || s.load.guid == id,
+            ) ??
+            false);
+
+    final IconData trailingIcon;
+    final Color trailingColor;
+    final VoidCallback onTrailing;
+    if (canEdit) {
+      trailingIcon = LucideIcons.squarePen;
+      trailingColor = FigmaPalette.ink;
+      onTrailing = onEdit;
+    } else if (showSave) {
+      // Saved → filled bookmark (no text feedback; the icon carries the state).
+      trailingIcon = isSaved ? Icons.bookmark : LucideIcons.bookmark;
+      trailingColor = isSaved ? FigmaPalette.primary : FigmaPalette.ink;
+      onTrailing = () =>
+          _toggleSave(context, ref, isSaved: isSaved, isGuest: isGuest);
+    } else {
+      // Owner viewing an archived load — bookmark placeholder (inert).
+      trailingIcon = LucideIcons.bookmark;
+      trailingColor = FigmaPalette.ink;
+      onTrailing = () {};
+    }
+
     return ColoredBox(
       color: Colors.white,
       child: SafeArea(
@@ -114,8 +154,9 @@ class _Header extends StatelessWidget {
                   ),
                 ),
                 _CircleBtn(
-                  icon: canEdit ? LucideIcons.squarePen : LucideIcons.bookmark,
-                  onTap: canEdit ? onEdit : () {},
+                  icon: trailingIcon,
+                  color: trailingColor,
+                  onTap: onTrailing,
                 ),
               ],
             ),
@@ -124,12 +165,40 @@ class _Header extends StatelessWidget {
       ),
     );
   }
+
+  /// Toggles the favorite for this load. Guests get the auth prompt; authed
+  /// users get an optimistic save/un-save — the bookmark icon flips to its
+  /// filled/active state, so there's no success snackbar. Only failures surface
+  /// a message.
+  Future<void> _toggleSave(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool isSaved,
+    required bool isGuest,
+  }) async {
+    if (isGuest) {
+      unawaited(showMobileAuthRequiredSheet(context));
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final notifier = ref.read(savedControllerProvider.notifier);
+    final failure =
+        isSaved ? await notifier.removeByLoad(id) : await notifier.add(id);
+    if (failure != null) {
+      messenger.showSnackBar(SnackBar(content: Text(failure.message)));
+    }
+  }
 }
 
 class _CircleBtn extends StatelessWidget {
-  const _CircleBtn({required this.icon, required this.onTap});
+  const _CircleBtn({
+    required this.icon,
+    required this.onTap,
+    this.color = FigmaPalette.ink,
+  });
   final IconData icon;
   final VoidCallback onTap;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +208,7 @@ class _CircleBtn extends StatelessWidget {
       child: SizedBox(
         width: 40,
         height: 40,
-        child: Icon(icon, size: 22, color: FigmaPalette.ink),
+        child: Icon(icon, size: 22, color: color),
       ),
     );
   }
@@ -185,15 +254,29 @@ class _Body extends ConsumerWidget {
           isActive: isActive,
           onContact: () {
             if (isGuest) {
-              showMobileAuthRequiredSheet(context);
+              unawaited(showMobileAuthRequiredSheet(context));
+              return;
             }
-            // Authed contact action (Telegram / WhatsApp) is wired separately.
+            // Authed → hand off to the native dialer with the owner's number.
+            unawaited(_contactByPhone(context));
           },
           onArchiveToggle: () => _ownerToggle(context, ref),
           onEdit: () => context.push('/edit-load/${load.guid}'),
         ),
       ],
     );
+  }
+
+  /// Opens the dialer for the load owner's phone. A missing number surfaces a
+  /// short notice instead of failing silently.
+  Future<void> _contactByPhone(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await launchPhoneDial(load.phone);
+    if (!ok) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Telefon raqami mavjud emas')),
+      );
+    }
   }
 
   Future<void> _ownerToggle(BuildContext context, WidgetRef ref) async {
@@ -585,8 +668,12 @@ class _MapCard extends StatelessWidget {
             children: [
               // Live OpenStreetMap preview (non-interactive inside the card).
               RouteMap(
-                from: cityLatLng(addressCity(load.fromAddress)),
-                to: cityLatLng(addressCity(load.toAddress)),
+                from: load.pickupLat != null && load.pickupLng != null
+                    ? LatLng(load.pickupLat!, load.pickupLng!)
+                    : cityLatLng(addressCity(load.fromAddress)),
+                to: load.deliveryLat != null && load.deliveryLng != null
+                    ? LatLng(load.deliveryLat!, load.deliveryLng!)
+                    : cityLatLng(addressCity(load.toAddress)),
                 interactive: false,
               ),
               // "Show in map" pill — wrapped in Center so the white Container
@@ -697,7 +784,9 @@ class _OwnerCard extends StatelessWidget {
                 child: _ActionChip(
                   icon: LucideIcons.star,
                   label: 'Baholash',
-                  onTap: () {},
+                  onTap: () => unawaited(
+                    showContactGateModal(context, DsContactGate.rate),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -705,7 +794,9 @@ class _OwnerCard extends StatelessWidget {
                 child: _ActionChip(
                   icon: LucideIcons.scrollText,
                   label: 'Shikoyat qilish',
-                  onTap: () {},
+                  onTap: () => unawaited(
+                    showContactGateModal(context, DsContactGate.report),
+                  ),
                 ),
               ),
             ],

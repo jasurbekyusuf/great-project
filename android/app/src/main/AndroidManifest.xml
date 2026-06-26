@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Required for OpenStreetMap tiles + API calls. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Post-registration location primer: find the nearest loads for the user. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="loadme_mobile"
         android:name="${applicationName}"
@@ -42,6 +45,12 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- "Bog'lanish" opens the dialer (tel:) — Android 11+ package
+             visibility needs the DIAL intent declared to resolve a handler. -->
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
         </intent>
     </queries>
 </manifest>

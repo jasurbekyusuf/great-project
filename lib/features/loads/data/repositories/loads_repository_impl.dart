@@ -23,7 +23,8 @@ class LoadsRepositoryImpl implements LoadsRepository {
           () => _remote.getLoads(page: page, limit: limit, filters: filters));
 
   @override
-  AsyncResult<int> getLoadsCount() => _guard(_remote.getLoadsCount);
+  AsyncResult<int> getLoadsCount({Map<String, String>? filters}) =>
+      _guard(() => _remote.getLoadsCount(filters: filters));
 
   @override
   AsyncResult<List<LoadEntity>> getMyLoads({

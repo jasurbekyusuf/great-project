@@ -4,7 +4,6 @@ import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
 import 'package:loadme_mobile/shared/widgets/card_action_menu.dart';
 import 'package:loadme_mobile/shared/widgets/load_card_parts.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Figma "Yo'nalishlarim" route card (node 6751-17736, frame 2087329702):
 /// avatar + name/plate on the left with the price pinned right, a route block,
@@ -148,9 +147,16 @@ class GarageRouteCard extends StatelessWidget {
           Row(
             children: [
               // The magnet glyph only shows when the function is off; the "on"
-              // row is text-only (Figma 6751:17736).
+              // row is text-only (Figma 6751:17736). Uses the stylised Magnit
+              // brand glyph (recoloured to ink) — not the plain Lucide magnet.
               if (!active) ...[
-                const Icon(LucideIcons.magnet, size: 20, color: FigmaPalette.ink),
+                Image.asset(
+                  'assets/images/magnit_glyph.png',
+                  width: 20,
+                  height: 20,
+                  color: FigmaPalette.inkStrong,
+                  colorBlendMode: BlendMode.srcIn,
+                ),
                 const SizedBox(width: 12),
               ],
               Expanded(

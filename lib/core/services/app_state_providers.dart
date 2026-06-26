@@ -14,6 +14,7 @@ const supportedAppLocales = [
 
 const _kLocaleKey = 'app.locale';
 const _kThemeKey = 'app.themeMode';
+const _kCurrencyKey = 'app.currency';
 
 class LocaleController extends Notifier<Locale> {
   @override
@@ -58,5 +59,21 @@ class ThemeModeController extends Notifier<ThemeMode> {
   }
 }
 
+/// Selected display currency (ISO code, e.g. `UZS`). Persisted; defaults to UZS.
+class CurrencyController extends Notifier<String> {
+  @override
+  String build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return prefs.getString(_kCurrencyKey) ?? 'UZS';
+  }
+
+  Future<void> setCurrency(String code) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setString(_kCurrencyKey, code);
+    state = code;
+  }
+}
+
 final localeProvider = NotifierProvider<LocaleController, Locale>(LocaleController.new);
 final themeModeProvider = NotifierProvider<ThemeModeController, ThemeMode>(ThemeModeController.new);
+final currencyProvider = NotifierProvider<CurrencyController, String>(CurrencyController.new);

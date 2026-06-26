@@ -1,57 +1,114 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:loadme_mobile/core/services/app_l10n.dart';
-import 'package:loadme_mobile/core/theme/theme_extensions.dart';
-import 'package:loadme_mobile/shared/design_system/ds_card.dart';
-import 'package:loadme_mobile/shared/widgets/app_scaffold.dart';
-import 'package:loadme_mobile/shared/widgets/mobile_segmented_tab.dart';
+import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/theme/figma_palette.dart';
+import 'package:loadme_mobile/features/loads/presentation/widgets/load_figma_card.dart';
+import 'package:loadme_mobile/features/saved/presentation/providers/saved_providers.dart';
+import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
+import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
+import 'package:loadme_mobile/shared/widgets/frosted_section_header.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-// Mirrors `client_frontend_web-master/src/modules/SavedPage/index.jsx`.
-// TODO: wire to /saved-loads and /saved-trucks endpoints.
-class SavedScreen extends ConsumerStatefulWidget {
+/// Figma "Saqlanganlar" (7088:15906) — a frosted header over a vertical list
+/// (gap 8) of saved load cards. The card is the very same component used on the
+/// Search / market screen ([LoadFigmaCard]), so saved loads render identically.
+///
+/// Driven by the real `/favorites/` endpoint via [savedControllerProvider]:
+/// tapping a card opens the load detail (where the bookmark un-saves it).
+class SavedScreen extends ConsumerWidget {
   const SavedScreen({super.key});
 
   @override
-  ConsumerState<SavedScreen> createState() => _SavedScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(savedControllerProvider);
+    final controller = ref.read(savedControllerProvider.notifier);
+
+    return Scaffold(
+      backgroundColor: FigmaPalette.sheetBg,
+      body: Column(
+        children: [
+          const FrostedSectionHeader(title: 'Saqlanganlar'),
+          Expanded(
+            child: async.when(
+              loading: () => const DsLoader(),
+              error: (e, _) => DsErrorState(
+                message: e.toString(),
+                onRetry: controller.refresh,
+              ),
+              data: (items) => items.isEmpty
+                  ? _Empty(onRefresh: controller.refresh)
+                  : RefreshIndicator(
+                      color: FigmaPalette.primary,
+                      onRefresh: controller.refresh,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (_, i) {
+                          final load = items[i].load;
+                          return LoadFigmaCard(
+                            load: load,
+                            ownerName: load.ownerName ?? 'LoadMe',
+                            ownerRating: load.ownerRating,
+                            verified: load.verified,
+                            roleBadge: load.roleBadge,
+                            fromCountry: load.fromCountry ?? '',
+                            toCountry: load.toCountry ?? '',
+                            truckType: load.truckType ?? '—',
+                            weightT: load.weightT,
+                            volumeM3: load.volumeM3,
+                            distanceKm: load.distanceKm,
+                            radiusKm: load.radiusKm,
+                            timeAgo: load.timeAgo,
+                            priceLabel: load.priceLabel,
+                            onTap: () => context.push('/loads/${load.guid}'),
+                          );
+                        },
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _SavedScreenState extends ConsumerState<SavedScreen> {
-  int _tab = 0;
+/// Empty "Saqlanganlar" state — kept scrollable so pull-to-refresh still works.
+class _Empty extends StatelessWidget {
+  const _Empty({required this.onRefresh});
+
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    final s = context.space;
-    final t = context.types;
-
-    return AppScaffold(
-      title: 'profile.saved'.tr(ref),
-      padded: false,
-      body: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(s.lg, s.md, s.lg, s.md),
-            child: MobileSegmentedTab(
-              items: ['saved.tab.loads'.tr(ref), 'saved.tab.trucks'.tr(ref)],
-              selectedIndex: _tab,
-              onChanged: (i) => setState(() => _tab = i),
+    return RefreshIndicator(
+      color: FigmaPalette.primary,
+      onRefresh: onRefresh,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
+        children: const [
+          Icon(LucideIcons.bookmark, size: 56, color: FigmaPalette.inkMuted),
+          SizedBox(height: 12),
+          Text(
+            'Saqlangan yuklar yo‘q',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              height: 22 / 16,
+              fontWeight: FontWeight.w600,
+              color: FigmaPalette.ink,
             ),
           ),
-          Expanded(
-            child: ListView.separated(
-              padding: EdgeInsets.fromLTRB(s.lg, 0, s.lg, s.xl),
-              itemCount: 6,
-              separatorBuilder: (_, __) => SizedBox(height: s.md),
-              itemBuilder: (_, i) => DsCard(
-                onTap: () {},
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Ташкент → Самарканд', style: t.bodyLgMedium),
-                    SizedBox(height: s.xs),
-                    Text('Тент · 20 т · 2 500 000 UZS', style: t.caption),
-                  ],
-                ),
-              ),
+          SizedBox(height: 4),
+          Text(
+            'Yoqqan yuklaringizni belgilab qo‘ysangiz, shu yerda chiqadi.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              height: 18 / 13,
+              fontWeight: FontWeight.w500,
+              color: FigmaPalette.inkMuted,
             ),
           ),
         ],

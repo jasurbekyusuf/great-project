@@ -49,6 +49,7 @@ extension type const LK(String key) {
   static const loadsTitle = LK('loads.title');
   static const trucksTitle = LK('trucks.title');
   static const loadsAllCount = LK('loads.allCount');
+  static const loadsFoundCount = LK('loads.foundCount');
   static const loadsOriginPlace = LK('loads.originPlace');
   static const loadsDestPlace = LK('loads.destPlace');
   static const loadsSearchBtn = LK('loads.searchBtn');

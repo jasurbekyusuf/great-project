@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_display_providers.dart';
@@ -12,8 +13,20 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 /// Pure list — does not own the header, tab switcher, or filters block.
 /// Embedded inside `MarketScreen` so tab swap doesn't rebuild the chrome.
 class LoadsListView extends ConsumerWidget {
-  const LoadsListView({super.key, required this.guest});
+  const LoadsListView({
+    super.key,
+    required this.guest,
+    this.nearbyTitle,
+    this.nearbyFilters,
+  });
   final bool guest;
+
+  /// Origin label for the empty-state "{origin}ga yaqin yuklar" fallback feed
+  /// (null when no Qidiruv origin is set — the fallback section then hides).
+  final String? nearbyTitle;
+
+  /// Pickup-only server filter (origin) backing that fallback feed.
+  final Map<String, String>? nearbyFilters;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,7 +40,13 @@ class LoadsListView extends ConsumerWidget {
         onRetry: () => ref.read(loadsControllerProvider.notifier).refresh(),
       ),
       data: (items) {
-        if (items.isEmpty) return const _NotFound();
+        if (items.isEmpty) {
+          return _NotFound(
+            guest: guest,
+            nearbyTitle: nearbyTitle,
+            nearbyFilters: nearbyFilters,
+          );
+        }
         final notifier = ref.read(loadsControllerProvider.notifier);
         final hasMore = notifier.hasMore;
         return RefreshIndicator(
@@ -92,113 +111,200 @@ class LoadsListView extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// "Yuklar topilmadi" — rich not-found state (Figma 6435:39539): illustration,
-// message and a Magnit-alert promo. The nearby-loads fallback list is omitted —
-// it needs a "loads near origin" query the controller doesn't expose yet.
+// "Yuklar topilmadi" — rich not-found state (Figma 6435:39539).
+//
+// Three stacked blocks mirroring the design frame:
+//   • empty illustration       : 32px grey package glyph + title / subtitle
+//   • Magnit promo card         : white r12, magnet glyph, green "Yoqish" CTA
+//   • "{origin}ga yaqin yuklar" : real pickup-only fallback feed, hidden when
+//      the search had no origin or that query returns empty / loading / error
+//
+// The empty block is inset an extra 16px each side (Figma `Frame 2087329727`
+// padding) so the Magnit card lands at 311 wide, while the nearby
+// `LoadFigmaCard`s keep the full 343 list width.
 // ---------------------------------------------------------------------------
 
-class _NotFound extends StatelessWidget {
-  const _NotFound();
+class _NotFound extends ConsumerWidget {
+  const _NotFound({
+    required this.guest,
+    this.nearbyTitle,
+    this.nearbyFilters,
+  });
 
-  static const _green = Color(0xFF17B26A);
+  final bool guest;
+  final String? nearbyTitle;
+  final Map<String, String>? nearbyFilters;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Real "loads near the pickup" fallback — only when a Qidiruv origin was
+    // set. Loading / error / empty all collapse to null so the section simply
+    // hides rather than showing a header with no cards beneath it.
+    final nearby = (nearbyTitle != null && nearbyFilters != null)
+        ? ref
+            .watch(nearbyLoadsProvider(loadsFilterKey(nearbyFilters!)))
+            .valueOrNull
+        : null;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+      children: [
+        // ── Empty block (Figma `Frame 2087329727`): extra 16px inset, T/B 20
+        //    pad, 16px gap between the centred caption and the Magnit card.
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 20, 16, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Column(
+                children: [
+                  Icon(
+                    LucideIcons.package,
+                    size: 32,
+                    color: FigmaPalette.gray700,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Yuklar topilmadi',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 18 / 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF566075),
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Qidiruvingizga mos yuklar topilmadi.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 18 / 12,
+                      fontWeight: FontWeight.w500,
+                      color: FigmaPalette.gray700,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              _MagnitCard(),
+            ],
+          ),
+        ),
+        // ── "{origin}ga yaqin yuklar" — real fallback feed (hidden if empty).
+        if (nearby != null && nearby.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Text(
+            '${nearbyTitle!}ga yaqin yuklar',
+            style: const TextStyle(
+              fontSize: 14,
+              height: 20 / 14,
+              fontWeight: FontWeight.w500,
+              color: FigmaPalette.countLabel,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final d in nearby) ...[
+            LoadFigmaCard(
+              load: d.load,
+              ownerName: d.ownerName,
+              ownerRating: d.ownerRating,
+              verified: d.verified,
+              roleBadge: d.roleBadge,
+              fromCountry: d.fromCountry,
+              toCountry: d.toCountry,
+              truckType: d.truckType,
+              weightT: d.weightT,
+              distanceKm: d.distanceKm,
+              radiusKm: d.radiusKm,
+              timeAgo: d.timeAgo,
+              priceLabel: d.priceLabel,
+              onTap: () => context.push(
+                guest ? '/guest-load/${d.load.guid}' : '/loads/${d.load.guid}',
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+// Magnit promo (Figma `Container` 6435:39573) — white r12 card (no border):
+// magnet glyph + "Magnit", a notify prompt, then the green "Yoqish" CTA.
+class _MagnitCard extends StatelessWidget {
+  const _MagnitCard();
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 40, 16, 110),
-      children: [
-        Icon(LucideIcons.package, size: 56, color: c.textMuted),
-        const SizedBox(height: 12),
-        Text(
-          'Yuklar topilmadi',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-            height: 22 / 16,
-            fontWeight: FontWeight.w600,
-            color: c.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Qidiruvingizga mos yuklar topilmadi.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 13,
-            height: 18 / 13,
-            fontWeight: FontWeight.w500,
-            color: c.textMuted,
-          ),
-        ),
-        const SizedBox(height: 20),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: c.surface,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
               children: [
-                Row(
-                  children: [
-                    Image.asset(
-                      'assets/images/magnit_badge.png',
-                      width: 28,
-                      height: 28,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Magnit',
-                      style: TextStyle(
-                        fontSize: 16,
-                        height: 22 / 16,
-                        fontWeight: FontWeight.w600,
-                        color: c.textPrimary,
-                      ),
-                    ),
-                  ],
+                Icon(
+                  LucideIcons.magnet,
+                  size: 20,
+                  color: FigmaPalette.inkStrong,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(width: 8),
                 Text(
-                  'Bu yo’nalishda yangi yuklar chiqishi bilan xabar beraylikmi?',
+                  'Magnit',
                   style: TextStyle(
                     fontSize: 14,
                     height: 20 / 14,
-                    fontWeight: FontWeight.w500,
-                    color: c.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Material(
-                  color: _green,
-                  borderRadius: BorderRadius.circular(12),
-                  child: InkWell(
-                    onTap: () => context.push('/magnit'),
-                    borderRadius: BorderRadius.circular(12),
-                    child: const SizedBox(
-                      height: 48,
-                      width: double.infinity,
-                      child: Center(
-                        child: Text(
-                          'Yoqish',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
+                    fontWeight: FontWeight.w600,
+                    color: FigmaPalette.inkStrong,
                   ),
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 4),
+            const Text(
+              "Bu yo'nalishda yangi yuklar chiqishi bilan xabar beraylikmi?",
+              style: TextStyle(
+                fontSize: 14,
+                height: 20 / 14,
+                fontWeight: FontWeight.w400,
+                color: FigmaPalette.inkStrong,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Material(
+              color: FigmaPalette.moneyGreen,
+              borderRadius: BorderRadius.circular(8),
+              child: InkWell(
+                onTap: () => context.push('/magnit'),
+                borderRadius: BorderRadius.circular(8),
+                child: const SizedBox(
+                  height: 40,
+                  width: double.infinity,
+                  child: Center(
+                    child: Text(
+                      'Yoqish',
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 20 / 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

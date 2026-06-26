@@ -37,14 +37,20 @@ class GarageRemoteDataSource implements GarageDataSource {
 
   @override
   Future<void> addVehicle(GarageVehicle vehicle) async {
-    // Best-effort create. The garage form collects only identity fields, but the
-    // backend also wants a `truck_type` UUID — a real create flow needs a richer
-    // form (see the wiring report).
-    await _dio.post<dynamic>('/trucks/', data: {
-      'model_name': vehicle.name,
-      'model': vehicle.model,
-      'plate_number': vehicle.plate,
+    // `POST /trucks/` is multipart/form-data. `model_name` + `truck_type` are
+    // the essential fields; capacity (measurement_value/unit) and plate_number
+    // are sent when present. Image/certificate uploads stay optional for now.
+    final form = FormData.fromMap(<String, dynamic>{
+      if (vehicle.model.isNotEmpty) 'model_name': vehicle.model,
+      if (vehicle.truckModelId != null) 'truck_model': vehicle.truckModelId,
+      if (vehicle.truckTypeId != null) 'truck_type': vehicle.truckTypeId,
+      if (vehicle.measurementValue != null)
+        'measurement_value': vehicle.measurementValue,
+      if (vehicle.measurementUnit != null)
+        'measurement_unit': vehicle.measurementUnit,
+      if (vehicle.plate.isNotEmpty) 'plate_number': vehicle.plate,
     });
+    await _dio.post<dynamic>('/trucks/', data: form);
   }
 
   @override
@@ -204,7 +210,30 @@ class GarageRemoteDataSource implements GarageDataSource {
       telegram:
           _str(owner['telegram_username'] ?? data['telegram_username']) ?? '',
       whatsapp: _str(owner['whatsapp_number'] ?? data['whatsapp_number']) ?? '',
+      phone: _str(owner['phone_number'] ??
+          data['phone'] ??
+          data['phone_number'] ??
+          v['phone_number']),
+      pickupLat: _geoCoord(data, 'pickup', 'latitude'),
+      pickupLng: _geoCoord(data, 'pickup', 'longitude'),
+      deliveryLat: _geoCoord(data, 'delivery', 'latitude'),
+      deliveryLng: _geoCoord(data, 'delivery', 'longitude'),
     );
+  }
+
+  /// Reads a pickup/delivery coordinate, tolerating a flat field
+  /// (`pickup_latitude`) or a nested location object (`pickup: { latitude }`).
+  /// A `0` is treated as "unset" (the backend's null-island placeholder) so the
+  /// map falls back to the city lookup.
+  double? _geoCoord(Map<String, dynamic> data, String prefix, String which) {
+    final short = which == 'latitude' ? 'lat' : 'lng';
+    var v = _toDouble(data['${prefix}_$which'] ?? data['${prefix}_$short']);
+    if (v == null) {
+      final obj = data[prefix] ?? data['${prefix}_location'];
+      if (obj is Map) v = _toDouble(obj[which] ?? obj[short]);
+    }
+    if (v == null || v == 0) return null;
+    return v;
   }
 
   // ---------------------------------------------------------------------------

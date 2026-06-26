@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:loadme_mobile/core/services/app_state_providers.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:loadme_mobile/features/auth/presentation/providers/auth_flow_provider.dart';
 import 'package:loadme_mobile/features/auth/presentation/providers/current_user_provider.dart';
-import 'package:loadme_mobile/shared/widgets/mobile_language_pill.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-/// Figma "O'zingiz haqingizda" (Authorization → Login 6937:24348). A language
-/// pill, the title, a "Foydalanuvchi turini tanlang" role picker (3 cards), an
-/// "Ishlash shaklini tanlang" person-type picker (2 cards) and a name field,
-/// with a pinned "Davom etish" button and a terms line beneath it.
+/// Figma "Siz kimsiz?" (Authorization → Login 6937:24348). A title row with a
+/// trailing chat-bubble button, a "Foydalanuvchi turini tanlang" role picker
+/// (3 cards), an "Ishlash shaklini tanlang" person-type picker (2 cards) and a
+/// name field, with a pinned "Davom etish" button and a terms line beneath it.
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -81,86 +79,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // Keep the synchronous role state in step with the new session so the
       // role-aware navigation routes correctly right away.
       ref.read(currentUserRoleSyncProvider.notifier).setRole(flow.role);
-      // Mirrors the web getPostLoginPath: carrier looks for loads, the
-      // shipper / broker roles look for trucks.
-      context.go(flow.role == 'carrier' ? '/loads' : '/trucks');
+      // Post-registration location primer ("Lokatsiyaga ruxsat bering"): asks
+      // for the OS location permission, then continues to the role-aware home.
+      context.go('/location-permission');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  void _openLanguageSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) {
-        final locale = ref.watch(localeProvider);
-        final options = const [
-          ('uz', "O'zbekcha (lotin)", 'UZ'),
-          ('ru', 'Russkiy', 'RU'),
-          ('en', 'English', 'EN'),
-        ];
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE4E7EC),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text('Tilni tanlang',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF101828))),
-              const SizedBox(height: 8),
-              ...options.map(
-                (e) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 28,
-                    height: 20,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE6F4EA),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(e.$3,
-                        style: const TextStyle(
-                            fontSize: 10, fontWeight: FontWeight.w700)),
-                  ),
-                  title: Text(e.$2, style: const TextStyle(fontSize: 16)),
-                  trailing: Icon(
-                    locale.languageCode == e.$1
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_off,
-                    color: locale.languageCode == e.$1
-                        ? const Color(0xFF0057FF)
-                        : const Color(0xFFD0D5DD),
-                  ),
-                  onTap: () {
-                    ref.read(localeProvider.notifier).setLocale(Locale(e.$1));
-                    Navigator.pop(context);
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -181,24 +105,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MobileLanguagePill(
-                      label: "O'zbekcha",
-                      onTap: _openLanguageSheet,
-                    ),
-                    const SizedBox(height: 32),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "O'zingiz haqingizda",
-                            style: TextStyle(
-                              fontSize: 32,
-                              height: 38.7 / 32,
-                              fontWeight: FontWeight.w600,
-                              color: FigmaPalette.countLabel,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'Siz kimsiz?',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  height: 38.7 / 32,
+                                  fontWeight: FontWeight.w600,
+                                  color: FigmaPalette.countLabel,
+                                ),
+                              ),
+                              _ChatIconButton(onTap: () {}),
+                            ],
                           ),
                           const SizedBox(height: 32),
                           // Foydalanuvchi turini tanlang — 3 role cards.
@@ -258,27 +184,37 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
               ),
             ),
-            // Pinned bottom: primary button + terms line.
+            // Pinned bottom (Figma order): terms line on top, then the primary
+            // "Davom etish" button beneath it, anchored to the safe-area bottom.
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _PrimaryButton(
-                    label: 'Davom etish',
-                    loading: _loading,
-                    onPressed: _continue,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Davom etish orqali foydalanish shartlariga rozilik bildirasiz',
+                  const Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: 'Davom etish orqali '),
+                        TextSpan(
+                          text: 'foydalanish shartlari',
+                          style: TextStyle(color: FigmaPalette.primary),
+                        ),
+                        TextSpan(text: 'ga rozilik bildirasiz'),
+                      ],
+                    ),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
                       height: 22 / 14,
                       fontWeight: FontWeight.w400,
-                      color: Color(0xFF303236),
+                      color: Color(0xFF2F3136),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  _PrimaryButton(
+                    label: 'Davom etish',
+                    loading: _loading,
+                    onPressed: _continue,
                   ),
                 ],
               ),
@@ -304,6 +240,35 @@ class _SectionLabel extends StatelessWidget {
         height: 22 / 16,
         fontWeight: FontWeight.w500,
         color: FigmaPalette.countLabel,
+      ),
+    );
+  }
+}
+
+/// 32×32 r10 outlined chat-bubble button at the top-right of the title (Figma
+/// "Buttons" — #F2F4F7 1px border, #303236 icon). Opens support chat.
+class _ChatIconButton extends StatelessWidget {
+  const _ChatIconButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: FigmaPalette.chipBg, width: 1),
+        ),
+        child: const Icon(
+          LucideIcons.messageCircle,
+          size: 20,
+          color: FigmaPalette.inkBody,
+        ),
       ),
     );
   }
@@ -335,12 +300,19 @@ class _RoleCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: FigmaPalette.chipBg,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? FigmaPalette.primary : Colors.transparent,
+            width: 1,
+          ),
         ),
+        // Figma role card is a vertical SPACE_BETWEEN stack: icon pinned to the
+        // top, label pinned to the bottom. (A rigid icon→label gap is what made
+        // the 2-line "Logist/Dispetcher" overflow the 112px card by 2px.)
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _IconTile(icon: icon, selected: selected),
-            const SizedBox(height: 10),
             Text(
               label,
               maxLines: 2,
@@ -383,6 +355,10 @@ class _TypeCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: FigmaPalette.chipBg,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? FigmaPalette.primary : Colors.transparent,
+            width: 1,
+          ),
         ),
         child: Row(
           children: [
@@ -396,7 +372,7 @@ class _TypeCard extends StatelessWidget {
                   height: 19 / 14,
                   fontWeight: FontWeight.w400,
                   color:
-                      selected ? FigmaPalette.primary : FigmaPalette.countLabel,
+                      selected ? FigmaPalette.primary : FigmaPalette.inkBody,
                 ),
               ),
             ),
@@ -462,12 +438,12 @@ class _NameField extends StatelessWidget {
         textCapitalization: TextCapitalization.words,
         style: const TextStyle(
           fontSize: 16,
-          height: 24 / 16,
           fontWeight: FontWeight.w400,
           color: FigmaPalette.inkStrong,
         ),
         decoration: const InputDecoration(
           isCollapsed: true,
+          constraints: BoxConstraints(),
           filled: false,
           contentPadding: EdgeInsets.zero,
           border: InputBorder.none,
@@ -479,7 +455,6 @@ class _NameField extends StatelessWidget {
           hintText: 'Kiriting',
           hintStyle: TextStyle(
             fontSize: 16,
-            height: 24 / 16,
             fontWeight: FontWeight.w400,
             color: FigmaPalette.label,
           ),

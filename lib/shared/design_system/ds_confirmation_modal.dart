@@ -180,3 +180,167 @@ class _CancelButton extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Figma centred confirm (logout) dialog (7087:15883). A white circular icon
+// badge with a soft shadow, a single centred question, and two equal-width
+// buttons: [Bekor qilish (white)] [Ha, chiqaman (blue)]. Distinct from the
+// intent-driven `DsConfirmationModal` used by destructive (delete) flows.
+// ---------------------------------------------------------------------------
+const _kCenteredBg = Color(0xFFF6F7F9);
+const _kCenteredBlue = Color(0xFF004EEB);
+const _kCenteredInk = Color(0xFF131313);
+const _kCenteredDanger = Color(0xFFF44336);
+
+Future<bool> showDsCenteredConfirm(
+  BuildContext context, {
+  required IconData icon,
+  required String title,
+  required String confirmText,
+  required String cancelText,
+  Color iconColor = _kCenteredDanger,
+  Color confirmColor = _kCenteredBlue,
+}) async {
+  final result = await showDialog<bool>(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.40),
+    builder: (ctx) => _DsCenteredConfirm(
+      icon: icon,
+      title: title,
+      confirmText: confirmText,
+      cancelText: cancelText,
+      iconColor: iconColor,
+      confirmColor: confirmColor,
+    ),
+  );
+  return result ?? false;
+}
+
+class _DsCenteredConfirm extends StatelessWidget {
+  const _DsCenteredConfirm({
+    required this.icon,
+    required this.title,
+    required this.confirmText,
+    required this.cancelText,
+    required this.iconColor,
+    required this.confirmColor,
+  });
+
+  final IconData icon;
+  final String title;
+  final String confirmText;
+  final String cancelText;
+  final Color iconColor;
+  final Color confirmColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16),
+      backgroundColor: _kCenteredBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon badge — white circle, soft shadow, coloured glyph.
+            Container(
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: Color(0x0F000000), offset: Offset(0, 2), blurRadius: 12),
+                ],
+              ),
+              child: Icon(icon, size: 24, color: iconColor),
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  height: 20 / 16,
+                  fontWeight: FontWeight.w600,
+                  color: _kCenteredInk,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _CenteredBtn(
+                    label: cancelText,
+                    filled: false,
+                    onTap: () => Navigator.pop(context, false),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _CenteredBtn(
+                    label: confirmText,
+                    filled: true,
+                    color: confirmColor,
+                    onTap: () => Navigator.pop(context, true),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CenteredBtn extends StatelessWidget {
+  const _CenteredBtn({
+    required this.label,
+    required this.filled,
+    required this.onTap,
+    this.color = _kCenteredBlue,
+  });
+  final String label;
+  final bool filled;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: filled ? color : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0D101828), offset: Offset(0, 1), blurRadius: 2),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+            height: 48,
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                height: 20 / 14,
+                fontWeight: FontWeight.w600,
+                color: filled ? Colors.white : const Color(0xFF101828),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

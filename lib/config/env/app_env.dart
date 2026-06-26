@@ -20,6 +20,12 @@ class AppEnv {
   /// REST root the Dio client talks to: `<origin>/api/v1`.
   String get baseApiUrl => '$origin/api/v1';
 
+  /// WebSocket origin derived from [origin]: `https` → `wss`, `http` → `ws`.
+  /// The support-chat socket appends `/ws/support/chat/?token=…|guest_id=…`.
+  String get wsOrigin => origin.startsWith('https')
+      ? origin.replaceFirst('https', 'wss')
+      : origin.replaceFirst('http', 'ws');
+
   bool get isLocal => environment == AppEnvironment.local;
 }
 

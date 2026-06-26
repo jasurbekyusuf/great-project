@@ -19,8 +19,10 @@ import 'package:loadme_mobile/features/loads/presentation/screens/load_details_s
 import 'package:loadme_mobile/features/loads/presentation/screens/load_form_screen.dart';
 import 'package:loadme_mobile/features/loads/presentation/screens/loads_filters_screen.dart';
 import 'package:loadme_mobile/features/loads/presentation/screens/my_loads_screen.dart';
+import 'package:loadme_mobile/features/locations/presentation/screens/location_permission_screen.dart';
 import 'package:loadme_mobile/features/magnit/presentation/screens/magnit_screen.dart';
 import 'package:loadme_mobile/features/market/presentation/screens/market_screen.dart';
+import 'package:loadme_mobile/features/notifications/domain/entities/app_notification.dart';
 import 'package:loadme_mobile/features/notifications/presentation/screens/notification_detail_screen.dart';
 import 'package:loadme_mobile/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:loadme_mobile/features/profile/presentation/screens/default_commission_screen.dart';
@@ -28,6 +30,7 @@ import 'package:loadme_mobile/features/profile/presentation/screens/profile_edit
 import 'package:loadme_mobile/features/profile/presentation/screens/profile_screen.dart';
 import 'package:loadme_mobile/features/profile/presentation/screens/profile_statistics_screen.dart';
 import 'package:loadme_mobile/features/profile/presentation/screens/saved_screen.dart';
+import 'package:loadme_mobile/features/profile/presentation/screens/support_chat_screen.dart';
 import 'package:loadme_mobile/features/profile/presentation/screens/support_feedback_screen.dart';
 import 'package:loadme_mobile/features/trucks/presentation/screens/post_truck_form_screen.dart';
 import 'package:loadme_mobile/features/trucks/presentation/screens/truck_form_screen.dart';
@@ -89,6 +92,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/auth/verify', builder: (_, __) => const PhoneVerificationScreen()),
       GoRoute(path: '/auth/register', builder: (_, __) => const RegisterScreen()),
 
+      // ---- Post-registration location primer (no bottom nav) ---------------
+      // Top-level (NOT under /auth) so the now-authed user isn't bounced to
+      // their role home by the redirect before they see the location prompt.
+      GoRoute(
+        path: '/location-permission',
+        builder: (_, __) => const LocationPermissionScreen(),
+      ),
+
       // ---- Authed shell with bottom nav (4 independent stacks) -------------
       StatefulShellRoute.indexedStack(
         builder: (_, __, shell) => ScaffoldWithNav(shell: shell),
@@ -103,6 +114,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'filters',
+                    // Render above the shell (root navigator) so the bottom
+                    // nav bar is hidden — the Figma filter screen is full-screen.
+                    parentNavigatorKey: _rootKey,
                     builder: (_, __) => const LoadsFiltersScreen(),
                   ),
                 ],
@@ -118,7 +132,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             navigatorKey: _postKey,
             routes: [
-              GoRoute(path: '/add-load', builder: (_, __) => const LoadFormScreen()),
               GoRoute(
                 path: '/add-post-truck',
                 builder: (_, __) => const PostTruckFormScreen(),
@@ -187,6 +200,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'support-feedback',
                     builder: (_, __) => const SupportFeedbackScreen(),
                   ),
+                  GoRoute(
+                    path: 'chat',
+                    // Full-screen chat (Figma "Bog'lanish") — render above the
+                    // shell so the bottom nav bar is hidden.
+                    parentNavigatorKey: _rootKey,
+                    builder: (_, __) => const SupportChatScreen(),
+                  ),
                   GoRoute(path: 'premium', builder: (_, __) => const PremiumScreen()),
                 ],
               ),
@@ -194,16 +214,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(path: '/faq', builder: (_, __) => const FaqScreen()),
               GoRoute(path: '/privacy-policy', builder: (_, __) => const PrivacyPolicyScreen()),
               GoRoute(path: '/terms', builder: (_, __) => const TermsScreen()),
-              GoRoute(
-                path: '/notifications',
-                builder: (_, __) => const NotificationsScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'announcement',
-                    builder: (_, __) => const NotificationDetailScreen(),
-                  ),
-                ],
-              ),
             ],
           ),
         ],
@@ -231,10 +241,38 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           isActive: state.uri.queryParameters['active'] != 'false',
         ),
       ),
+      // Add-load form — full-screen task page (no bottom nav, back chevron),
+      // opened from the centre "+" nav button (shipper/broker) and the
+      // "Mening yuklarim" empty-state CTA. Lives at the root navigator so the
+      // bottom navigation bar is hidden, matching the Figma full-page design.
+      GoRoute(
+        path: '/add-load',
+        builder: (_, __) => const LoadFormScreen(),
+      ),
       // Add-transport form — full-screen task page (no bottom nav), reached via
       // the garage "Qo'shish" CTA / my-trucks header.
       // Magnit — load-matching alert form, opened from the centre nav button.
       GoRoute(path: '/magnit', builder: (_, __) => const MagnitScreen()),
+      // Xabarlar — full-screen notifications overlay opened from the bottom-nav
+      // Xabarlar slot. Lives at the root navigator (like /magnit) so the push
+      // sits cleanly ABOVE the shell and pops back to whatever branch was
+      // active. Previously this was nested under the Profile branch, which
+      // tangled it with the IndexedStack and intermittently surfaced Xabarlar
+      // when switching to another tab (Garaj).
+      GoRoute(
+        path: '/notifications',
+        builder: (_, __) => const NotificationsScreen(),
+        routes: [
+          GoRoute(
+            path: 'announcement',
+            builder: (_, state) => NotificationDetailScreen(
+              notification: state.extra is AppNotification
+                  ? state.extra! as AppNotification
+                  : null,
+            ),
+          ),
+        ],
+      ),
       // Transport detail — opened from a Garaj → Transportlar card.
       GoRoute(
         path: '/transport/:id',

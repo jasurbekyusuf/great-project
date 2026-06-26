@@ -107,6 +107,37 @@ void main() {
       expect(loads, hasLength(1));
       expect(loads.single.guid, '1');
     });
+
+    test('delivery address falls back to to_location, not from_location',
+        () async {
+      // Only free-text *_location fields, no district/region objects. The
+      // destination must fall back to `to_location`. Regression guard: the
+      // fallback used to be `from_location` for BOTH sides, so a load without
+      // `delivery_location` wrongly echoed its pickup text as the destination.
+      when(
+        () => dio.get<dynamic>(
+          '/loads/available/',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
+        (_) async => _resp({
+          'data': {
+            'results': [
+              {
+                'id': 'r1',
+                'from_location': 'Andijon',
+                'to_location': 'Namangan',
+              },
+            ],
+          },
+        }),
+      );
+
+      final loads = await ds.getLoads(page: 1, limit: 10);
+
+      expect(loads.single.fromAddress, 'Andijon');
+      expect(loads.single.toAddress, 'Namangan'); // not 'Andijon'
+    });
   });
 
   group('getLoadsCount', () {

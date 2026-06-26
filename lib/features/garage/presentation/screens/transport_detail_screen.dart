@@ -1,16 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
+import 'package:loadme_mobile/core/utils/phone_launcher.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:loadme_mobile/features/garage/presentation/providers/garage_providers.dart';
+import 'package:loadme_mobile/features/saved/presentation/providers/saved_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
+import 'package:loadme_mobile/shared/design_system/ds_info_modal.dart';
 import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
 import 'package:loadme_mobile/shared/widgets/app_svg_icon.dart';
 import 'package:loadme_mobile/shared/widgets/frosted_header.dart';
 import 'package:loadme_mobile/shared/widgets/load_card_parts.dart';
 import 'package:loadme_mobile/shared/widgets/mobile_auth_required_sheet.dart';
+import 'package:loadme_mobile/shared/widgets/route_map.dart';
 import 'package:loadme_mobile/shared/widgets/swipe_back_wrapper.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -35,8 +42,7 @@ class TransportDetailScreen extends ConsumerWidget {
           children: [
             FrostedHeader(
               title: 'transport.detail.title'.tr(ref),
-              trailing: const Icon(LucideIcons.bookmark,
-                  size: 24, color: FigmaPalette.ink),
+              trailing: _SaveBookmark(routeId: id, isGuest: isGuest),
             ),
             Expanded(
               child: detail.when(
@@ -51,6 +57,8 @@ class TransportDetailScreen extends ConsumerWidget {
                     _SummaryCard(detail: d),
                     const SizedBox(height: 8),
                     _SpecsCard(detail: d),
+                    const SizedBox(height: 8),
+                    _MapCard(detail: d),
                     const SizedBox(height: 8),
                     _ContactCard(detail: d),
                   ],
@@ -68,8 +76,14 @@ class TransportDetailScreen extends ConsumerWidget {
                     child: DsButton(
                       label: 'transport.contact'.tr(ref),
                       onPressed: () {
-                        if (isGuest) showMobileAuthRequiredSheet(context);
-                        // Authed contact action is wired separately.
+                        if (isGuest) {
+                          unawaited(showMobileAuthRequiredSheet(context));
+                          return;
+                        }
+                        // Authed → hand off to the native dialer.
+                        unawaited(
+                          _dialCarrier(context, detail.valueOrNull?.phone),
+                        );
                       },
                     ),
                   ),
@@ -79,6 +93,58 @@ class TransportDetailScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Header bookmark — saves this transport route to favorites
+// ---------------------------------------------------------------------------
+
+/// Mirrors the load detail's bookmark: a guest gets the auth sheet; an authed
+/// user toggles the route favorite. There is no success toast — the filled
+/// blue icon is the "saved" feedback; only real failures surface a snackbar.
+class _SaveBookmark extends ConsumerWidget {
+  const _SaveBookmark({required this.routeId, required this.isGuest});
+
+  final String routeId;
+  final bool isGuest;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Short-circuit before watching so guests don't trigger an authed fetch.
+    final isSaved = !isGuest &&
+        (ref.watch(savedRoutesControllerProvider).valueOrNull?.contains(
+              routeId,
+            ) ??
+            false);
+    return InkResponse(
+      onTap: () => _toggle(context, ref, isSaved: isSaved),
+      radius: 20,
+      child: Icon(
+        isSaved ? Icons.bookmark : LucideIcons.bookmark,
+        size: 24,
+        color: isSaved ? FigmaPalette.primary : FigmaPalette.ink,
+      ),
+    );
+  }
+
+  Future<void> _toggle(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool isSaved,
+  }) async {
+    if (isGuest) {
+      unawaited(showMobileAuthRequiredSheet(context));
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final notifier = ref.read(savedRoutesControllerProvider.notifier);
+    final failure = isSaved
+        ? await notifier.removeById(routeId)
+        : await notifier.add(routeId);
+    if (failure != null) {
+      messenger.showSnackBar(SnackBar(content: Text(failure.message)));
+    }
   }
 }
 
@@ -410,6 +476,76 @@ class _SpecRow extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// Map card — OpenStreetMap route preview (pickup → delivery)
+// ---------------------------------------------------------------------------
+class _MapCard extends StatelessWidget {
+  const _MapCard({required this.detail});
+  final TransportDetail detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Card(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          height: 200,
+          child: Stack(
+            fit: StackFit.expand,
+            alignment: Alignment.center,
+            children: [
+              RouteMap(
+                from: detail.pickupLat != null && detail.pickupLng != null
+                    ? LatLng(detail.pickupLat!, detail.pickupLng!)
+                    : cityLatLng(detail.fromCity),
+                to: detail.deliveryLat != null && detail.deliveryLng != null
+                    ? LatLng(detail.deliveryLat!, detail.deliveryLng!)
+                    : cityLatLng(detail.toCity),
+                interactive: false,
+              ),
+              // "Show in map" pill — Center keeps the white box sized to its
+              // content instead of expanding over the whole map.
+              Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1A101828),
+                        offset: Offset(0, 2),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(LucideIcons.map,
+                          size: 18, color: FigmaPalette.primary),
+                      SizedBox(width: 8),
+                      Text(
+                        'Show in map',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Contact card
 // ---------------------------------------------------------------------------
 class _ContactCard extends ConsumerWidget {
@@ -478,7 +614,9 @@ class _ContactCard extends ConsumerWidget {
                 child: _ChipButton(
                   icon: LucideIcons.star,
                   label: 'transport.rate'.tr(ref),
-                  onTap: () {},
+                  onTap: () => unawaited(
+                    showContactGateModal(context, DsContactGate.rate),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -486,7 +624,9 @@ class _ContactCard extends ConsumerWidget {
                 child: _ChipButton(
                   icon: LucideIcons.flag,
                   label: 'transport.report'.tr(ref),
-                  onTap: () {},
+                  onTap: () => unawaited(
+                    showContactGateModal(context, DsContactGate.report),
+                  ),
                 ),
               ),
             ],
@@ -566,6 +706,18 @@ class _ChipButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Opens the dialer for the carrier's [phone]; a missing number surfaces a
+/// short notice instead of failing silently.
+Future<void> _dialCarrier(BuildContext context, String? phone) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final ok = await launchPhoneDial(phone);
+  if (!ok) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Telefon raqami mavjud emas')),
     );
   }
 }

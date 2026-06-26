@@ -33,6 +33,10 @@ class LoadEntity {
     this.phone,
     this.telegram,
     this.whatsapp,
+    this.pickupLat,
+    this.pickupLng,
+    this.deliveryLat,
+    this.deliveryLng,
   });
 
   final String guid;
@@ -85,4 +89,11 @@ class LoadEntity {
   final String? phone;
   final String? telegram;
   final String? whatsapp;
+
+  /// Pickup / delivery coordinates for the route preview. Null when the backend
+  /// omits them (the map then falls back to a city-name lookup).
+  final double? pickupLat;
+  final double? pickupLng;
+  final double? deliveryLat;
+  final double? deliveryLng;
 }

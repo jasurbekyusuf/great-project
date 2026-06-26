@@ -24,6 +24,15 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   connectivity_plus: ^6.1.1
 
+  # Real-time support chat — WebSocket live delivery (REST stays the source of
+  # truth; the socket only receives). See frontend-support-chat-integration.
+  web_socket_channel: ^3.0.1
+
+  # Stable guest identity (X-Guest-Id) for the support chat before the user
+  # registers — a device UUID persisted in SharedPreferences, shared with
+  # analytics. Also used wherever a client-generated id is needed.
+  uuid: ^4.5.1
+
   # Models
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
@@ -47,12 +56,17 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
 
+  # Location — OS permission prompt + device position for the post-registration
+  # "Lokatsiyaga ruxsat bering" primer (find nearest loads).
+  geolocator: ^13.0.1
+
   # Typography (Inter via Google Fonts, cached after first launch)
   google_fonts: ^6.2.1
 
   # Senior-architect foundation
   fpdart: ^1.1.0          # Result/Either, Option — explicit error handling
   logger: ^2.4.0          # structured logging (replaces debugPrint)
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

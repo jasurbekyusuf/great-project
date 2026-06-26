@@ -97,28 +97,28 @@ Future<List<String>?> showDsTruckTypeDrawer({
   required BuildContext context,
   required List<String> initialSelected,
 }) {
-  return showModalBottomSheet<List<String>>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: const Color(0xFFF6F7F9),
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-    ),
-    builder: (_) => FractionallySizedBox(
-      heightFactor: 0.92,
-      child: _TruckTypeDrawer(initialSelected: initialSelected),
+  // Figma "Transport turi" is a full-screen page (node 6435:41514), not a
+  // bottom sheet — push it on the root navigator so it renders above the shell
+  // and the bottom navigation bar is hidden. Returns the picked labels (null
+  // when dismissed without saving).
+  return Navigator.of(context, rootNavigator: true).push<List<String>>(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => TruckTypeFilterScreen(initialSelected: initialSelected),
     ),
   );
 }
 
-class _TruckTypeDrawer extends StatefulWidget {
-  const _TruckTypeDrawer({required this.initialSelected});
+/// Full-page grouped multi-select truck-type picker (Figma 6435:41514):
+/// search → "Mashhurlar" 2×2 grid → "Hammasi" accordion → sticky Saqlash bar.
+class TruckTypeFilterScreen extends StatefulWidget {
+  const TruckTypeFilterScreen({super.key, required this.initialSelected});
   final List<String> initialSelected;
   @override
-  State<_TruckTypeDrawer> createState() => _TruckTypeDrawerState();
+  State<TruckTypeFilterScreen> createState() => _TruckTypeFilterScreenState();
 }
 
-class _TruckTypeDrawerState extends State<_TruckTypeDrawer> {
+class _TruckTypeFilterScreenState extends State<TruckTypeFilterScreen> {
   late final Set<String> _selected = {...widget.initialSelected};
   final _search = TextEditingController();
   String _query = '';
@@ -139,61 +139,73 @@ class _TruckTypeDrawerState extends State<_TruckTypeDrawer> {
     final searching = _query.trim().isNotEmpty;
     final q = _query.trim().toLowerCase();
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Column(
-        children: [
-          // Header — close (X) + title (Figma 6435:41514: X 24, gap 16, fs16/600).
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  behavior: HitTestBehavior.opaque,
-                  child: const Icon(LucideIcons.x,
-                      size: 24, color: FigmaPalette.ink),
-                ),
-                const SizedBox(width: 16),
-                const Text(
-                  'Transport turi',
-                  style: TextStyle(
-                    fontSize: 16,
-                    height: 24 / 16,
-                    fontWeight: FontWeight.w600,
-                    color: FigmaPalette.ink,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F7F9),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // Header — close (X) + title (Figma 6435:41518: X 24, gap 16, fs16/600).
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: const Icon(LucideIcons.x,
+                        size: 24, color: FigmaPalette.ink),
                   ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              children: [
-                _searchField(),
-                const SizedBox(height: 12),
-                if (!searching) ...[
-                  _popularGrid(),
-                  const SizedBox(height: 12),
+                  const SizedBox(width: 16),
+                  const Text(
+                    'Transport turi',
+                    style: TextStyle(
+                      fontSize: 16,
+                      height: 24 / 16,
+                      fontWeight: FontWeight.w600,
+                      color: FigmaPalette.ink,
+                    ),
+                  ),
                 ],
-                if (searching) _searchResults(q) else _accordion(),
-              ],
-            ),
-          ),
-          // Pinned white footer (Figma Frame 1711112371, fill #FFFFFF) with the
-          // primary Saqlash button; SafeArea keeps it clear of the home bar.
-          ColoredBox(
-            color: Colors.white,
-            child: SafeArea(
-              top: false,
-              minimum: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-              child: _SaveButton(
-                onTap: () => Navigator.pop(context, _selected.toList()),
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                children: [
+                  _searchField(),
+                  const SizedBox(height: 12),
+                  if (!searching) ...[
+                    _popularGrid(),
+                    const SizedBox(height: 12),
+                  ],
+                  if (searching) _searchResults(q) else _accordion(),
+                ],
+              ),
+            ),
+            // Pinned white footer (Figma Frame 1711112371) with the primary
+            // Saqlash button; SafeArea keeps it clear of the home indicator.
+            Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x1A000000),
+                    offset: Offset(0, -2),
+                    blurRadius: 14,
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                minimum: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                child: _SaveButton(
+                  onTap: () => Navigator.pop(context, _selected.toList()),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -205,6 +217,14 @@ class _TruckTypeDrawerState extends State<_TruckTypeDrawer> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF004EEA), width: 1),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14101828),
+            offset: Offset(0, 2),
+            blurRadius: 8,
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -216,7 +236,7 @@ class _TruckTypeDrawerState extends State<_TruckTypeDrawer> {
               color: const Color(0xFFF2F4F7),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(LucideIcons.search, size: 20, color: FigmaPalette.tertiary),
+            child: const Icon(LucideIcons.search, size: 20, color: Color(0xFF131313)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -335,7 +355,7 @@ class _TruckTypeDrawerState extends State<_TruckTypeDrawer> {
             child: Row(
               children: [
                 Expanded(child: Text(g.name, style: _itemStyle.copyWith(fontWeight: FontWeight.w500))),
-                Icon(open ? LucideIcons.chevronUp : LucideIcons.chevronDown, size: 20, color: FigmaPalette.ink),
+                Icon(open ? LucideIcons.chevronUp : LucideIcons.chevronDown, size: 20, color: const Color(0xFF98A1B2)),
               ],
             ),
           ),
@@ -429,7 +449,7 @@ class _PopularCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: FigmaPalette.sheetBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: selected ? blue : Colors.transparent),
+          border: Border.all(color: selected ? blue : const Color(0xFFEAECF0)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -473,9 +493,9 @@ class _CheckBox extends StatelessWidget {
       width: 20,
       height: 20,
       decoration: BoxDecoration(
-        color: on ? const Color(0xFFEBF1FF) : const Color(0xFFF9FAFB),
+        color: on ? const Color(0xFFEAF1FF) : const Color(0xFFF9F9FA),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: on ? FigmaPalette.primary : const Color(0xFF98A2B3)),
+        border: Border.all(color: on ? FigmaPalette.primary : const Color(0xFF98A1B2)),
       ),
       child: on ? const Icon(LucideIcons.check, size: 14, color: FigmaPalette.primary) : null,
     );
@@ -489,10 +509,10 @@ class _SaveButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: FigmaPalette.primary,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
         child: const SizedBox(
           height: 48,
           width: double.infinity,

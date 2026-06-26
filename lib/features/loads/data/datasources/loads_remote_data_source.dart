@@ -36,11 +36,14 @@ class LoadsRemoteDataSource {
   }
 
   /// Total number of public loads (the paginated `count`). Asks for a single
-  /// row to keep the payload tiny — we only need the header total.
-  Future<int> getLoadsCount() async {
+  /// row to keep the payload tiny — we only need the header total. When
+  /// [filters] are supplied (a `pickup_*` / `delivery_*` search), the count is
+  /// the filtered total — i.e. the "Topildi: N" header after a Qidiruv.
+  Future<int> getLoadsCount({Map<String, String>? filters}) async {
     final res = await _dio.get<dynamic>('/loads/available/', queryParameters: {
       'page': 1,
       'page_size': 1,
+      ...?filters,
     });
     return _countOf(res);
   }
@@ -123,6 +126,11 @@ class LoadsRemoteDataSource {
   // Parsing
   // ---------------------------------------------------------------------------
 
+  /// Public passthrough so sibling features (e.g. Saqlanganlar / favorites)
+  /// can reuse the exact same enriched load mapping instead of duplicating the
+  /// ~150-line `owner` / `currency` / location flattening.
+  LoadEntity parseLoad(Map<String, dynamic> json) => _parseLoad(json);
+
   LoadEntity _parseLoad(Map<String, dynamic> data) {
     final owner = data['owner'] is Map
         ? Map<String, dynamic>.from(data['owner'] as Map)
@@ -178,17 +186,45 @@ class LoadsRemoteDataSource {
           _str(owner['phone_number'] ?? data['phone'] ?? data['phone_number']),
       telegram: _str(owner['telegram_username'] ?? data['telegram_username']),
       whatsapp: _str(owner['whatsapp_number'] ?? data['whatsapp_number']),
+      pickupLat: _geoCoord(data, 'pickup', 'latitude'),
+      pickupLng: _geoCoord(data, 'pickup', 'longitude'),
+      deliveryLat: _geoCoord(data, 'delivery', 'latitude'),
+      deliveryLng: _geoCoord(data, 'delivery', 'longitude'),
     );
+  }
+
+  /// Reads a pickup/delivery coordinate, tolerating a flat field
+  /// (`pickup_latitude`) or a nested location object (`pickup: { latitude }`).
+  /// A `0` is treated as "unset" (the backend's null-island placeholder) so the
+  /// map falls back to the city lookup instead of pointing at the Gulf of
+  /// Guinea.
+  double? _geoCoord(Map<String, dynamic> data, String prefix, String which) {
+    final short = which == 'latitude' ? 'lat' : 'lng';
+    var v = _toDouble(data['${prefix}_$which'] ?? data['${prefix}_$short']);
+    if (v == null) {
+      final obj = data[prefix] ?? data['${prefix}_location'];
+      if (obj is Map) v = _toDouble(obj[which] ?? obj[short]);
+    }
+    if (v == null || v == 0) return null;
+    return v;
   }
 
   /// Builds a "district, region" line, falling back to the free-text
   /// `*_location` string and finally the country name.
+  ///
+  /// The free-text fallback is side-aware: pickup falls back to `from_location`,
+  /// delivery to `to_location` — the exact fields this client writes when
+  /// creating/updating a load (see [addLoad]/[updateLoad]). Using `from_location`
+  /// for both sides made a load without `delivery_location` show its *pickup*
+  /// text as the destination.
   String _composeAddress(Map<String, dynamic> data, String prefix) {
     final district = _name(data['${prefix}_district']);
     final region = _name(data['${prefix}_region']);
     final parts = [district, region].whereType<String>().toList();
     if (parts.isNotEmpty) return parts.join(', ');
-    final loc = _str(data['${prefix}_location'] ?? data['from_location']);
+    final freeText =
+        prefix == 'delivery' ? data['to_location'] : data['from_location'];
+    final loc = _str(data['${prefix}_location'] ?? freeText);
     if (loc != null) return loc;
     return _name(data['${prefix}_country']) ?? '-';
   }

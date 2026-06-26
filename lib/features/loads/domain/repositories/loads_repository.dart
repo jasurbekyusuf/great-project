@@ -8,8 +8,9 @@ abstract interface class LoadsRepository {
     Map<String, String>? filters,
   });
 
-  /// Total number of public loads (the marketplace header count).
-  AsyncResult<int> getLoadsCount();
+  /// Total number of public loads (the marketplace header count). With
+  /// [filters] it returns the *filtered* total — the "Topildi: N" search header.
+  AsyncResult<int> getLoadsCount({Map<String, String>? filters});
 
   AsyncResult<List<LoadEntity>> getMyLoads({
     required int page,

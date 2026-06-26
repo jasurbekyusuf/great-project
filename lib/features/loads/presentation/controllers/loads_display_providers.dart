@@ -15,6 +15,23 @@ final myLoadsDisplayProvider = Provider<AsyncValue<List<LoadDisplay>>>((ref) {
   return ref.watch(myLoadsControllerProvider).whenData(_toDisplayList);
 });
 
+/// Loads near a single pickup place — the "{origin}ga yaqin yuklar" fallback
+/// shown on the empty-search screen. Real data: re-queries `/loads/available/`
+/// with the *pickup-only* filter (destination dropped), keyed by
+/// [loadsFilterKey] so equal filters share one fetch. A failure surfaces as an
+/// empty list (the section simply hides) rather than tearing down the empty
+/// state around it.
+final nearbyLoadsProvider = FutureProvider.autoDispose
+    .family<List<LoadDisplay>, String>((ref, pickupKey) async {
+  if (pickupKey.isEmpty) return const [];
+  final result = await ref.watch(loadsRepositoryProvider).getLoads(
+        page: 1,
+        limit: 6,
+        filters: loadsFilterMap(pickupKey),
+      );
+  return result.fold((_) => const <LoadDisplay>[], _toDisplayList);
+});
+
 List<LoadDisplay> _toDisplayList(List<LoadEntity> items) =>
     items.map(_toDisplay).toList();
 

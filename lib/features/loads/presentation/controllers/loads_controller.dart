@@ -27,13 +27,39 @@ final saveLoadUseCaseProvider =
 final updateLoadStatusUseCaseProvider = Provider(
     (ref) => UpdateLoadStatusUseCase(ref.watch(loadsRepositoryProvider)));
 
-/// Total number of public loads — drives the "Barcha yuklar: N" header on the
-/// marketplace. Kept separate from the (paginated) list so the count reflects
-/// the real backend total, not just the rows currently loaded.
-final loadsCountProvider = FutureProvider.autoDispose<int>((ref) async {
-  final result = await ref.watch(loadsRepositoryProvider).getLoadsCount();
+/// Total number of public loads — drives the marketplace count header. Keyed by
+/// a canonical [loadsFilterKey]: the empty key returns the whole-feed total
+/// ("Barcha yuklar: N"), a `pickup_*`/`delivery_*` key returns the filtered
+/// total after a Qidiruv ("Topildi: N"). Kept separate from the (paginated)
+/// list so the count is the real backend total, not just the rows loaded.
+final loadsCountProvider =
+    FutureProvider.autoDispose.family<int, String>((ref, filterKey) async {
+  final result = await ref
+      .watch(loadsRepositoryProvider)
+      .getLoadsCount(filters: loadsFilterMap(filterKey));
   return result.fold((f) => throw f, (count) => count);
 });
+
+/// Order-independent string key for a loads filter map, so the autoDispose
+/// `.family` count / nearby providers stay stable (a raw `Map` has no value
+/// equality — two equal maps would otherwise spawn distinct providers).
+String loadsFilterKey(Map<String, String> filters) {
+  if (filters.isEmpty) return '';
+  final keys = filters.keys.toList()..sort();
+  return [for (final k in keys) '$k=${filters[k]}'].join('&');
+}
+
+/// Inverse of [loadsFilterKey] — rebuilds the `pickup_*`/`delivery_*` map a
+/// `.family` provider was keyed with so it can re-issue the same server filter.
+Map<String, String> loadsFilterMap(String key) {
+  if (key.isEmpty) return const {};
+  final out = <String, String>{};
+  for (final part in key.split('&')) {
+    final i = part.indexOf('=');
+    if (i > 0) out[part.substring(0, i)] = part.substring(i + 1);
+  }
+  return out;
+}
 
 // Async family for load detail page.
 final loadDetailsProvider =

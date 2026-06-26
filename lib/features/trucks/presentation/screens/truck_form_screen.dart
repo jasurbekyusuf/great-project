@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/garage/presentation/providers/garage_providers.dart';
+import 'package:loadme_mobile/features/magnit/presentation/providers/magnit_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
-import 'package:loadme_mobile/shared/design_system/ds_truck_type_drawer.dart';
 import 'package:loadme_mobile/shared/widgets/swipe_back_wrapper.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -28,7 +28,8 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
   final _measureController = TextEditingController();
 
   String? _model;
-  List<String> _selectedTrucks = [];
+  String? _modelId; // truck_model UUID when picked from the catalogue
+  MagnitTruckType? _truckType;
   String? _photoUrl;
   var _submitting = false;
 
@@ -42,15 +43,32 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
   }
 
   Future<void> _pickTruckType() async {
-    final v = await showDsTruckTypeDrawer(
+    List<MagnitTruckType> types;
+    try {
+      types = await ref.read(truckTypesProvider.future);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('magnit.typesError'.tr(ref))),
+      );
+      return;
+    }
+    if (!mounted) return;
+    final v = await showDsActionDrawer<String>(
       context: context,
-      initialSelected: _selectedTrucks,
+      title: 'Transport turi',
+      currentValue: _truckType?.id,
+      items: [
+        for (final t in types) DsActionDrawerItem(value: t.id, label: t.name),
+      ],
     );
-    if (v != null) setState(() => _selectedTrucks = v);
+    if (v != null) {
+      setState(() => _truckType = types.firstWhere((t) => t.id == v));
+    }
   }
 
   Future<void> _pickModel() async {
-    final v = await showModalBottomSheet<String>(
+    final v = await showModalBottomSheet<({String name, String? id})>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -59,7 +77,12 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
       ),
       builder: (_) => const _ModelPickerSheet(),
     );
-    if (v != null) setState(() => _model = v);
+    if (v != null) {
+      setState(() {
+        _model = v.name;
+        _modelId = v.id;
+      });
+    }
   }
 
   Future<void> _pickPlate() async {
@@ -111,9 +134,7 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
                       icon: LucideIcons.truck,
                       label: 'Transport turi',
                       hint: 'Transportni tanlang',
-                      value: _selectedTrucks.isEmpty
-                          ? null
-                          : _selectedTrucks.join(', '),
+                      value: _truckType?.name,
                       onTap: _pickTruckType,
                     ),
                     const SizedBox(height: 8),
@@ -160,7 +181,7 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
   Future<void> _submit() async {
     final errors = <String>[];
     if (_model == null) errors.add('Model: tanlash kerak');
-    if (_selectedTrucks.isEmpty) errors.add('Transport turi: tanlash kerak');
+    if (_truckType == null) errors.add('Transport turi: tanlash kerak');
     if (_plateController.text.trim().isEmpty) {
       errors.add('Transport raqami: kiritish kerak');
     }
@@ -175,14 +196,25 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
 
     setState(() => _submitting = true);
     if (!_isEdit) {
+      // Split the capacity label ("20 t" / "15 m³") into value + backend unit.
+      final measure = _measureController.text.trim();
+      final mMatch = RegExp(r'[\d.,]+').firstMatch(measure);
+      final mValue = mMatch?.group(0)?.replaceAll(',', '.');
+      final isVolume =
+          measure.contains('m³') || measure.toLowerCase().contains('m3');
+      final mUnit = mValue == null ? null : (isVolume ? 'm3' : 'ton');
       // Add the new vehicle to the garage and refresh the Transportlar list.
       await ref.read(garageRepositoryProvider).addVehicle(
             GarageVehicle(
               id: DateTime.now().microsecondsSinceEpoch.toString(),
-              name: _model ?? '',
-              model: _selectedTrucks.join(', '),
+              name: _truckType?.name ?? '',
+              model: _model ?? '',
               plate: _plateController.text.trim(),
               photoUrl: _photoUrl,
+              truckTypeId: _truckType?.id,
+              truckModelId: _modelId,
+              measurementValue: mValue,
+              measurementUnit: mUnit,
             ),
           );
       ref.invalidate(garageVehiclesProvider);
@@ -377,14 +409,14 @@ class _SelectTile extends StatelessWidget {
 // Model picker — searchable bottom sheet (Figma node 6564:43930)
 // ---------------------------------------------------------------------------
 
-class _ModelPickerSheet extends StatefulWidget {
+class _ModelPickerSheet extends ConsumerStatefulWidget {
   const _ModelPickerSheet();
 
   @override
-  State<_ModelPickerSheet> createState() => _ModelPickerSheetState();
+  ConsumerState<_ModelPickerSheet> createState() => _ModelPickerSheetState();
 }
 
-class _ModelPickerSheetState extends State<_ModelPickerSheet> {
+class _ModelPickerSheetState extends ConsumerState<_ModelPickerSheet> {
   static const _models = [
     'Volvo FH',
     'Mercedes-Benz Actros',
@@ -408,12 +440,21 @@ class _ModelPickerSheetState extends State<_ModelPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Real catalogue (`GET /trucks/models/`) when available; the static list is
+    // a fallback while the backend catalogue is empty/unreachable. Catalogue
+    // entries carry the `truck_model` UUID; fallback + free-text carry none.
+    final catalogue = ref.watch(truckModelsProvider).valueOrNull ??
+        const <MagnitTruckType>[];
+    final List<({String name, String? id})> base = catalogue.isNotEmpty
+        ? [for (final t in catalogue) (name: t.name, id: t.id)]
+        : [for (final m in _models) (name: m, id: null)];
+
     final q = _query.trim();
-    final filtered = _models
-        .where((m) => m.toLowerCase().contains(q.toLowerCase()))
+    final filtered = base
+        .where((m) => m.name.toLowerCase().contains(q.toLowerCase()))
         .toList();
-    final canAdd =
-        q.isNotEmpty && !_models.any((m) => m.toLowerCase() == q.toLowerCase());
+    final canAdd = q.isNotEmpty &&
+        !base.any((m) => m.name.toLowerCase() == q.toLowerCase());
     return SafeArea(
       top: false,
       child: Padding(
@@ -473,7 +514,8 @@ class _ModelPickerSheetState extends State<_ModelPickerSheet> {
                   // Figma 6564:44873 — let an unlisted model be added.
                   if (canAdd && i == 0) {
                     return InkWell(
-                      onTap: () => Navigator.pop(context, q),
+                      onTap: () =>
+                          Navigator.pop(context, (name: q, id: null)),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 4,
@@ -511,7 +553,7 @@ class _ModelPickerSheetState extends State<_ModelPickerSheet> {
                         vertical: 14,
                       ),
                       child: Text(
-                        model,
+                        model.name,
                         style: const TextStyle(
                           fontSize: 16,
                           height: 24 / 16,
@@ -569,7 +611,14 @@ class _PlateInputPageState extends State<_PlateInputPage> {
       _region = TextEditingController();
       _body = TextEditingController(text: widget.initial.trim());
     }
+    _region.addListener(_onChanged);
+    _body.addListener(_onChanged);
   }
+
+  void _onChanged() => setState(() {});
+
+  bool get _valid =>
+      _region.text.trim().isNotEmpty && _body.text.trim().isNotEmpty;
 
   @override
   void dispose() {
@@ -621,7 +670,11 @@ class _PlateInputPageState extends State<_PlateInputPage> {
               child: _PlateField(region: _region, body: _body),
             ),
             const Spacer(),
-            _SubmitBar(label: 'Saqlash', loading: false, onPressed: _save),
+            _SubmitBar(
+              label: 'Saqlash',
+              loading: false,
+              onPressed: _valid ? _save : null,
+            ),
           ],
         ),
       ),
@@ -812,7 +865,12 @@ class _CapacitySheetState extends State<_CapacitySheet> {
     final m = RegExp(r'[\d.,]+').firstMatch(widget.initial);
     _value = TextEditingController(text: m?.group(0) ?? '');
     _unit = widget.initial.contains('m³') ? 'Hajm' : "Og'irlik";
+    _value.addListener(_onChanged);
   }
+
+  void _onChanged() => setState(() {});
+
+  bool get _valid => _value.text.trim().isNotEmpty;
 
   @override
   void dispose() {
@@ -952,7 +1010,11 @@ class _CapacitySheetState extends State<_CapacitySheet> {
               ),
             ),
             const SizedBox(height: 16),
-            _SubmitBar(label: 'Saqlash', loading: false, onPressed: _save),
+            _SubmitBar(
+              label: 'Saqlash',
+              loading: false,
+              onPressed: _valid ? _save : null,
+            ),
           ],
         ),
       ),
@@ -1109,12 +1171,15 @@ class _SubmitBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Disabled = no handler and not mid-submit -> grey fill + muted label
+    // (Figma "Saqlash" inactive state); loading keeps the blue fill + spinner.
+    final disabled = onPressed == null && !loading;
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
         child: Material(
-          color: FigmaPalette.primary,
+          color: disabled ? const Color(0xFFEBEBEB) : FigmaPalette.primary,
           borderRadius: BorderRadius.circular(8),
           child: InkWell(
             onTap: onPressed,
@@ -1131,11 +1196,11 @@ class _SubmitBar extends StatelessWidget {
                       )
                     : Text(
                         label,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           height: 20 / 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: disabled ? FigmaPalette.label : Colors.white,
                         ),
                       ),
               ),

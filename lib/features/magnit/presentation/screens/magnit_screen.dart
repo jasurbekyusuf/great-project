@@ -5,8 +5,8 @@ import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 import 'package:loadme_mobile/features/garage/presentation/providers/garage_providers.dart';
+import 'package:loadme_mobile/features/magnit/presentation/providers/magnit_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
-import 'package:loadme_mobile/shared/design_system/ds_truck_type_drawer.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/design_system/ds_success_modal.dart';
 import 'package:loadme_mobile/shared/widgets/frosted_header.dart';
@@ -14,9 +14,10 @@ import 'package:loadme_mobile/shared/widgets/select_location_drawer.dart';
 import 'package:loadme_mobile/shared/widgets/swipe_back_wrapper.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-// Mirrors the Figma "Magnit" screen (node 6542-20721) 1:1. Opened from the
-// center magnet button in the bottom navigation. It's a load-matching alert
-// form: when a load matching the entered criteria appears, the user is notified.
+// Mirrors the Figma "Magnit" screen 1:1. Opened from the center magnet button
+// in the bottom navigation. It's a load-matching alert form: activating it
+// creates an auto truck-route (`POST /trucks/routes/magnet/`) so that when a
+// load matching the chosen pickup + truck type appears, the carrier is notified.
 class MagnitScreen extends ConsumerStatefulWidget {
   const MagnitScreen({super.key});
 
@@ -29,10 +30,13 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
   final _comment = TextEditingController();
   final _maxWeight = TextEditingController();
 
+  // Anchors the Radius dropdown menu under the radius field.
+  final _radiusFieldKey = GlobalKey();
+
   LocationItem? _from;
   LocationItem? _to;
   String? _radius;
-  List<String> _transports = [];
+  MagnitTruckType? _transport;
   String? _cargoType;
   String? _period;
   bool _expanded = true;
@@ -57,28 +61,65 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
     if (v != null) setState(() => isFrom ? _from = v : _to = v);
   }
 
+  // Figma uses a dropdown anchored to the field (not a bottom sheet) with a
+  // checkmark on the selected radius. Values: 50 / 100 / 150 / 200 / 300 km.
   Future<void> _pickRadius() async {
-    final v = await showDsActionDrawer<String>(
+    final anchorCtx = _radiusFieldKey.currentContext;
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (anchorCtx == null || overlay == null) return;
+    final box = anchorCtx.findRenderObject()! as RenderBox;
+    final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
+    final position = RelativeRect.fromLTRB(
+      topLeft.dx,
+      topLeft.dy + box.size.height + 4,
+      overlay.size.width - (topLeft.dx + box.size.width),
+      0,
+    );
+    const values = ['50', '100', '150', '200', '300'];
+    final v = await showMenu<String>(
       context: context,
-      title: 'magnit.radius'.tr(ref),
-      currentValue: _radius,
-      items: const [
-        DsActionDrawerItem(value: '50', label: '50 km'),
-        DsActionDrawerItem(value: '100', label: '100 km'),
-        DsActionDrawerItem(value: '120', label: '120 km'),
-        DsActionDrawerItem(value: '200', label: '200 km'),
-        DsActionDrawerItem(value: '500', label: '500 km'),
+      position: position,
+      color: Colors.white,
+      elevation: 8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      constraints: const BoxConstraints(minWidth: 150, maxWidth: 220),
+      items: [
+        for (final val in values)
+          PopupMenuItem<String>(
+            value: val,
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: _RadiusMenuRow(label: '$val km', selected: _radius == val),
+          ),
       ],
     );
     if (v != null) setState(() => _radius = v);
   }
 
+  // The magnet endpoint needs a `truck_type` UUID, so the picker is driven by
+  // the real `/trucks/types/` directory rather than the local label taxonomy.
   Future<void> _pickTransport() async {
-    final v = await showDsTruckTypeDrawer(
+    final List<MagnitTruckType> types;
+    try {
+      types = await ref.read(truckTypesProvider.future);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('magnit.typesError'.tr(ref))),
+      );
+      return;
+    }
+    if (!mounted || types.isEmpty) return;
+    final v = await showDsActionDrawer<String>(
       context: context,
-      initialSelected: _transports,
+      title: 'magnit.transport'.tr(ref),
+      currentValue: _transport?.id,
+      items: [
+        for (final t in types) DsActionDrawerItem(value: t.id, label: t.name),
+      ],
     );
-    if (v != null) setState(() => _transports = v);
+    if (v == null) return;
+    setState(() => _transport = types.firstWhere((t) => t.id == v));
   }
 
   Future<void> _pickCargoType() async {
@@ -131,31 +172,54 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
     if (result != null) setState(() => controller.text = result);
   }
 
-  GarageRoute _buildRoute() {
-    final price = _price.text.trim();
-    final wv = RegExp(r'\d+').firstMatch(_maxWeight.text);
-    return GarageRoute(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      name: _transports.isEmpty ? "Yo'nalish" : _transports.join(', '),
-      priceLabel: price.isEmpty ? 'Kelishiladi' : "$price so'm",
-      fromCity: _from?.title ?? '',
-      fromCountry: _from?.country ?? '',
-      toCity: _to?.title ?? '',
-      toCountry: _to?.country ?? '',
-      distanceKm: 0,
-      weightT: wv != null ? double.parse(wv.group(0)!) : 0.0,
-      loadKind: _cargoType == 'partial' ? 'Yarim' : "To'liq",
-      active: true,
-    );
-  }
-
+  // Sends `pickup_<filterKey>` (+ optional delivery / radius) and the chosen
+  // `truck_type` UUID to `POST /trucks/routes/magnet/`. Pickup and transport are
+  // mandatory; a `truck_required` reply means the carrier must first add a truck
+  // of that type.
   Future<void> _submit() async {
+    final from = _from;
+    final type = _transport;
+    if (from == null || type == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('magnit.requiredFields'.tr(ref))),
+      );
+      return;
+    }
     setState(() => _submitting = true);
     try {
-      // Posting a Magnit publishes a route on Garaj → Yo'nalishlarim.
-      await ref.read(garageRepositoryProvider).addRoute(_buildRoute());
-      ref.invalidate(garageRoutesProvider);
+      final to = _to;
+      final result = await ref.read(magnitRepositoryProvider).activate(
+            truckType: type.id,
+            pickupCountry: from.filterKey == 'country' ? from.id : null,
+            pickupRegion: from.filterKey == 'region' ? from.id : null,
+            pickupDistrict: from.filterKey == 'district' ? from.id : null,
+            deliveryCountry:
+                to != null && to.filterKey == 'country' ? to.id : null,
+            deliveryRegion:
+                to != null && to.filterKey == 'region' ? to.id : null,
+            deliveryDistrict:
+                to != null && to.filterKey == 'district' ? to.id : null,
+            deadheadRadiusKm: _radius == null ? null : int.tryParse(_radius!),
+          );
       if (!mounted) return;
+      final activation = result.fold<MagnitActivation?>(
+        (f) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(f.message)),
+          );
+          return null;
+        },
+        (a) => a,
+      );
+      if (activation == null) return;
+      if (activation.status == MagnitStatus.truckRequired) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('magnit.truckRequired'.tr(ref))),
+        );
+        return;
+      }
+      // A magnet publishes an auto-route on Garaj → Yo'nalishlarim.
+      ref.invalidate(garageRoutesProvider);
       await showDsSuccessModal(
         context,
         title: 'magnit.success.title'.tr(ref),
@@ -184,6 +248,7 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
                   _InfoBanner(text: 'magnit.banner'.tr(ref)),
                   const SizedBox(height: 8),
                   _RouteCard(
+                    radiusKey: _radiusFieldKey,
                     fromValue: _loc(_from),
                     toValue: _loc(_to),
                     radiusValue: _radius == null ? null : '$_radius km',
@@ -201,7 +266,7 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
                   _MagnitField(
                     icon: Icons.local_shipping_outlined,
                     label: 'magnit.transport'.tr(ref),
-                    value: _transports.isEmpty ? null : _transports.join(', '),
+                    value: _transport?.name,
                     placeholder: 'magnit.transportHint'.tr(ref),
                     isRequired: true,
                     onTap: _pickTransport,
@@ -333,6 +398,7 @@ class _InfoBanner extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _RouteCard extends StatelessWidget {
   const _RouteCard({
+    required this.radiusKey,
     required this.fromValue,
     required this.toValue,
     required this.radiusValue,
@@ -347,6 +413,7 @@ class _RouteCard extends StatelessWidget {
     required this.onRadius,
   });
 
+  final Key radiusKey;
   final String? fromValue;
   final String? toValue;
   final String? radiusValue;
@@ -392,6 +459,7 @@ class _RouteCard extends StatelessWidget {
                 Container(width: 1, color: c.border),
                 const SizedBox(width: 14),
                 SizedBox(
+                  key: radiusKey,
                   width: 86,
                   child: _FieldInner(
                     label: radiusLabel,
@@ -648,6 +716,36 @@ class _DottedLine extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One row of the Radius dropdown menu — label + a blue check on the selected.
+// ---------------------------------------------------------------------------
+class _RadiusMenuRow extends StatelessWidget {
+  const _RadiusMenuRow({required this.label, required this.selected});
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              height: 20 / 14,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: selected ? c.primary : c.textPrimary,
+            ),
+          ),
+        ),
+        if (selected) Icon(LucideIcons.check, size: 18, color: c.primary),
+      ],
     );
   }
 }
