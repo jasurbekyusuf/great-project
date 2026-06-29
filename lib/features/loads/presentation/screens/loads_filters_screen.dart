@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
@@ -38,12 +39,16 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
   OverlayEntry? _radiusOverlay;
 
   static const _radii = ['50 km', '100 km', '150 km', '200 km', '300 km'];
-  static const _posters = [
-    'Hammasi',
-    'Yuk egasi',
-    'LoadMe AI',
-    'Logist / Dispatcher'
-  ];
+  // Poster-filter options. Values are stable keys (display-only — not sent to
+  // the backend); labels resolve via [_posterLabel] in all 4 languages.
+  static const _posters = ['all', 'shipper', 'ai', 'broker'];
+
+  String _posterLabel(String k) => switch (k) {
+        'all' => 'filters.posterAll'.tr(ref),
+        'shipper' => 'filters.posterShipper'.tr(ref),
+        'ai' => 'LoadMe AI',
+        _ => 'filters.posterBroker'.tr(ref),
+      };
 
   @override
   void dispose() {
@@ -59,7 +64,7 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
         backgroundColor: FigmaPalette.sheetBg,
         body: Column(
           children: [
-            const FrostedHeader(title: 'Filtrlar'),
+            FrostedHeader(title: 'filters.title'.tr(ref)),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -69,9 +74,9 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
                   _FilterTile(
                     icon: const Icon(LucideIcons.truck,
                         size: 20, color: FigmaPalette.primary),
-                    label: 'Transport turi',
+                    label: 'truckType.title'.tr(ref),
                     value: _selectedTrucks.isEmpty
-                        ? 'Transport turini tanlang'
+                        ? 'search.selectTruckType'.tr(ref)
                         : _selectedTrucks.join(', '),
                     placeholder: _selectedTrucks.isEmpty,
                     onTap: _pickTruckType,
@@ -80,17 +85,23 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
                   _FilterTile(
                     icon: const Icon(LucideIcons.user,
                         size: 20, color: FigmaPalette.primary),
-                    label: 'E’lon egasi',
+                    label: 'filters.posterTitle'.tr(ref),
                     value: _selectedPosters.isEmpty
-                        ? 'E’lon egasini tanlang'
-                        : _selectedPosters.join(', '),
+                        ? 'filters.posterHint'.tr(ref)
+                        : _selectedPosters.map(_posterLabel).join(', '),
                     placeholder: _selectedPosters.isEmpty,
                     onTap: _pickPoster,
                   ),
                 ],
               ),
             ),
-            _BottomBar(onReset: _reset, onApply: _apply),
+            _BottomBar(
+              onReset: _reset,
+              // Figma gates "Tayyor" on the required "Qayerdan" field.
+              onApply: _from == null ? null : _apply,
+              resetLabel: 'filters.clearAll'.tr(ref),
+              applyLabel: 'loadForm.ready'.tr(ref),
+            ),
           ],
         ),
       ),
@@ -101,7 +112,8 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
   // dotted rail on the left tying the two stops together.
   Widget _routeCard() {
     return Container(
-      // Flat white card on the #F3F4F7 sheet — Figma uses no border/shadow.
+      // White card on the #F3F4F7 sheet. Figma's stroke is visible:false, so
+      // there is NO border — the card reads via fill contrast alone.
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -133,54 +145,69 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
             const SizedBox(width: 8),
             // Right content.
             Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  IntrinsicHeight(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _Field(
-                            label: 'Qayerdan',
-                            value: _from?.title ?? 'Yuk olish manzili',
-                            placeholder: _from == null,
-                            onTap: _pickFrom,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        const VerticalDivider(
-                          width: 1,
-                          thickness: 1,
-                          color: FigmaPalette.divider,
-                        ),
-                        const SizedBox(width: 14),
-                        CompositedTransformTarget(
-                          link: _radiusLink,
-                          child: SizedBox(
-                            width: 84,
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
                             child: _Field(
-                              label: 'Radius',
-                              value: _radius ?? 'Tanlang',
-                              placeholder: _radius == null,
-                              onTap: _pickRadius,
+                              label: 'common.from'.tr(ref),
+                              value:
+                                  _from?.title ?? 'location.pickupTitle'.tr(ref),
+                              placeholder: _from == null,
+                              onTap: _pickFrom,
+                              isRequired: true,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                          // 14 (gap) + 1 (divider) + 14 (gap); the divider line
+                          // itself is the Positioned overlay below.
+                          const SizedBox(width: 29),
+                          CompositedTransformTarget(
+                            link: _radiusLink,
+                            child: SizedBox(
+                              width: 84,
+                              child: _Field(
+                                label: 'magnit.radius'.tr(ref),
+                                value: _radius ?? 'magnit.choose'.tr(ref),
+                                placeholder: _radius == null,
+                                onTap: _pickRadius,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      const Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: Color(0xFFD5D9E1),
+                      ),
+                      const SizedBox(height: 10),
+                      _Field(
+                        label: 'common.to'.tr(ref),
+                        value: _to?.title ?? 'location.deliveryTitle'.tr(ref),
+                        placeholder: _to == null,
+                        onTap: _pickTo,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: Color(0xFFD5D9E1),
-                  ),
-                  const SizedBox(height: 10),
-                  _Field(
-                    label: 'Qayerga',
-                    value: _to?.title ?? 'Yetkazish manzili',
-                    placeholder: _to == null,
-                    onTap: _pickTo,
+                  // Qayerdan↔Radius divider. Figma (6435:40987 · Rectangle
+                  // 11765) draws it 1×63 centred on the 41px top row, so it
+                  // overflows ~11px above the labels and meets the horizontal
+                  // divider below (card y=1→64; horizontal divider at y=63.5).
+                  // Pinned to the right (Radius col 84 + 14 gap = 98) so it
+                  // stays put at any screen width.
+                  const Positioned(
+                    right: 98,
+                    top: -11,
+                    width: 1,
+                    height: 63,
+                    child: ColoredBox(color: FigmaPalette.divider),
                   ),
                 ],
               ),
@@ -266,8 +293,9 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
   Future<void> _pickPoster() async {
     final v = await showDsCheckSheet<String>(
       context: context,
-      title: 'Kim joylagan',
-      items: _posters.map((e) => DsSelectItem(value: e, label: e)).toList(),
+      title: 'filters.posterTitle'.tr(ref),
+      items:
+          _posters.map((e) => DsSelectItem(value: e, label: _posterLabel(e))).toList(),
       initialSelected: _selectedPosters,
     );
     if (v != null) setState(() => _selectedPosters = v);
@@ -334,12 +362,14 @@ class _Field extends StatelessWidget {
     required this.value,
     required this.placeholder,
     this.onTap,
+    this.isRequired = false,
   });
 
   final String label;
   final String value;
   final bool placeholder;
   final VoidCallback? onTap;
+  final bool isRequired;
 
   @override
   Widget build(BuildContext context) {
@@ -350,7 +380,22 @@ class _Field extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label, style: _labelStyle),
+              // Figma marks "Qayerdan" as required with a trailing red asterisk.
+              if (isRequired)
+                Text.rich(
+                  TextSpan(
+                    text: label,
+                    style: _labelStyle,
+                    children: const [
+                      TextSpan(
+                        text: ' *',
+                        style: TextStyle(color: FigmaPalette.dangerText),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Text(label, style: _labelStyle),
               const SizedBox(height: 2),
               Text(
                 value,
@@ -420,6 +465,7 @@ class _FilterTile extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
+        // No border — Figma's card stroke is visible:false (fill contrast only).
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -449,7 +495,16 @@ class _VDottedLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(width: 2, child: CustomPaint(painter: _VDots()));
+    // A bare CustomPaint collapses to Size.zero under the Center's loose
+    // constraints, so the dashes never paint. Pin a fixed 18px height — Figma's
+    // "Line 571" is exactly 18px (3 dashes: 3px on / 3px off). A finite height
+    // (NOT double.infinity) is essential: this sits inside IntrinsicHeight,
+    // whose layout asserts the child's intrinsic height is finite.
+    return const SizedBox(
+      width: 2,
+      height: 18,
+      child: CustomPaint(painter: _VDots()),
+    );
   }
 }
 
@@ -458,11 +513,13 @@ class _VDots extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Figma (6435:40987 · "Line 571"): #98A2B3, 1.5px, dash 3 / gap 3, butt
+    // caps so each dash is exactly 3px (round caps would bleed into the gaps).
     final paint = Paint()
       ..color = FigmaPalette.label
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    const dot = 2.0;
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.butt;
+    const dot = 3.0;
     const gap = 3.0;
     final x = size.width / 2;
     var y = 0.0;
@@ -558,10 +615,18 @@ class _RadiusPopover extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.onReset, required this.onApply});
+  const _BottomBar({
+    required this.onReset,
+    required this.onApply,
+    required this.resetLabel,
+    required this.applyLabel,
+  });
 
   final VoidCallback onReset;
-  final VoidCallback onApply;
+  // Null disables "Tayyor" (Figma's empty state, gated on the required field).
+  final VoidCallback? onApply;
+  final String resetLabel;
+  final String applyLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -575,11 +640,11 @@ class _BottomBar extends StatelessWidget {
             GestureDetector(
               onTap: onReset,
               behavior: HitTestBehavior.opaque,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Text(
-                  'Filterni tozalash',
-                  style: TextStyle(
+                  resetLabel,
+                  style: const TextStyle(
                     fontSize: 14,
                     height: 20 / 14,
                     fontWeight: FontWeight.w500,
@@ -589,7 +654,7 @@ class _BottomBar extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            DsButton(label: 'Tayyor', onPressed: onApply),
+            DsButton(label: applyLabel, onPressed: onApply),
           ],
         ),
       ),

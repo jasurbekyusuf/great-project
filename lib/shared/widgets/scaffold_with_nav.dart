@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/features/auth/presentation/providers/current_user_provider.dart';
 import 'package:loadme_mobile/shared/widgets/floating_market_nav.dart';
 import 'package:loadme_mobile/shared/widgets/mobile_auth_required_sheet.dart';
@@ -55,7 +56,7 @@ class ScaffoldWithNav extends ConsumerWidget {
       bottomNavigationBar: FloatingMarketNav(
         activeIndex: overlay ?? _branchToNav[shell.currentIndex],
         // Carrier: Garaj + magnet (Magnit). Shipper/broker: Yuklarim + plus.
-        secondLabel: isCarrier ? 'Garaj' : 'Yuklarim',
+        secondLabel: isCarrier ? 'nav.garage'.tr(ref) : 'nav.myLoads'.tr(ref),
         secondIcon: isCarrier ? LucideIcons.warehouse : LucideIcons.package,
         fabIcon: isCarrier ? LucideIcons.magnet : LucideIcons.plus,
         onTap: (i) => unawaited(_handleTap(context, ref, i)),

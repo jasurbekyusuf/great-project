@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
@@ -31,8 +32,7 @@ class LoadFormScreen extends ConsumerStatefulWidget {
 
 class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
   final _price = TextEditingController();
-  final _weight = TextEditingController();
-  final _volume = TextEditingController();
+  final _measure = TextEditingController();
   final _product = TextEditingController();
   final _comment = TextEditingController();
   final _advance = TextEditingController();
@@ -51,18 +51,18 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
   bool _submitting = false;
 
   // Value + unit selections (Narxi / Avans currency, Og'irlik / Hajm birligi).
+  // The backend stores a single `measurement_value` + `measurement_unit` (a load
+  // is either weight OR volume), so this is one field, not two.
   String _priceCurrency = 'so’m';
   String _advanceCurrency = 'so’m';
-  String _weightUnit = 'tonna';
-  String _volumeUnit = 'm³';
+  String _measureUnit = 'tonna';
 
   bool get _isEdit => widget.loadId != null;
 
   @override
   void dispose() {
     _price.dispose();
-    _weight.dispose();
-    _volume.dispose();
+    _measure.dispose();
     _product.dispose();
     _comment.dispose();
     _advance.dispose();
@@ -75,29 +75,35 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
   String _fmtTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
-  String _paymentLabel(String v) =>
-      v == 'cash' ? 'Naqd' : (v == 'card' ? 'Karta' : 'Bank o’tkazmasi');
+  String _paymentLabel(String v) => v == 'cash'
+      ? 'loadForm.payment.cash'.tr(ref)
+      : (v == 'card'
+          ? 'loadForm.payment.card'.tr(ref)
+          : 'loadForm.payment.banking'.tr(ref));
   String _viewerLabel(String v) => v == 'all'
-      ? 'Hammasi'
-      : (v == 'carrier' ? 'Haydovchi' : 'Logist');
-  String _cargoPartLabel(String v) =>
-      v == 'all' ? 'Hammasi' : (v == 'full' ? 'To’liq' : 'Dagruz');
+      ? 'loadForm.viewer.all'.tr(ref)
+      : (v == 'carrier'
+          ? 'loadForm.viewer.carrier'.tr(ref)
+          : 'loadForm.viewer.broker'.tr(ref));
+  String _cargoPartLabel(String v) => v == 'all'
+      ? 'loadForm.cargo.all'.tr(ref)
+      : (v == 'full'
+          ? 'loadForm.cargo.full'.tr(ref)
+          : 'loadForm.cargo.partial'.tr(ref));
 
-  String _priceLabel() =>
-      _price.text.isEmpty ? 'Narxni kiriting' : '${_price.text} $_priceCurrency';
+  String _priceLabel() => _price.text.isEmpty
+      ? 'loadForm.priceHint'.tr(ref)
+      : '${_price.text} $_priceCurrency';
   String _advanceLabel() => _advance.text.isEmpty
-      ? 'Avansni kiriting'
+      ? 'loadForm.advanceHint'.tr(ref)
       : '${_advance.text} $_advanceCurrency';
 
-  String _weightVolumeLabel() {
-    if (_weight.text.isEmpty && _volume.text.isEmpty) return 'Tonna/m³';
-    final w = _weight.text.isEmpty ? '—' : '${_weight.text} $_weightUnit';
-    final v = _volume.text.isEmpty ? '—' : '${_volume.text} $_volumeUnit';
-    return '$w / $v';
-  }
+  String _weightVolumeLabel() => _measure.text.isEmpty
+      ? 'loadForm.weightVolumeHint'.tr(ref)
+      : '${_measure.text} $_measureUnit';
 
   String _departLabel() {
-    if (_departDate == null) return 'Kiriting';
+    if (_departDate == null) return 'loadForm.enter'.tr(ref);
     final base = _fmtDate(_departDate!);
     return _departTime == null ? base : '$base ${_fmtTime(_departTime!)}';
   }
@@ -129,61 +135,76 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
   }
 
   Future<void> _pickPaymentType() async {
+    final l10n = ref.read(appL10nProvider);
     final v = await showDsSelectSheet<String>(
       context: context,
-      title: 'To’lov turi',
+      title: l10n.tr('loadForm.payment'),
       currentValue: _paymentType,
-      saveLabel: 'Tayyor',
-      items: const [
-        DsSelectItem(value: 'cash', label: 'Naqd'),
-        DsSelectItem(value: 'card', label: 'Karta'),
-        DsSelectItem(value: 'banking', label: 'Bank o’tkazmasi'),
+      saveLabel: l10n.tr('loadForm.ready'),
+      items: [
+        DsSelectItem(value: 'cash', label: l10n.tr('loadForm.payment.cash')),
+        DsSelectItem(value: 'card', label: l10n.tr('loadForm.payment.card')),
+        DsSelectItem(
+            value: 'banking', label: l10n.tr('loadForm.payment.banking')),
       ],
     );
     if (v != null) setState(() => _paymentType = v);
   }
 
   Future<void> _pickCargoPart() async {
+    final l10n = ref.read(appL10nProvider);
     final v = await showDsSelectSheet<String>(
       context: context,
-      title: 'To’liq/Dagruz',
+      title: l10n.tr('loadForm.cargoPart'),
       currentValue: _cargoPart,
-      saveLabel: 'Tayyor',
-      items: const [
-        DsSelectItem(value: 'all', label: 'Hammasi'),
-        DsSelectItem(value: 'full', label: 'To’liq'),
-        DsSelectItem(value: 'partial', label: 'Dagruz'),
+      saveLabel: l10n.tr('loadForm.ready'),
+      items: [
+        DsSelectItem(value: 'all', label: l10n.tr('loadForm.cargo.all')),
+        DsSelectItem(value: 'full', label: l10n.tr('loadForm.cargo.full')),
+        DsSelectItem(
+            value: 'partial', label: l10n.tr('loadForm.cargo.partial')),
       ],
     );
     if (v != null) setState(() => _cargoPart = v);
   }
 
   Future<void> _pickViewer() async {
+    final l10n = ref.read(appL10nProvider);
     final v = await showDsSelectSheet<String>(
       context: context,
-      title: 'E’lonni kimlarga ko’rsatamiz?',
+      title: l10n.tr('loadForm.viewer'),
       currentValue: _viewFor,
-      saveLabel: 'Tayyor',
-      items: const [
-        DsSelectItem(value: 'all', label: 'Hammasi'),
-        DsSelectItem(value: 'carrier', label: 'Haydovchi'),
-        DsSelectItem(value: 'broker', label: 'Logist'),
+      saveLabel: l10n.tr('loadForm.ready'),
+      items: [
+        DsSelectItem(value: 'all', label: l10n.tr('loadForm.viewer.all')),
+        DsSelectItem(
+            value: 'carrier', label: l10n.tr('loadForm.viewer.carrier')),
+        DsSelectItem(value: 'broker', label: l10n.tr('loadForm.viewer.broker')),
       ],
     );
     if (v != null) setState(() => _viewFor = v);
   }
 
   Future<void> _pickDuration() async {
+    final l10n = ref.read(appL10nProvider);
     final v = await showDsSelectSheet<String>(
       context: context,
-      title: 'E’lonni ko’rsatish muddati',
+      title: l10n.tr('loadForm.duration'),
       currentValue: _showDuration,
-      saveLabel: 'Tayyor',
-      items: const [
-        DsSelectItem(value: '1 kun', label: '1 kun'),
-        DsSelectItem(value: '3 kun', label: '3 kun'),
-        DsSelectItem(value: '1 hafta', label: '1 hafta'),
-        DsSelectItem(value: '10 kun', label: '10 kun'),
+      saveLabel: l10n.tr('loadForm.ready'),
+      items: [
+        DsSelectItem(
+            value: l10n.tr('loadForm.duration.1d'),
+            label: l10n.tr('loadForm.duration.1d')),
+        DsSelectItem(
+            value: l10n.tr('loadForm.duration.3d'),
+            label: l10n.tr('loadForm.duration.3d')),
+        DsSelectItem(
+            value: l10n.tr('loadForm.duration.1w'),
+            label: l10n.tr('loadForm.duration.1w')),
+        DsSelectItem(
+            value: l10n.tr('loadForm.duration.10d'),
+            label: l10n.tr('loadForm.duration.10d')),
       ],
     );
     if (v != null) setState(() => _showDuration = v);
@@ -200,7 +221,7 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
     if (d == null || !mounted) return;
     final t = await showCupertinoTimeSheet(
       context,
-      title: 'Jo’nash vaqti',
+      title: ref.read(appL10nProvider).tr('loadForm.departTime'),
       initial: _departTime ?? TimeOfDay.now(),
     );
     setState(() {
@@ -222,50 +243,42 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
 
   // ---- value + unit inputs (Figma 6810:18284 — input box + unit dropdown) ----
   Future<void> _editPrice() async {
+    final hint = ref.read(appL10nProvider).tr('loadForm.priceHint');
     final spec = _UnitFieldSpec(
       controller: _price,
       unit: _priceCurrency,
       units: const ['so’m', 'USD', 'EUR', 'RUB'],
-      hint: 'Narxni kiriting',
+      hint: hint,
     );
-    final ok = await _showValueUnitSheet(title: 'Narxni kiriting', specs: [spec]);
+    final ok = await _showValueUnitSheet(title: hint, specs: [spec]);
     if (ok == true) setState(() => _priceCurrency = spec.unit);
   }
 
   Future<void> _editAdvance() async {
+    final hint = ref.read(appL10nProvider).tr('loadForm.advanceHint');
     final spec = _UnitFieldSpec(
       controller: _advance,
       unit: _advanceCurrency,
       units: const ['so’m', 'USD', 'EUR', 'RUB'],
-      hint: 'Avansni kiriting',
+      hint: hint,
     );
-    final ok = await _showValueUnitSheet(title: 'Avansni kiriting', specs: [spec]);
+    final ok = await _showValueUnitSheet(title: hint, specs: [spec]);
     if (ok == true) setState(() => _advanceCurrency = spec.unit);
   }
 
   Future<void> _editWeightVolume() async {
-    final w = _UnitFieldSpec(
-      controller: _weight,
-      unit: _weightUnit,
-      units: const ['tonna', 'kg'],
-      hint: 'Og’irlik',
+    // One value + one unit (tonna/kg = weight, m³/litr = volume): the unit picks
+    // weight vs volume for the backend's single `measurement_value`.
+    final title = ref.read(appL10nProvider).tr('loadForm.weightVolumeTitle');
+    final spec = _UnitFieldSpec(
+      controller: _measure,
+      unit: _measureUnit,
+      units: const ['tonna', 'kg', 'm³', 'litr'],
+      hint: title,
       unitBoxWidth: 96,
     );
-    final v = _UnitFieldSpec(
-      controller: _volume,
-      unit: _volumeUnit,
-      units: const ['m³', 'litr'],
-      hint: 'Hajm',
-      unitBoxWidth: 96,
-    );
-    final ok =
-        await _showValueUnitSheet(title: 'Og’irlik / Hajm', specs: [w, v]);
-    if (ok == true) {
-      setState(() {
-        _weightUnit = w.unit;
-        _volumeUnit = v.unit;
-      });
-    }
+    final ok = await _showValueUnitSheet(title: title, specs: [spec]);
+    if (ok == true) setState(() => _measureUnit = spec.unit);
   }
 
   Future<bool?> _showValueUnitSheet({
@@ -285,18 +298,26 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
   }
 
   Future<void> _editProduct() async {
+    final l10n = ref.read(appL10nProvider);
     final ok = await _showFieldsSheet(
-      title: 'Nima yuklaymiz?',
-      fields: [_SheetField(controller: _product, hint: 'Mahsulot nomi')],
+      title: l10n.tr('loadForm.product'),
+      fields: [
+        _SheetField(
+            controller: _product, hint: l10n.tr('loadForm.productHint'))
+      ],
     );
     if (ok == true) setState(() {});
   }
 
   Future<void> _editComment() async {
+    final l10n = ref.read(appL10nProvider);
     final ok = await _showFieldsSheet(
-      title: 'Izoh',
+      title: l10n.tr('loadForm.comment'),
       fields: [
-        _SheetField(controller: _comment, hint: 'Izoh kiriting', maxLines: 4)
+        _SheetField(
+            controller: _comment,
+            hint: l10n.tr('loadForm.commentHint'),
+            maxLines: 4)
       ],
     );
     if (ok == true) setState(() {});
@@ -304,7 +325,8 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
 
   void _pickFile() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fayl yuklash tez orada qo’shiladi')),
+      SnackBar(
+          content: Text(ref.read(appL10nProvider).tr('loadForm.fileSoon'))),
     );
   }
 
@@ -312,6 +334,7 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
     required String title,
     required List<_SheetField> fields,
   }) {
+    final saveLabel = ref.read(appL10nProvider).tr('loadForm.save');
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -387,7 +410,7 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
                 ...children,
                 const SizedBox(height: 16),
                 DsButton(
-                    label: 'Saqlash',
+                    label: saveLabel,
                     onPressed: () => Navigator.pop(ctx, true)),
               ],
             ),
@@ -402,10 +425,10 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
       _from != null && _to != null && _selectedTrucks.isNotEmpty;
 
   Future<void> _submit() async {
+    final l10n = ref.read(appL10nProvider);
     if (!_formValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Iltimos majburiy maydonlarni to’ldiring')),
+        SnackBar(content: Text(l10n.tr('loadForm.requiredFields'))),
       );
       return;
     }
@@ -420,9 +443,9 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
       if (!mounted) return;
       await showDsSuccessModal(
         context,
-        title: 'Muvaffaqiyatli',
-        message: 'Yuk e’loningiz joylandi',
-        actionLabel: 'Mening yuklarim',
+        title: l10n.tr('loadForm.success.title'),
+        message: l10n.tr('loadForm.success.message'),
+        actionLabel: l10n.tr('loadForm.success.action'),
         onAction: () => context.go('/my-loads'),
       );
     } catch (e) {
@@ -441,7 +464,10 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
         backgroundColor: FigmaPalette.sheetBg,
         body: Column(
           children: [
-            FrostedHeader(title: _isEdit ? 'Yukni tahrirlash' : 'Yuk qo’shish'),
+            FrostedHeader(
+                title: _isEdit
+                    ? 'loadForm.titleEdit'.tr(ref)
+                    : 'loadForm.titleAdd'.tr(ref)),
             Expanded(
               child: ListView(
                 keyboardDismissBehavior:
@@ -452,18 +478,18 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
                   const SizedBox(height: 8),
                   _Tile(
                     icon: LucideIcons.truck,
-                    label: 'Transport',
+                    label: 'loadForm.transport'.tr(ref),
                     isRequired: true,
                     placeholder: _selectedTrucks.isEmpty,
                     value: _selectedTrucks.isEmpty
-                        ? 'Transport turini tanlang'
+                        ? 'loadForm.transportHint'.tr(ref)
                         : _selectedTrucks.join(', '),
                     onTap: _pickTruckType,
                   ),
                   const SizedBox(height: 8),
                   _Tile(
                     icon: LucideIcons.circleDollarSign,
-                    label: 'Narxi',
+                    label: 'loadForm.price'.tr(ref),
                     placeholder: _price.text.isEmpty,
                     value: _priceLabel(),
                     onTap: _editPrice,
@@ -471,18 +497,18 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
                   const SizedBox(height: 8),
                   _Tile(
                     icon: LucideIcons.banknote,
-                    label: 'To’lov turi',
+                    label: 'loadForm.payment'.tr(ref),
                     placeholder: _paymentType == null,
                     value: _paymentType == null
-                        ? 'To’lov turini tanlang'
+                        ? 'loadForm.paymentHint'.tr(ref)
                         : _paymentLabel(_paymentType!),
                     onTap: _pickPaymentType,
                   ),
                   const SizedBox(height: 8),
                   _Tile(
                     icon: LucideIcons.weight,
-                    label: 'Og’irlik/Hajm',
-                    placeholder: _weight.text.isEmpty && _volume.text.isEmpty,
+                    label: 'loadForm.weightVolume'.tr(ref),
+                    placeholder: _measure.text.isEmpty,
                     value: _weightVolumeLabel(),
                     onTap: _editWeightVolume,
                   ),
@@ -494,7 +520,7 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
                         Expanded(
                           child: _Tile(
                             icon: LucideIcons.calendar,
-                            label: 'Jo’nash vaqti',
+                            label: 'loadForm.departTime'.tr(ref),
                             placeholder: _departDate == null,
                             value: _departLabel(),
                             onTap: _pickDepart,
@@ -504,10 +530,10 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
                         Expanded(
                           child: _Tile(
                             icon: LucideIcons.scan,
-                            label: 'To’liq/Dagruz',
+                            label: 'loadForm.cargoPart'.tr(ref),
                             placeholder: _cargoPart == null,
                             value: _cargoPart == null
-                                ? 'Tanlang'
+                                ? 'loadForm.choose'.tr(ref)
                                 : _cargoPartLabel(_cargoPart!),
                             onTap: _pickCargoPart,
                           ),
@@ -524,7 +550,7 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
                     const SizedBox(height: 8),
                     _Tile(
                       icon: LucideIcons.banknoteArrowUp,
-                      label: 'Avans',
+                      label: 'loadForm.advance'.tr(ref),
                       placeholder: _advance.text.isEmpty,
                       value: _advanceLabel(),
                       onTap: _editAdvance,
@@ -532,56 +558,56 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
                     const SizedBox(height: 8),
                     _Tile(
                       icon: LucideIcons.user,
-                      label: 'E’lonni kimlarga ko’rsatamiz?',
+                      label: 'loadForm.viewer'.tr(ref),
                       placeholder: _viewFor == null,
                       value: _viewFor == null
-                          ? 'Tanlang'
+                          ? 'loadForm.choose'.tr(ref)
                           : _viewerLabel(_viewFor!),
                       onTap: _pickViewer,
                     ),
                     const SizedBox(height: 8),
                     _Tile(
                       icon: LucideIcons.clipboardClock,
-                      label: 'E’lonni ko’rsatish muddati',
+                      label: 'loadForm.duration'.tr(ref),
                       placeholder: _showDuration == null,
-                      value: _showDuration ?? 'Muddatni tanlang',
+                      value: _showDuration ?? 'loadForm.durationHint'.tr(ref),
                       onTap: _pickDuration,
                     ),
                     const SizedBox(height: 8),
                     _Tile(
                       icon: LucideIcons.calendar,
-                      label: 'Yetib borish sanasi',
+                      label: 'loadForm.arrive'.tr(ref),
                       placeholder: _arriveDate == null,
                       value: _arriveDate == null
-                          ? 'Kiriting'
+                          ? 'loadForm.enter'.tr(ref)
                           : _fmtDate(_arriveDate!),
                       onTap: _pickArrive,
                     ),
                     const SizedBox(height: 8),
                     _Tile(
                       icon: LucideIcons.package,
-                      label: 'Nima yuklaymiz?',
+                      label: 'loadForm.product'.tr(ref),
                       placeholder: _product.text.isEmpty,
                       value: _product.text.isEmpty
-                          ? 'Mahsulot nomi'
+                          ? 'loadForm.productHint'.tr(ref)
                           : _product.text,
                       onTap: _editProduct,
                     ),
                     const SizedBox(height: 8),
                     _Tile(
                       icon: LucideIcons.fileUp,
-                      label: 'Fayl',
+                      label: 'loadForm.file'.tr(ref),
                       placeholder: true,
-                      value: 'Fayl yuklang',
+                      value: 'loadForm.fileHint'.tr(ref),
                       onTap: _pickFile,
                     ),
                     const SizedBox(height: 8),
                     _Tile(
                       icon: LucideIcons.messageSquare,
-                      label: 'Izoh',
+                      label: 'loadForm.comment'.tr(ref),
                       placeholder: _comment.text.isEmpty,
                       value: _comment.text.isEmpty
-                          ? 'Izoh kiriting'
+                          ? 'loadForm.commentHint'.tr(ref)
                           : _comment.text,
                       onTap: _editComment,
                     ),
@@ -594,7 +620,7 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                 child: DsButton(
-                  label: 'Saqlash',
+                  label: 'loadForm.save'.tr(ref),
                   loading: _submitting,
                   onPressed: _submitting ? null : _submit,
                 ),
@@ -646,10 +672,10 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _Field(
-                    label: 'Qayerdan',
+                    label: 'loadForm.from'.tr(ref),
                     isRequired: true,
                     placeholder: _from == null,
-                    value: _from?.title ?? 'Yuk olish manzili',
+                    value: _from?.title ?? 'loadForm.fromHint'.tr(ref),
                     onTap: () => _pickLocation(isFrom: true),
                   ),
                   const SizedBox(height: 10),
@@ -657,10 +683,10 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
                       height: 1, thickness: 1, color: Color(0xFFD5D9E1)),
                   const SizedBox(height: 10),
                   _Field(
-                    label: 'Qayerga',
+                    label: 'loadForm.to'.tr(ref),
                     isRequired: true,
                     placeholder: _to == null,
-                    value: _to?.title ?? 'Yetkazish manzili',
+                    value: _to?.title ?? 'loadForm.toHint'.tr(ref),
                     onTap: () => _pickLocation(isFrom: false),
                   ),
                 ],
@@ -848,13 +874,13 @@ class _Tile extends StatelessWidget {
 }
 
 /// "Ko’proq ⌄" / "Yopish ⌃" expander — white r16 card, blue centered label.
-class _MoreButton extends StatelessWidget {
+class _MoreButton extends ConsumerWidget {
   const _MoreButton({required this.expanded, required this.onTap});
   final bool expanded;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -869,7 +895,7 @@ class _MoreButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              expanded ? 'Yopish' : 'Ko’proq',
+              expanded ? 'loadForm.collapse'.tr(ref) : 'loadForm.more'.tr(ref),
               style: const TextStyle(
                 fontSize: 16,
                 height: 20 / 16,
@@ -956,26 +982,27 @@ class _UnitFieldSpec {
   final double unitBoxWidth;
 }
 
-class _ValueUnitSheet extends StatefulWidget {
+class _ValueUnitSheet extends ConsumerStatefulWidget {
   const _ValueUnitSheet({required this.title, required this.specs});
   final String title;
   final List<_UnitFieldSpec> specs;
 
   @override
-  State<_ValueUnitSheet> createState() => _ValueUnitSheetState();
+  ConsumerState<_ValueUnitSheet> createState() => _ValueUnitSheetState();
 }
 
-class _ValueUnitSheetState extends State<_ValueUnitSheet> {
+class _ValueUnitSheetState extends ConsumerState<_ValueUnitSheet> {
   static const _blue = Color(0xFF004EEA);
   static const _titleColor = Color(0xFF0F1728);
   static const _valueColor = Color(0xFF131313);
 
   Future<void> _pickUnit(_UnitFieldSpec spec) async {
+    final l10n = ref.read(appL10nProvider);
     final v = await showDsSelectSheet<String>(
       context: context,
-      title: 'Birlikni tanlang',
+      title: l10n.tr('loadForm.selectUnit'),
       currentValue: spec.unit,
-      saveLabel: 'Tayyor',
+      saveLabel: l10n.tr('loadForm.ready'),
       items: [for (final u in spec.units) DsSelectItem(value: u, label: u)],
     );
     if (v != null) setState(() => spec.unit = v);
@@ -1037,7 +1064,7 @@ class _ValueUnitSheetState extends State<_ValueUnitSheet> {
             ],
             const SizedBox(height: 24),
             _SheetSaveButton(
-              label: 'Saqlash',
+              label: 'loadForm.save'.tr(ref),
               onTap: () => Navigator.pop(context, true),
             ),
           ],

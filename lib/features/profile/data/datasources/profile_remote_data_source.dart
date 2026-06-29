@@ -13,7 +13,41 @@ class ProfileRemoteDataSource {
 
   Future<ProfileEntity> getMyProfile() async {
     final res = await _dio.get<dynamic>('/users/me/');
-    final data = _unwrap(res);
+    return _parse(_unwrap(res));
+  }
+
+  /// Saves the editable profile fields via `PATCH /users/me/`.
+  ///
+  /// The backend expects **multipart** form-data (same as register/avatar
+  /// upload) with flat keys — `full_name`, `company_name`, `person_type`,
+  /// `telegram_username`, `whatsapp_number` — NOT the nested `profile` shape the
+  /// GET returns. `phone_number` is the OTP-verified login identity and is not
+  /// editable here, so it is never sent. Only non-null fields are included so a
+  /// partial edit never blanks an untouched value. Returns the re-parsed user.
+  Future<ProfileEntity> updateProfile({
+    String? fullName,
+    String? companyName,
+    String? personType,
+    String? telegramUsername,
+    String? whatsappNumber,
+  }) async {
+    final fields = <String, dynamic>{
+      if (fullName != null) 'full_name': fullName,
+      if (companyName != null) 'company_name': companyName,
+      if (personType != null) 'person_type': personType,
+      if (telegramUsername != null) 'telegram_username': telegramUsername,
+      if (whatsappNumber != null) 'whatsapp_number': whatsappNumber,
+    };
+    final res = await _dio.patch<dynamic>(
+      '/users/me/',
+      data: FormData.fromMap(fields),
+    );
+    return _parse(_unwrap(res));
+  }
+
+  /// Maps the unwrapped `data` payload (display fields nested under `profile`,
+  /// identity at the top level) into a [ProfileEntity]. Shared by GET + PATCH.
+  ProfileEntity _parse(Map<String, dynamic> data) {
     final profile = data['profile'] is Map
         ? Map<String, dynamic>.from(data['profile'] as Map)
         : const <String, dynamic>{};
@@ -37,6 +71,12 @@ class ProfileRemoteDataSource {
               profile['verified'] ??
               false) ==
           true,
+      telegramUsername:
+          (profile['telegram_username'] ?? data['telegram_username'])
+              ?.toString(),
+      whatsappNumber:
+          (profile['whatsapp_number'] ?? data['whatsapp_number'])?.toString(),
+      personType: (profile['person_type'] ?? data['person_type'])?.toString(),
     );
   }
 

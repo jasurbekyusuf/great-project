@@ -54,7 +54,7 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
     setState(() => _loading = false);
     if (fail != null || result == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(fail?.message ?? 'Xatolik')),
+        SnackBar(content: Text(fail?.message ?? 'common.error'.tr(ref))),
       );
       return;
     }
@@ -126,9 +126,9 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Keling boshlaymiz!',
-                            style: TextStyle(
+                          Text(
+                            'auth.welcomeTitle'.tr(ref),
+                            style: const TextStyle(
                               fontSize: 32,
                               height: 38.7 / 32,
                               fontWeight: FontWeight.w600,
@@ -139,15 +139,18 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
                           ),
                           const SizedBox(height: 24),
                           MobileSegmentedTab(
-                            items: const ['Sms-kod', 'Telegram'],
+                            items: [
+                              'auth.smsTab'.tr(ref),
+                              'auth.telegramTab'.tr(ref),
+                            ],
                             selectedIndex: _tabIndex,
                             onChanged: (index) =>
                                 setState(() => _tabIndex = index),
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Telefon raqamingizni kiriting. Biz unga tasdiqlash kodini yuboramiz.',
-                            style: TextStyle(
+                          Text(
+                            'auth.phonePrompt'.tr(ref),
+                            style: const TextStyle(
                               fontSize: 14,
                               height: 22 / 14,
                               fontWeight: FontWeight.w400,
@@ -266,7 +269,9 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: _PrimaryButton(
-                label: _tabIndex == 0 ? 'Kodni olish' : 'Kodni yuborish',
+                label: _tabIndex == 0
+                    ? 'auth.getCode'.tr(ref)
+                    : 'auth.sendCode'.tr(ref),
                 loading: _loading,
                 onPressed: _continue,
               ),

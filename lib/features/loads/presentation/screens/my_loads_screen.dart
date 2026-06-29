@@ -31,7 +31,7 @@ class MyLoadsScreen extends ConsumerWidget {
       backgroundColor: FigmaPalette.sheetBg,
       body: Column(
         children: [
-          const FrostedHeader(title: 'Mening yuklarim'),
+          FrostedHeader(title: 'nav.myLoads'.tr(ref)),
           Expanded(
             child: state.when(
               loading: () => const DsLoader(),
@@ -151,7 +151,10 @@ class _MyLoadsList extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
                 16, 8, 16, FloatingMarketNav.reservedHeight),
-            child: _AddLoadButton(onTap: () => context.push('/add-load')),
+            child: _AddLoadButton(
+              label: 'add.load'.tr(ref),
+              onTap: () => context.push('/add-load'),
+            ),
           ),
         ),
       ],
@@ -160,8 +163,9 @@ class _MyLoadsList extends ConsumerWidget {
 }
 
 class _AddLoadButton extends StatelessWidget {
-  const _AddLoadButton({required this.onTap});
+  const _AddLoadButton({required this.onTap, required this.label});
   final VoidCallback onTap;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -171,15 +175,15 @@ class _AddLoadButton extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: const SizedBox(
+        child: SizedBox(
           height: 52,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(LucideIcons.plus, size: 20, color: Colors.white),
-              SizedBox(width: 8),
+              const Icon(LucideIcons.plus, size: 20, color: Colors.white),
+              const SizedBox(width: 8),
               Text(
-                'Yuk qo’shish',
+                label,
                 style: TextStyle(
                   fontSize: 16,
                   height: 20 / 16,

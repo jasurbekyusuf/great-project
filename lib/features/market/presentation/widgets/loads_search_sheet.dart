@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/locations/domain/entities/location_entity.dart';
 import 'package:loadme_mobile/features/locations/presentation/providers/locations_providers.dart';
@@ -251,7 +252,7 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
       // Figma 6435:34680 — each field is its own fully-rounded r12 white pill.
       borderRadius: BorderRadius.circular(12),
       marker: _marker(filled: true, active: _active == 0),
-      hint: 'Qayerdan',
+      hint: 'common.from'.tr(ref),
       controller: _originController,
       focusNode: _originFocus,
       onChanged: (v) => _onChanged(true, v),
@@ -261,7 +262,7 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
       active: _active == 1,
       borderRadius: BorderRadius.circular(12),
       marker: _marker(filled: false, active: _active == 1),
-      hint: 'Qayerga',
+      hint: 'common.to'.tr(ref),
       controller: _destController,
       focusNode: _destFocus,
       onChanged: (v) => _onChanged(false, v),
@@ -291,10 +292,10 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Yuklarni qidirish',
-                        style: TextStyle(
+                        'search.loadsTitle'.tr(ref),
+                        style: const TextStyle(
                           fontSize: 16,
                           height: 24 / 16,
                           fontWeight: FontWeight.w600,
@@ -333,6 +334,7 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
                     active: _truckFocus.hasFocus,
                     controller: _truckController,
                     focusNode: _truckFocus,
+                    hint: 'search.selectTruckType'.tr(ref),
                     onChanged: _onTruckChanged,
                   ),
                   if (_truckDropdownOpen) ...[
@@ -341,7 +343,7 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
                   ] else ...[
                     const SizedBox(height: 12),
                     DsButton(
-                      label: 'Tayyor',
+                      label: 'common.done'.tr(ref),
                       onPressed: () => Navigator.pop(
                         context,
                         LoadsSearchResult(
@@ -393,7 +395,9 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
   // the live `/locations/search/` matches split by hairline dividers. The query
   // is debounced (300ms) inside `locationSearchProvider`.
   Widget _dropdown() {
-    final anyLabel = _active == 0 ? 'Har qanday joydan' : 'Har qanday joyga';
+    final anyLabel = _active == 0
+        ? 'search.anywhereFrom'.tr(ref)
+        : 'location.anywhere'.tr(ref);
     final query = _activeController.text.trim();
     final results = ref.watch(locationSearchProvider(query));
     return Container(
@@ -442,7 +446,7 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
                 return [
                   const Divider(
                       height: 1, thickness: 1, color: FigmaPalette.divider),
-                  _statusTile('Hech narsa topilmadi'),
+                  _statusTile('common.notFound'.tr(ref)),
                 ];
               }
               return [
@@ -461,7 +465,7 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
             error: (_, __) => [
               const Divider(
                   height: 1, thickness: 1, color: FigmaPalette.divider),
-              _statusTile('Qidirishda xatolik. Qayta urinib koʻring'),
+              _statusTile('common.searchError'.tr(ref)),
             ],
           ),
         ],
@@ -573,16 +577,16 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
         children: [
           InkWell(
             onTap: _selectAnyTruck,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  Icon(LucideIcons.truck,
+                  const Icon(LucideIcons.truck,
                       size: 20, color: FigmaPalette.inkStrong),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Text(
-                    'Har qanday transport',
-                    style: TextStyle(
+                    'search.anyTruck'.tr(ref),
+                    style: const TextStyle(
                       fontSize: 14,
                       height: 20 / 14,
                       fontWeight: FontWeight.w400,
@@ -740,12 +744,14 @@ class _TransportField extends StatelessWidget {
     required this.active,
     required this.controller,
     required this.focusNode,
+    required this.hint,
     required this.onChanged,
   });
 
   final bool active;
   final TextEditingController controller;
   final FocusNode focusNode;
+  final String hint;
   final ValueChanged<String> onChanged;
 
   @override
@@ -794,12 +800,12 @@ class _TransportField extends StatelessWidget {
                 fontWeight: FontWeight.w400,
                 color: FigmaPalette.countLabel,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isCollapsed: true,
                 // Clear the global inputDecorationTheme `constraints: minHeight
                 // 44` so the collapsed decorator shrinks to text height and the
                 // value sits level with the leading truck glyph, not ~10dp high.
-                constraints: BoxConstraints(),
+                constraints: const BoxConstraints(),
                 filled: false,
                 contentPadding: EdgeInsets.zero,
                 border: InputBorder.none,
@@ -808,8 +814,8 @@ class _TransportField extends StatelessWidget {
                 errorBorder: InputBorder.none,
                 focusedErrorBorder: InputBorder.none,
                 disabledBorder: InputBorder.none,
-                hintText: 'Transport turini tanlang',
-                hintStyle: TextStyle(
+                hintText: hint,
+                hintStyle: const TextStyle(
                   fontSize: 16,
                   height: 24 / 16,
                   leadingDistribution: TextLeadingDistribution.even,

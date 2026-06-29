@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/loads/presentation/widgets/load_figma_card.dart';
 import 'package:loadme_mobile/features/saved/presentation/providers/saved_providers.dart';
@@ -27,7 +28,7 @@ class SavedScreen extends ConsumerWidget {
       backgroundColor: FigmaPalette.sheetBg,
       body: Column(
         children: [
-          const FrostedSectionHeader(title: 'Saqlanganlar'),
+          FrostedSectionHeader(title: 'profile.saved'.tr(ref)),
           Expanded(
             child: async.when(
               loading: () => const DsLoader(),
@@ -75,36 +76,37 @@ class SavedScreen extends ConsumerWidget {
 }
 
 /// Empty "Saqlanganlar" state — kept scrollable so pull-to-refresh still works.
-class _Empty extends StatelessWidget {
+class _Empty extends ConsumerWidget {
   const _Empty({required this.onRefresh});
 
   final Future<void> Function() onRefresh;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return RefreshIndicator(
       color: FigmaPalette.primary,
       onRefresh: onRefresh,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
-        children: const [
-          Icon(LucideIcons.bookmark, size: 56, color: FigmaPalette.inkMuted),
-          SizedBox(height: 12),
+        children: [
+          const Icon(
+              LucideIcons.bookmark, size: 56, color: FigmaPalette.inkMuted),
+          const SizedBox(height: 12),
           Text(
-            'Saqlangan yuklar yo‘q',
+            'saved.empty.title'.tr(ref),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               height: 22 / 16,
               fontWeight: FontWeight.w600,
               color: FigmaPalette.ink,
             ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
-            'Yoqqan yuklaringizni belgilab qo‘ysangiz, shu yerda chiqadi.',
+            'saved.empty.subtitle'.tr(ref),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               height: 18 / 13,
               fontWeight: FontWeight.w500,

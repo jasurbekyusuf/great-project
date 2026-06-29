@@ -1,31 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 
 // Mirrors web phone-reveal pattern used on Load and PostTruck detail pages:
 // Phone number is masked behind a "Show phone" button. When pressed, tracks
 // the reveal event and shows the full number + call action.
-class PhoneReveal extends StatefulWidget {
+class PhoneReveal extends ConsumerStatefulWidget {
   const PhoneReveal({
     super.key,
     required this.phone,
     this.onRevealed,
     this.onCall,
-    this.label = 'Telefonni ko\'rsatish',
-    this.callLabel = 'Qo\'ng\'iroq qilish',
+    this.label,
+    this.callLabel,
   });
 
   final String phone;
   final VoidCallback? onRevealed;
   final ValueChanged<String>? onCall;
-  final String label;
-  final String callLabel;
+  final String? label;
+  final String? callLabel;
 
   @override
-  State<PhoneReveal> createState() => _PhoneRevealState();
+  ConsumerState<PhoneReveal> createState() => _PhoneRevealState();
 }
 
-class _PhoneRevealState extends State<PhoneReveal> {
+class _PhoneRevealState extends ConsumerState<PhoneReveal> {
   bool _revealed = false;
 
   String get _masked {
@@ -65,7 +67,7 @@ class _PhoneRevealState extends State<PhoneReveal> {
               children: [
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Copy',
+                  tooltip: 'common.copy'.tr(ref),
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: widget.phone));
                   },
@@ -84,7 +86,7 @@ class _PhoneRevealState extends State<PhoneReveal> {
                         children: [
                           const Icon(Icons.phone_in_talk_rounded, color: Colors.white, size: 16),
                           const SizedBox(width: 6),
-                          Text(widget.callLabel, style: t.button.copyWith(color: Colors.white)),
+                          Text(widget.callLabel ?? 'phone.call'.tr(ref), style: t.button.copyWith(color: Colors.white)),
                         ],
                       ),
                     ),
@@ -104,7 +106,7 @@ class _PhoneRevealState extends State<PhoneReveal> {
                 },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Text(widget.label, style: t.button.copyWith(color: Colors.white)),
+                  child: Text(widget.label ?? 'phone.show'.tr(ref), style: t.button.copyWith(color: Colors.white)),
                 ),
               ),
             ),

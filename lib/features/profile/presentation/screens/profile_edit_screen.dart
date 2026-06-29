@@ -63,7 +63,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           ),
           SizedBox(height: s.xl),
           _Label('profileEdit.fullName'.tr(ref), t),
-          TextField(controller: _fullName, decoration: const InputDecoration(hintText: 'Ivanov Ivan')),
+          TextField(controller: _fullName, decoration: InputDecoration(hintText: 'profileEdit.fullNameHint'.tr(ref))),
           SizedBox(height: s.md),
           _Label('profileEdit.phone'.tr(ref), t),
           TextField(
@@ -80,7 +80,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           ),
           if (_isCompany) ...[
             _Label('profileEdit.companyName'.tr(ref), t),
-            TextField(controller: _company, decoration: const InputDecoration(hintText: 'OOO Example')),
+            TextField(controller: _company, decoration: InputDecoration(hintText: 'profileEdit.companyHint'.tr(ref))),
             SizedBox(height: s.md),
           ],
           _Label('profileEdit.telegram'.tr(ref), t),

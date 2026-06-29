@@ -152,8 +152,10 @@ class LoadsRemoteDataSource {
       fromCountry: _code(data['pickup_country']),
       toCountry: _code(data['delivery_country']),
       comment: _str(data['comment']),
+      commodity: _str(data['commodity']),
       price: price,
       priceLabel: _priceLabel(price, currency),
+      advanceLabel: _advanceLabel(_toDouble(data['advance_payment']), currency),
       pickupDate: data['pickup_date']?.toString(),
       deliveryDate: data['delivery_date']?.toString(),
       createdAt: createdAt,
@@ -182,6 +184,7 @@ class LoadsRemoteDataSource {
           true,
       isPartial: (data['is_partial'] ?? false) == true,
       isActive: _activeOf(data),
+      isFavorite: (data['is_favorite'] ?? data['is_saved'] ?? false) == true,
       phone:
           _str(owner['phone_number'] ?? data['phone'] ?? data['phone_number']),
       telegram: _str(owner['telegram_username'] ?? data['telegram_username']),
@@ -193,20 +196,70 @@ class LoadsRemoteDataSource {
     );
   }
 
-  /// Reads a pickup/delivery coordinate, tolerating a flat field
-  /// (`pickup_latitude`) or a nested location object (`pickup: { latitude }`).
+  /// Reads a pickup/delivery coordinate, tolerating every shape the backend
+  /// uses for a PostGIS point:
+  ///   • flat scalars        `pickup_latitude` / `pickup_lat`
+  ///   • nested location     `pickup` | `pickup_location` `{ latitude }`
+  ///   • GeoJSON Point       `pickup_point: { coordinates: [lng, lat] }`
+  ///   • district/region     `pickup_district: { point|centroid: … }` centroid
   /// A `0` is treated as "unset" (the backend's null-island placeholder) so the
   /// map falls back to the city lookup instead of pointing at the Gulf of
   /// Guinea.
   double? _geoCoord(Map<String, dynamic> data, String prefix, String which) {
-    final short = which == 'latitude' ? 'lat' : 'lng';
+    final isLat = which == 'latitude';
+    final short = isLat ? 'lat' : 'lng';
+
+    // 1) Flat scalar fields written by this client on create/update.
     var v = _toDouble(data['${prefix}_$which'] ?? data['${prefix}_$short']);
+
+    // 2) Walk the candidate objects (point first, then the location, then the
+    //    district/region centroid) and read latitude/lat, a GeoJSON
+    //    `coordinates: [lng, lat]` array, or a nested point/centroid.
     if (v == null) {
-      final obj = data[prefix] ?? data['${prefix}_location'];
-      if (obj is Map) v = _toDouble(obj[which] ?? obj[short]);
+      for (final key in [
+        '${prefix}_point',
+        prefix,
+        '${prefix}_location',
+        '${prefix}_district',
+        '${prefix}_region',
+      ]) {
+        final obj = data[key];
+        if (obj is! Map) continue;
+        v = _coordFromObject(Map<String, dynamic>.from(obj), isLat, which, short);
+        if (v != null) break;
+      }
     }
+
     if (v == null || v == 0) return null;
     return v;
+  }
+
+  /// Pulls a single lat/lng out of a location-ish object: a direct
+  /// `latitude`/`lat` key, a GeoJSON `coordinates: [lng, lat]` array, or a
+  /// nested `point` / `centroid` sub-object (district/region centroids).
+  double? _coordFromObject(
+    Map<String, dynamic> obj,
+    bool isLat,
+    String which,
+    String short,
+  ) {
+    final direct = _toDouble(obj[which] ?? obj[short]);
+    if (direct != null) return direct;
+
+    final coords = obj['coordinates'];
+    if (coords is List && coords.length >= 2) {
+      // GeoJSON is [longitude, latitude].
+      return _toDouble(isLat ? coords[1] : coords[0]);
+    }
+
+    for (final nested in [obj['point'], obj['centroid'], obj['location']]) {
+      if (nested is Map) {
+        final v = _coordFromObject(
+            Map<String, dynamic>.from(nested), isLat, which, short);
+        if (v != null) return v;
+      }
+    }
+    return null;
   }
 
   /// Builds a "district, region" line, falling back to the free-text
@@ -247,6 +300,17 @@ class LoadsRemoteDataSource {
     final symbol = currency['symbol']?.toString();
     final unit = (code == null || code == 'UZS') ? "so'm" : (symbol ?? code);
     return '${_group(price)} $unit';
+  }
+
+  /// Advance/prepayment label ("30 000 000 so'm"). Unlike [_priceLabel] there is
+  /// no "Kelishiladi" fallback — a missing advance returns null so the route
+  /// card shows a dash instead.
+  String? _advanceLabel(double? advance, Map<String, dynamic> currency) {
+    if (advance == null || advance <= 0) return null;
+    final code = currency['code']?.toString();
+    final symbol = currency['symbol']?.toString();
+    final unit = (code == null || code == 'UZS') ? "so'm" : (symbol ?? code);
+    return '${_group(advance)} $unit';
   }
 
   /// Groups the integer part with non-breaking-ish space separators

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/auth/presentation/providers/current_user_provider.dart';
 
@@ -53,26 +54,25 @@ class _LocationPermissionScreenState
         child: Column(
           children: [
             const Expanded(child: _MapPreview(center: _center)),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(24, 8, 24, 0),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
               child: Column(
                 children: [
                   Text(
-                    'Lokatsiyaga ruxsat bering',
+                    'location.permTitle'.tr(ref),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 24,
                       height: 32 / 24,
                       fontWeight: FontWeight.w700,
                       color: FigmaPalette.countLabel,
                     ),
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   Text(
-                    'Sizga eng yaqin yuklarni topib berishimiz uchun '
-                    'joylashuvingizni aniqlashga ruxsat bering.',
+                    'location.permBody'.tr(ref),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       height: 24 / 16,
                       fontWeight: FontWeight.w400,
@@ -103,9 +103,9 @@ class _LocationPermissionScreenState
                                 color: Colors.white,
                               ),
                             )
-                          : const Text(
-                              'Tushunarli',
-                              style: TextStyle(
+                          : Text(
+                              'location.permUnderstood'.tr(ref),
+                              style: const TextStyle(
                                 fontSize: 14,
                                 height: 20 / 14,
                                 fontWeight: FontWeight.w600,

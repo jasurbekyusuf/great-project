@@ -91,6 +91,32 @@ class SupportChatRemoteDataSource {
     return SupportMessage.fromJson(_object(res.data), origin: origin);
   }
 
+  /// Preset FAQ buttons (`{ id, question }`), already localized and in display
+  /// order. The answer is delivered only on [askFaq]. Auth not required (the
+  /// identity header is still sent so the exchange lands in this conversation).
+  Future<List<SupportFaq>> getFaqs({String? guestId}) async {
+    final res = await _dio.get<dynamic>('$_base/faqs/', options: _opts(guestId));
+    final data = _unwrap(res.data);
+    final raw = data is List ? data : const [];
+    return raw
+        .whereType<Map>()
+        .map((m) => SupportFaq.fromJson(m.cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// Tap an FAQ → the backend records BOTH the question and the automated
+  /// answer in this conversation and returns the two messages (question first,
+  /// then the `is_automated: true` answer). Self-service: no operator is pinged
+  /// and no push is sent. The two messages have real ids, so they de-dupe
+  /// cleanly against the poll / WebSocket.
+  Future<List<SupportMessage>> askFaq(String faqId, {String? guestId}) async {
+    final res = await _dio.post<dynamic>(
+      '$_base/faqs/$faqId/ask/',
+      options: _opts(guestId),
+    );
+    return _parseList(_unwrap(res.data));
+  }
+
   /// Mark the whole conversation read (call when the chat is opened and after
   /// staff messages arrive). Resets `user_unread_count` to 0.
   Future<void> markRead({String? guestId}) =>

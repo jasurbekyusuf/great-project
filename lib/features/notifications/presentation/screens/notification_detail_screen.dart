@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/notifications/domain/entities/app_notification.dart';
 import 'package:loadme_mobile/shared/widgets/app_scaffold.dart';
@@ -11,30 +13,24 @@ import 'package:loadme_mobile/shared/widgets/app_scaffold.dart';
 /// Driven by the [AppNotification] passed via `GoRoute.extra` from the list. A
 /// direct deep-link (no extra) falls back to a generic sample so the layout is
 /// never blank.
-class NotificationDetailScreen extends StatelessWidget {
+class NotificationDetailScreen extends ConsumerWidget {
   const NotificationDetailScreen({super.key, this.notification});
 
   final AppNotification? notification;
 
-  static const _sampleTitle = 'Arizalar ochiq — biz siz bilan ishlashga tayyormiz!';
-  static const _sampleBody =
-      'Loadme jamoasi yangi imkoniyatlarni ishga tushirdi. Endi yuk egalari '
-      "va tashuvchilar bir-birini yanada tez topadi: e'lonlar real vaqtda "
-      "yangilanadi, tasdiqlangan foydalanuvchilar ustuvor ko'rsatiladi.\n\n"
-      "Platformadan to'liq foydalanish uchun profilingizni to'ldiring, "
-      "hujjatlaringizni tasdiqlang va kerakli yo'nalishlar bo'yicha "
-      "bildirishnomalarni yoqing. Savollaringiz bo'lsa, yordam markaziga "
-      'murojaat qiling — biz har doim yordam berishga tayyormiz.';
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final n = notification;
-    final title = (n != null && n.title.isNotEmpty) ? n.title : _sampleTitle;
-    final body = (n != null && n.body.isNotEmpty) ? n.body : _sampleBody;
+    final title = (n != null && n.title.isNotEmpty)
+        ? n.title
+        : 'notifications.sample.title'.tr(ref);
+    final body = (n != null && n.body.isNotEmpty)
+        ? n.body
+        : 'notifications.sample.body'.tr(ref);
     final hero = n?.imageUrl;
 
     return AppScaffold(
-      title: 'Xabarlar',
+      title: 'notifications.title'.tr(ref),
       backgroundColor: FigmaPalette.sheetBg,
       padded: false,
       actions: const [
@@ -63,7 +59,7 @@ class NotificationDetailScreen extends StatelessWidget {
           ],
           if (n != null) ...[
             Text(
-              _dateLabel(n.createdAt),
+              _dateLabel(n.createdAt, ref),
               style: const TextStyle(
                 fontSize: 14,
                 height: 20 / 14,
@@ -98,11 +94,8 @@ class NotificationDetailScreen extends StatelessWidget {
   }
 
   /// ISO datetime → Uzbek "26 Iyun 2026" (month capitalised, as in Figma).
-  static String _dateLabel(DateTime dt) {
-    const months = [
-      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
-      'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr', //
-    ];
+  static String _dateLabel(DateTime dt, WidgetRef ref) {
+    final months = 'common.months'.tr(ref).split(',');
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
   }
 }

@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:loadme_mobile/features/loads/data/datasources/loads_remote_data_source.dart';
 import 'package:loadme_mobile/features/saved/domain/entities/saved_load.dart';
 
@@ -25,8 +22,6 @@ class SavedRemoteDataSource {
 
   Future<List<SavedLoad>> getSaved() async {
     final res = await _dio.get<dynamic>(_path);
-    // FAVDBG TEMP
-    debugPrint('FAVDBG /favorites/ body=${jsonEncode(res.data)}');
     return _resultsOf(res).map(_parseSaved).whereType<SavedLoad>().toList();
   }
 
@@ -35,9 +30,7 @@ class SavedRemoteDataSource {
   /// no separate favorite record to echo back. (`POST /favorites/` is 405; the
   /// create lives on the `loads/{id}/` sub-route.)
   Future<String?> addSaved(String loadId) async {
-    final r = await _dio.post<dynamic>('${_path}loads/$loadId/');
-    // FAVDBG TEMP
-    debugPrint('FAVDBG POST loads/$loadId/ -> ${r.statusCode}');
+    await _dio.post<dynamic>('${_path}loads/$loadId/');
     return loadId;
   }
 
@@ -61,9 +54,7 @@ class SavedRemoteDataSource {
 
   /// Saves a route (transport) via `POST /favorites/routes/{routeId}/`.
   Future<void> addSavedRoute(String routeId) async {
-    final r = await _dio.post<dynamic>('${_path}routes/$routeId/');
-    // FAVDBG TEMP
-    debugPrint('FAVDBG POST routes/$routeId/ -> ${r.statusCode}');
+    await _dio.post<dynamic>('${_path}routes/$routeId/');
   }
 
   /// Un-saves a route via `DELETE /favorites/routes/{routeId}/`.
@@ -86,7 +77,12 @@ class SavedRemoteDataSource {
 
   /// The favorite may wrap the load under a nested key, or be the load itself.
   Map<String, dynamic> _loadMapOf(Map<String, dynamic> record) {
+    // A `type`-tagged record is unambiguous: a route entry is never a load.
+    final type = record['type']?.toString();
+    if (type == 'route') return const {};
+
     const keys = [
+      'item',
       'load',
       'load_data',
       'load_detail',
@@ -96,26 +92,43 @@ class SavedRemoteDataSource {
     ];
     for (final key in keys) {
       final v = record[key];
-      if (v is Map) return Map<String, dynamic>.from(v);
+      if (v is Map) {
+        final m = Map<String, dynamic>.from(v);
+        // `item` is generic — only accept it when it actually looks like a
+        // load (a route entry also nests its object under `item`).
+        if (key == 'item' && !_looksLikeLoad(m)) continue;
+        return m;
+      }
     }
     // The record itself looks like a load when it carries route/owner fields.
-    final looksLikeLoad = record.containsKey('from_location') ||
-        record.containsKey('pickup_region') ||
-        record.containsKey('pickup_district') ||
-        record.containsKey('owner');
-    return looksLikeLoad ? record : const {};
+    return _looksLikeLoad(record) ? record : const {};
+  }
+
+  bool _looksLikeLoad(Map<String, dynamic> m) {
+    return m.containsKey('from_location') ||
+        m.containsKey('pickup_region') ||
+        m.containsKey('pickup_district') ||
+        m.containsKey('pickup_country') ||
+        m.containsKey('owner');
   }
 
   /// Extracts the route id from a favorites record that represents a saved
   /// route (vs a load). Loads are keyed by `load`; routes by `route`. Returns
   /// null when the record isn't a route, so load entries are skipped.
   String? _routeIdOf(Map<String, dynamic> record) {
-    for (final key in const ['route', 'route_data', 'route_detail']) {
+    final type = record['type']?.toString();
+    // Load entries are never routes — skip them.
+    if (type == 'load') return null;
+
+    for (final key in const ['route', 'route_data', 'route_detail', 'item']) {
       final v = record[key];
       if (v is Map) {
+        // `item` is generic; only treat it as a route when the record is
+        // tagged `route` or the object carries route-shaped fields.
+        if (key == 'item' && type != 'route' && !_looksLikeRoute(v)) continue;
         final id = (v['id'] ?? v['guid'])?.toString().trim();
         if (id != null && id.isNotEmpty) return id;
-      } else if (v != null) {
+      } else if (key != 'item' && v != null) {
         final id = v.toString().trim();
         if (id.isNotEmpty) return id;
       }
@@ -125,7 +138,22 @@ class SavedRemoteDataSource {
       final id = fk.toString().trim();
       if (id.isNotEmpty) return id;
     }
+    // The record may *be* the route object (e.g. the `{ loads, routes }` shape,
+    // where each route entry is the bare route tagged `type: route`).
+    if (type == 'route' || _looksLikeRoute(record)) {
+      final id = (record['id'] ?? record['guid'])?.toString().trim();
+      if (id != null && id.isNotEmpty) return id;
+    }
     return null;
+  }
+
+  /// Mirrors the web's `looksLikeRoute` heuristic for untagged favorite records.
+  bool _looksLikeRoute(Map v) {
+    return v.containsKey('truck') ||
+        v.containsKey('truck_route') ||
+        v.containsKey('departure_date') ||
+        v.containsKey('arrival_date') ||
+        v.containsKey('deadhead_radius_km');
   }
 
   // ---------------------------------------------------------------------------
@@ -134,6 +162,26 @@ class SavedRemoteDataSource {
 
   List<Map<String, dynamic>> _resultsOf(Response<dynamic> res) {
     final inner = _peel(res.data);
+
+    // Shape A — split buckets: `{ loads: [...], routes: [...] }`. Tag each
+    // entry with its `type` so the load/route splitters downstream can tell
+    // them apart even when the entry is the bare object.
+    if (inner is Map && (inner['loads'] is List || inner['routes'] is List)) {
+      final out = <Map<String, dynamic>>[];
+      for (final e in (inner['loads'] as List? ?? const [])) {
+        if (e is Map) {
+          out.add({...Map<String, dynamic>.from(e), 'type': 'load'});
+        }
+      }
+      for (final e in (inner['routes'] as List? ?? const [])) {
+        if (e is Map) {
+          out.add({...Map<String, dynamic>.from(e), 'type': 'route'});
+        }
+      }
+      return out;
+    }
+
+    // Shape B — flat paginated list of favorite records.
     final list = inner is List
         ? inner
         : (inner is Map

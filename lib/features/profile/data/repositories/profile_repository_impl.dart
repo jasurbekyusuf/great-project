@@ -12,4 +12,23 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   AsyncResult<ProfileEntity> getProfile() =>
       Guard.run(() => _remote.getMyProfile(), tag: _tag);
+
+  @override
+  AsyncResult<ProfileEntity> updateProfile({
+    String? fullName,
+    String? companyName,
+    String? personType,
+    String? telegramUsername,
+    String? whatsappNumber,
+  }) =>
+      Guard.run(
+        () => _remote.updateProfile(
+          fullName: fullName,
+          companyName: companyName,
+          personType: personType,
+          telegramUsername: telegramUsername,
+          whatsappNumber: whatsappNumber,
+        ),
+        tag: _tag,
+      );
 }

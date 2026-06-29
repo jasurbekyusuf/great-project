@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 
 // Mirrors `client_frontend_web-master/src/components/PageHead/styles.module.scss`:
@@ -26,13 +27,24 @@ class MobilePageHead extends StatelessWidget {
     final t = context.types;
 
     return Container(
+      // Figma redesign page head (e.g. "Xabarlar" 6804:11446): a white card
+      // (fill is white-glass over the gray page) with 24px bottom corners and a
+      // soft drop shadow — #000 @ 8%, y2, blur 14 — NOT a 1px hairline border.
+      // The shadow + white-on-gray contrast is what makes the rounded bottom
+      // corners read as a floating bar.
       decoration: BoxDecoration(
-        color: c.background,
-        border: Border(bottom: BorderSide(color: c.borderSubtle, width: 1)),
+        color: c.surface,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(s.radiusXl),
           bottomRight: Radius.circular(s.radiusXl),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            offset: const Offset(0, 2),
+            blurRadius: 14,
+          ),
+        ],
       ),
       child: SafeArea(
         bottom: false,
@@ -58,7 +70,10 @@ class MobilePageHead extends StatelessWidget {
                               onTap: onBack ??
                                   () => Navigator.maybePop(context),
                               radius: 20,
-                              child: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: c.textPrimary),
+                              // Figma redesign back control is a Lucide
+                              // chevron-left, 24x24, #101828 (e.g. "Xabarlar"
+                              // 6804:11446) — not the Material iOS arrow.
+                              child: Icon(LucideIcons.chevronLeft, size: 24, color: c.textPrimary),
                             )
                           : null),
                 ),
@@ -69,7 +84,11 @@ class MobilePageHead extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     softWrap: false,
-                    style: t.h3,
+                    // Figma redesign page-head title (e.g. "Xabarlar"
+                    // 6804:11446, "Yuk ma'lumotlari" 6435:39895): Inter 16/24
+                    // SemiBold #101828. h3 (18/26) runs 2px large, so override
+                    // size/height only — keeping h3's Inter face, w600 and color.
+                    style: t.h3.copyWith(fontSize: 16, height: 24 / 16),
                   ),
                 ),
                 ConstrainedBox(

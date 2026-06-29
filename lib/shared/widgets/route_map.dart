@@ -114,6 +114,22 @@ class _Pin extends StatelessWidget {
 LatLng cityLatLng(String city) =>
     _coords[city.trim().toLowerCase()] ?? _tashkent;
 
+/// Resolves a full "District, Region" address to a coordinate.
+///
+/// `cityLatLng(addressCity(...))` only ever tried the *district* token (the
+/// first segment, e.g. "Chilonzor"), which is not in the lookup — so both
+/// endpoints collapsed to Tashkent and no route line was drawn. This walks
+/// every comma-separated token (district first, then region) and returns the
+/// first hit, so an inter-region route still renders even when the backend
+/// omits precise pickup/delivery coordinates.
+LatLng resolveAddressLatLng(String address) {
+  for (final part in address.split(',')) {
+    final hit = _coords[part.trim().toLowerCase()];
+    if (hit != null) return hit;
+  }
+  return _tashkent;
+}
+
 const _tashkent = LatLng(41.2995, 69.2401);
 
 const Map<String, LatLng> _coords = {

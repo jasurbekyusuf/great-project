@@ -15,12 +15,18 @@ class MobileSegmentedTab extends StatelessWidget {
     required this.selectedIndex,
     required this.onChanged,
     this.variant = MobileSegmentedTabVariant.light,
+    this.height,
   });
 
   final List<String> items;
   final int selectedIndex;
   final ValueChanged<int> onChanged;
   final MobileSegmentedTabVariant variant;
+
+  /// Track height override. Defaults to the design-system `tabsHeight` (40).
+  /// The Figma "Xabarlar" segmented control is 36 tall (thumb 32), so the
+  /// notifications screen passes 36 to sit 1:1 with that frame.
+  final double? height;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +56,7 @@ class MobileSegmentedTab extends StatelessWidget {
           borderRadius: BorderRadius.circular(trackRadius),
           child: Container(
             width: width,
-            height: s.tabsHeight,
+            height: height ?? s.tabsHeight,
             decoration: BoxDecoration(
               color: trackColor,
               borderRadius: BorderRadius.circular(trackRadius),

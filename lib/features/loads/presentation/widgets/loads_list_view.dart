@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
@@ -151,34 +152,34 @@ class _NotFound extends ConsumerWidget {
       children: [
         // ── Empty block (Figma `Frame 2087329727`): extra 16px inset, T/B 20
         //    pad, 16px gap between the centred caption and the Magnit card.
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 20, 16, 20),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Column(
                 children: [
-                  Icon(
+                  const Icon(
                     LucideIcons.package,
                     size: 32,
                     color: FigmaPalette.gray700,
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    'Yuklar topilmadi',
+                    'loads.notFound.title'.tr(ref),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       height: 18 / 14,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF566075),
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Qidiruvingizga mos yuklar topilmadi.',
+                    'loads.notFound.subtitle'.tr(ref),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
                       height: 18 / 12,
                       fontWeight: FontWeight.w500,
@@ -187,8 +188,8 @@ class _NotFound extends ConsumerWidget {
                   ),
                 ],
               ),
-              SizedBox(height: 16),
-              _MagnitCard(),
+              const SizedBox(height: 16),
+              const _MagnitCard(),
             ],
           ),
         ),
@@ -196,7 +197,7 @@ class _NotFound extends ConsumerWidget {
         if (nearby != null && nearby.isNotEmpty) ...[
           const SizedBox(height: 20),
           Text(
-            '${nearbyTitle!}ga yaqin yuklar',
+            'loads.nearbyTitle'.tr(ref).replaceFirst('{place}', nearbyTitle!),
             style: const TextStyle(
               fontSize: 14,
               height: 20 / 14,
@@ -234,11 +235,11 @@ class _NotFound extends ConsumerWidget {
 
 // Magnit promo (Figma `Container` 6435:39573) — white r12 card (no border):
 // magnet glyph + "Magnit", a notify prompt, then the green "Yoqish" CTA.
-class _MagnitCard extends StatelessWidget {
+class _MagnitCard extends ConsumerWidget {
   const _MagnitCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -249,17 +250,17 @@ class _MagnitCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(
+                const Icon(
                   LucideIcons.magnet,
                   size: 20,
                   color: FigmaPalette.inkStrong,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
-                  'Magnit',
-                  style: TextStyle(
+                  'magnit.title'.tr(ref),
+                  style: const TextStyle(
                     fontSize: 14,
                     height: 20 / 14,
                     fontWeight: FontWeight.w600,
@@ -269,9 +270,9 @@ class _MagnitCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            const Text(
-              "Bu yo'nalishda yangi yuklar chiqishi bilan xabar beraylikmi?",
-              style: TextStyle(
+            Text(
+              'loads.magnitPromo.body'.tr(ref),
+              style: const TextStyle(
                 fontSize: 14,
                 height: 20 / 14,
                 fontWeight: FontWeight.w400,
@@ -285,13 +286,13 @@ class _MagnitCard extends StatelessWidget {
               child: InkWell(
                 onTap: () => context.push('/magnit'),
                 borderRadius: BorderRadius.circular(8),
-                child: const SizedBox(
+                child: SizedBox(
                   height: 40,
                   width: double.infinity,
                   child: Center(
                     child: Text(
-                      'Yoqish',
-                      style: TextStyle(
+                      'loads.magnitPromo.enable'.tr(ref),
+                      style: const TextStyle(
                         fontSize: 14,
                         height: 20 / 14,
                         fontWeight: FontWeight.w600,

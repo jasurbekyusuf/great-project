@@ -18,7 +18,10 @@ class MagnitRemoteDataSource {
 
   Future<List<MagnitTruckType>> getTruckTypes() async {
     final res = await _dio.get<dynamic>('/trucks/types/');
-    return _listOf(res).map(_parseType).whereType<MagnitTruckType>().toList();
+    return _flattenTypes(_peel(res.data))
+        .map(_parseType)
+        .whereType<MagnitTruckType>()
+        .toList();
   }
 
   /// The truck-model catalogue (`GET /trucks/models/`) — same envelope + id/name
@@ -87,6 +90,53 @@ class MagnitRemoteDataSource {
     );
     if (id == null || name == null) return null;
     return MagnitTruckType(id: id, name: name);
+  }
+
+  /// Flattens the truck-type directory into a flat, de-duplicated list of
+  /// selectable leaf types.
+  ///
+  /// `GET /trucks/types/` does NOT return a bare list — it groups types:
+  /// `data: { top: [...], categories: [ { id, name, children: [type...] } ] }`.
+  /// The selectable types are the leaves: a node with a non-empty `children`
+  /// list is a *category* (recurse into it, never list it), a node without
+  /// children is a real type. `top` is just a popular subset, so it is only
+  /// used as a fallback when `categories` is absent. Older/simple shapes
+  /// (`data: [...]`, `data.results`, `data.types`) still work.
+  List<Map<String, dynamic>> _flattenTypes(dynamic inner) {
+    final out = <String, Map<String, dynamic>>{}; // keyed by id → dedupe
+
+    void addLeaf(Map<dynamic, dynamic> node) {
+      final children = node['children'];
+      if (children is List && children.isNotEmpty) {
+        for (final c in children) {
+          if (c is Map) addLeaf(c);
+        }
+        return;
+      }
+      final id = _str(node['id'] ?? node['guid']);
+      if (id != null) out[id] = Map<String, dynamic>.from(node);
+    }
+
+    if (inner is List) {
+      for (final e in inner) {
+        if (e is Map) addLeaf(e);
+      }
+    } else if (inner is Map) {
+      final categories = inner['categories'];
+      if (categories is List && categories.isNotEmpty) {
+        for (final c in categories) {
+          if (c is Map) addLeaf(c);
+        }
+      } else {
+        final list = inner['results'] ?? inner['types'] ?? inner['top'];
+        if (list is List) {
+          for (final e in list) {
+            if (e is Map) addLeaf(e);
+          }
+        }
+      }
+    }
+    return out.values.toList();
   }
 
   /// Peels the envelope and returns the contained list (a bare `data` list or a

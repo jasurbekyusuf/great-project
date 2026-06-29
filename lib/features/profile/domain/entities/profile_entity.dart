@@ -13,6 +13,9 @@ class ProfileEntity {
     this.avatarUrl,
     this.rating,
     this.verified = false,
+    this.telegramUsername,
+    this.whatsappNumber,
+    this.personType,
   });
 
   final String guid;
@@ -27,4 +30,13 @@ class ProfileEntity {
   final String? avatarUrl;
   final double? rating;
   final bool verified;
+
+  /// Editable contact handles surfaced on the "Profilni tahrirlash" screen and
+  /// sent back via `PATCH /users/me/` (`telegram_username` / `whatsapp_number`).
+  final String? telegramUsername;
+  final String? whatsappNumber;
+
+  /// Backend `person_type`: `individual` | `legal`. Drives the "Profil turi"
+  /// selector (legal accounts also edit `company_name`).
+  final String? personType;
 }

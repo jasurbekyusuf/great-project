@@ -39,7 +39,9 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
   MagnitTruckType? _transport;
   String? _cargoType;
   String? _period;
-  bool _expanded = true;
+  // Magnit opens collapsed: only the 3 core fields (Qaerdan / Qaerga /
+  // Transport) show, with a "Ko'proq" toggle to reveal the optional fields.
+  bool _expanded = false;
   bool _submitting = false;
 
   @override
@@ -101,6 +103,8 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
   Future<void> _pickTransport() async {
     final List<MagnitTruckType> types;
     try {
+      // Drop any cached error/empty result so each tap retries a fresh fetch.
+      ref.invalidate(truckTypesProvider);
       types = await ref.read(truckTypesProvider.future);
     } catch (_) {
       if (!mounted) return;
@@ -109,7 +113,14 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
       );
       return;
     }
-    if (!mounted || types.isEmpty) return;
+    if (!mounted) return;
+    // An empty directory must not look like a dead tap — tell the user.
+    if (types.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('magnit.typesError'.tr(ref))),
+      );
+      return;
+    }
     final v = await showDsActionDrawer<String>(
       context: context,
       title: 'magnit.transport'.tr(ref),

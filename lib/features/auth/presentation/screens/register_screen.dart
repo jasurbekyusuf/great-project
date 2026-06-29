@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:loadme_mobile/features/auth/presentation/providers/auth_flow_provider.dart';
@@ -24,17 +25,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _loading = false;
 
   // Role cards → web roles. Haydovchi=carrier, Logist=broker, Yuk egasi=shipper.
+  // Value + icon only; the displayed label is localized via [_roleLabel].
   static const _roles = [
-    ('carrier', 'Haydovchi', LucideIcons.truck),
-    ('broker', 'Logist/Dispetcher', LucideIcons.headset),
-    ('shipper', 'Yuk egasi', LucideIcons.package),
+    ('carrier', LucideIcons.truck),
+    ('broker', LucideIcons.headset),
+    ('shipper', LucideIcons.package),
   ];
 
   // Person type → web person_type (individual | legal).
   static const _types = [
-    ('individual', 'Jismoniy', LucideIcons.user),
-    ('legal', 'Yuridik', LucideIcons.building2),
+    ('individual', LucideIcons.user),
+    ('legal', LucideIcons.building2),
   ];
+
+  // Register uses 'Logist/Dispetcher' for broker (the profile screen shows the
+  // shorter 'Dispecher'), so broker maps to its own key here.
+  String _roleLabel(String value) {
+    switch (value) {
+      case 'broker':
+        return 'register.role.broker'.tr(ref);
+      case 'shipper':
+        return 'role.shipper'.tr(ref);
+      default:
+        return 'role.carrier'.tr(ref);
+    }
+  }
+
+  String _typeLabel(String value) => value == 'legal'
+      ? 'register.type.legal'.tr(ref)
+      : 'register.type.individual'.tr(ref);
 
   @override
   void initState() {
@@ -54,7 +73,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ism va familiyangizni kiriting')),
+        SnackBar(content: Text('register.nameRequired'.tr(ref))),
       );
       return;
     }
@@ -72,7 +91,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (!mounted) return;
       if (fail != null || session == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(fail?.message ?? 'Xatolik')),
+          SnackBar(content: Text(fail?.message ?? 'common.error'.tr(ref))),
         );
         return;
       }
@@ -114,9 +133,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Siz kimsiz?',
-                                style: TextStyle(
+                              Text(
+                                'register.title'.tr(ref),
+                                style: const TextStyle(
                                   fontSize: 32,
                                   height: 38.7 / 32,
                                   fontWeight: FontWeight.w600,
@@ -128,7 +147,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           const SizedBox(height: 32),
                           // Foydalanuvchi turini tanlang — 3 role cards.
-                          const _SectionLabel('Foydalanuvchi turini tanlang'),
+                          _SectionLabel('register.roleSection'.tr(ref)),
                           const SizedBox(height: 8),
                           Row(
                             children: [
@@ -136,8 +155,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 if (i > 0) const SizedBox(width: 8),
                                 Expanded(
                                   child: _RoleCard(
-                                    icon: _roles[i].$3,
-                                    label: _roles[i].$2,
+                                    icon: _roles[i].$2,
+                                    label: _roleLabel(_roles[i].$1),
                                     selected: flow.role == _roles[i].$1,
                                     onTap: () => ref
                                         .read(authFlowProvider.notifier)
@@ -149,7 +168,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           const SizedBox(height: 32),
                           // Ishlash shaklini tanlang — 2 person-type cards.
-                          const _SectionLabel('Ishlash shaklini tanlang'),
+                          _SectionLabel('register.typeSection'.tr(ref)),
                           const SizedBox(height: 8),
                           Row(
                             children: [
@@ -157,8 +176,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 if (i > 0) const SizedBox(width: 8),
                                 Expanded(
                                   child: _TypeCard(
-                                    icon: _types[i].$3,
-                                    label: _types[i].$2,
+                                    icon: _types[i].$2,
+                                    label: _typeLabel(_types[i].$1),
                                     selected: flow.personType == _types[i].$1,
                                     onTap: () => ref
                                         .read(authFlowProvider.notifier)
@@ -170,8 +189,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           const SizedBox(height: 32),
                           // Ism va familiyangiz / Tashkilot nomi.
-                          _SectionLabel(
-                              isLegal ? 'Tashkilot nomi' : 'Ism va familiyangiz'),
+                          _SectionLabel(isLegal
+                              ? 'register.companyLabel'.tr(ref)
+                              : 'register.nameLabel'.tr(ref)),
                           const SizedBox(height: 8),
                           _NameField(
                             controller: _nameController,
@@ -191,19 +211,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text.rich(
+                  Text.rich(
                     TextSpan(
                       children: [
-                        TextSpan(text: 'Davom etish orqali '),
+                        TextSpan(text: 'register.termsPrefix'.tr(ref)),
                         TextSpan(
-                          text: 'foydalanish shartlari',
-                          style: TextStyle(color: FigmaPalette.primary),
+                          text: 'register.termsLink'.tr(ref),
+                          style: const TextStyle(color: FigmaPalette.primary),
                         ),
-                        TextSpan(text: 'ga rozilik bildirasiz'),
+                        TextSpan(text: 'register.termsSuffix'.tr(ref)),
                       ],
                     ),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       height: 22 / 14,
                       fontWeight: FontWeight.w400,
@@ -212,7 +232,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   const SizedBox(height: 8),
                   _PrimaryButton(
-                    label: 'Davom etish',
+                    label: 'auth.continue'.tr(ref),
                     loading: _loading,
                     onPressed: _continue,
                   ),
@@ -410,13 +430,13 @@ class _IconTile extends StatelessWidget {
 
 /// Full-width 56px r12 text field (#F2F4F7) with a "Kiriting" placeholder and a
 /// blue focus ring, matching the welcome phone field.
-class _NameField extends StatelessWidget {
+class _NameField extends ConsumerWidget {
   const _NameField({required this.controller, required this.focusNode});
   final TextEditingController controller;
   final FocusNode focusNode;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final focused = focusNode.hasFocus;
     return Container(
       height: 56,
@@ -441,9 +461,9 @@ class _NameField extends StatelessWidget {
           fontWeight: FontWeight.w400,
           color: FigmaPalette.inkStrong,
         ),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           isCollapsed: true,
-          constraints: BoxConstraints(),
+          constraints: const BoxConstraints(),
           filled: false,
           contentPadding: EdgeInsets.zero,
           border: InputBorder.none,
@@ -452,8 +472,8 @@ class _NameField extends StatelessWidget {
           errorBorder: InputBorder.none,
           focusedErrorBorder: InputBorder.none,
           disabledBorder: InputBorder.none,
-          hintText: 'Kiriting',
-          hintStyle: TextStyle(
+          hintText: 'register.nameHint'.tr(ref),
+          hintStyle: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w400,
             color: FigmaPalette.label,

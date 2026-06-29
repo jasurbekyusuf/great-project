@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 
 // iOS-style 3-column date / time picker shown as a modal bottom sheet.
@@ -7,7 +9,7 @@ import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 // (day / month / year for date; hours / minutes for time).
 Future<DateTime?> showCupertinoDateSheet(BuildContext context, {
   required DateTime initial,
-  String title = 'Date',
+  String? title,
   DateTime? minimum,
   DateTime? maximum,
   CupertinoDatePickerMode mode = CupertinoDatePickerMode.date,
@@ -22,6 +24,9 @@ Future<DateTime?> showCupertinoDateSheet(BuildContext context, {
     builder: (ctx) {
       final c = ctx.colors;
       final t = ctx.types;
+      final l10n = ProviderScope.containerOf(ctx, listen: false).read(
+        appL10nProvider,
+      );
       return SafeArea(
         top: false,
         child: Padding(
@@ -40,7 +45,7 @@ Future<DateTime?> showCupertinoDateSheet(BuildContext context, {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                child: Text(title, style: t.h2),
+                child: Text(title ?? l10n.tr('common.date'), style: t.h2),
               ),
               const SizedBox(height: 8),
               SizedBox(
@@ -69,14 +74,14 @@ Future<DateTime?> showCupertinoDateSheet(BuildContext context, {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Bekor'),
+                      child: Text(l10n.tr('common.cancel')),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
                       onPressed: () => Navigator.pop(ctx, picked),
-                      child: const Text('Tasdiqlash'),
+                      child: Text(l10n.tr('common.confirm')),
                     ),
                   ),
                 ],
@@ -91,14 +96,18 @@ Future<DateTime?> showCupertinoDateSheet(BuildContext context, {
 
 Future<TimeOfDay?> showCupertinoTimeSheet(BuildContext context, {
   required TimeOfDay initial,
-  String title = 'Time',
+  String? title,
 }) async {
+  final resolvedTitle = title ??
+      ProviderScope.containerOf(context, listen: false)
+          .read(appL10nProvider)
+          .tr('common.time');
   final now = DateTime.now();
   final initialDate = DateTime(now.year, now.month, now.day, initial.hour, initial.minute);
   final picked = await showCupertinoDateSheet(
     context,
     initial: initialDate,
-    title: title,
+    title: resolvedTitle,
     mode: CupertinoDatePickerMode.time,
   );
   if (picked == null) return null;

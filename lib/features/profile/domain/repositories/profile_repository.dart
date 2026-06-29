@@ -3,4 +3,12 @@ import 'package:loadme_mobile/features/profile/domain/entities/profile_entity.da
 
 abstract interface class ProfileRepository {
   AsyncResult<ProfileEntity> getProfile();
+
+  AsyncResult<ProfileEntity> updateProfile({
+    String? fullName,
+    String? companyName,
+    String? personType,
+    String? telegramUsername,
+    String? whatsappNumber,
+  });
 }

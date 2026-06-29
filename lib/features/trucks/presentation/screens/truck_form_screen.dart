@@ -56,7 +56,7 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
     if (!mounted) return;
     final v = await showDsActionDrawer<String>(
       context: context,
-      title: 'Transport turi',
+      title: 'truckType.title'.tr(ref),
       currentValue: _truckType?.id,
       items: [
         for (final t in types) DsActionDrawerItem(value: t.id, label: t.name),
@@ -124,24 +124,24 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
                   children: [
                     _SelectTile(
                       icon: LucideIcons.hexagon,
-                      label: 'Transport modeli',
-                      hint: 'Modelni kiriting',
+                      label: 'truckForm.model'.tr(ref),
+                      hint: 'truckForm.modelHint'.tr(ref),
                       value: _model,
                       onTap: _pickModel,
                     ),
                     const SizedBox(height: 8),
                     _SelectTile(
                       icon: LucideIcons.truck,
-                      label: 'Transport turi',
-                      hint: 'Transportni tanlang',
+                      label: 'truckType.title'.tr(ref),
+                      hint: 'truckForm.typeHint'.tr(ref),
                       value: _truckType?.name,
                       onTap: _pickTruckType,
                     ),
                     const SizedBox(height: 8),
                     _SelectTile(
                       icon: LucideIcons.hash,
-                      label: 'Transport raqami',
-                      hint: 'Raqamni kiriting',
+                      label: 'truckForm.plate'.tr(ref),
+                      hint: 'truckForm.plateHint'.tr(ref),
                       value: _plateController.text.isEmpty
                           ? null
                           : _plateController.text,
@@ -150,8 +150,8 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
                     const SizedBox(height: 8),
                     _SelectTile(
                       icon: LucideIcons.weight,
-                      label: 'Maksimum yuk olish quvvati',
-                      hint: 'Quvvatni kiriting',
+                      label: 'truckForm.capacity'.tr(ref),
+                      hint: 'truckForm.capacityHint'.tr(ref),
                       value: _measureController.text.isEmpty
                           ? null
                           : _measureController.text,
@@ -180,10 +180,14 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
 
   Future<void> _submit() async {
     final errors = <String>[];
-    if (_model == null) errors.add('Model: tanlash kerak');
-    if (_truckType == null) errors.add('Transport turi: tanlash kerak');
+    if (_model == null) {
+      errors.add('${'truckForm.model'.tr(ref)}: ${'truckForm.mustSelect'.tr(ref)}');
+    }
+    if (_truckType == null) {
+      errors.add('${'truckType.title'.tr(ref)}: ${'truckForm.mustSelect'.tr(ref)}');
+    }
     if (_plateController.text.trim().isEmpty) {
-      errors.add('Transport raqami: kiritish kerak');
+      errors.add('${'truckForm.plate'.tr(ref)}: ${'truckForm.mustEnter'.tr(ref)}');
     }
     if (errors.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -233,7 +237,7 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Header — back · "Transport qo'shish" · bookmark
+// Header — back · "Transport qo'shish" (no trailing action)
 // ---------------------------------------------------------------------------
 
 class _Header extends StatelessWidget {
@@ -263,7 +267,9 @@ class _Header extends StatelessWidget {
                   ),
                 ),
               ),
-              _IconBtn(icon: LucideIcons.bookmark, onTap: () {}),
+              // Balances the leading back button so the title stays centred.
+              // (No bookmark action on this screen — Figma 6542:42454.)
+              const SizedBox(width: 40),
             ],
           ),
         ),
@@ -479,11 +485,11 @@ class _ModelPickerSheetState extends ConsumerState<_ModelPickerSheet> {
                 ),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               child: Text(
-                'Transport modeli',
-                style: TextStyle(
+                'truckForm.model'.tr(ref),
+                style: const TextStyle(
                   fontSize: 18,
                   height: 24 / 18,
                   fontWeight: FontWeight.w600,
@@ -496,10 +502,10 @@ class _ModelPickerSheetState extends ConsumerState<_ModelPickerSheet> {
               controller: _search,
               autofocus: true,
               onChanged: (v) => setState(() => _query = v),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
-                hintText: 'Qidiruv',
-                prefixIcon: Icon(LucideIcons.search, size: 18),
+                hintText: 'common.search'.tr(ref),
+                prefixIcon: const Icon(LucideIcons.search, size: 18),
               ),
             ),
             const SizedBox(height: 8),
@@ -528,7 +534,7 @@ class _ModelPickerSheetState extends ConsumerState<_ModelPickerSheet> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Ro’yxatga qo’shish: «$q»',
+                                'truckForm.addToList'.tr(ref).replaceFirst('{q}', q),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -587,15 +593,15 @@ Future<String?> showPlateInput(BuildContext context, String initial) {
   );
 }
 
-class _PlateInputPage extends StatefulWidget {
+class _PlateInputPage extends ConsumerStatefulWidget {
   const _PlateInputPage({required this.initial});
   final String initial;
 
   @override
-  State<_PlateInputPage> createState() => _PlateInputPageState();
+  ConsumerState<_PlateInputPage> createState() => _PlateInputPageState();
 }
 
-class _PlateInputPageState extends State<_PlateInputPage> {
+class _PlateInputPageState extends ConsumerState<_PlateInputPage> {
   late final TextEditingController _region;
   late final TextEditingController _body;
 
@@ -652,9 +658,9 @@ class _PlateInputPageState extends State<_PlateInputPage> {
                       onTap: () => Navigator.pop(context),
                     ),
                     const SizedBox(width: 4),
-                    const Text(
-                      'Transport raqami',
-                      style: TextStyle(
+                    Text(
+                      'truckForm.plate'.tr(ref),
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: FigmaPalette.ink,
@@ -671,7 +677,7 @@ class _PlateInputPageState extends State<_PlateInputPage> {
             ),
             const Spacer(),
             _SubmitBar(
-              label: 'Saqlash',
+              label: 'common.save'.tr(ref),
               loading: false,
               onPressed: _valid ? _save : null,
             ),
@@ -847,15 +853,15 @@ Future<String?> showCapacityInput(BuildContext context, String initial) {
   );
 }
 
-class _CapacitySheet extends StatefulWidget {
+class _CapacitySheet extends ConsumerStatefulWidget {
   const _CapacitySheet({required this.initial});
   final String initial;
 
   @override
-  State<_CapacitySheet> createState() => _CapacitySheetState();
+  ConsumerState<_CapacitySheet> createState() => _CapacitySheetState();
 }
 
-class _CapacitySheetState extends State<_CapacitySheet> {
+class _CapacitySheetState extends ConsumerState<_CapacitySheet> {
   late final TextEditingController _value;
   late String _unit;
 
@@ -878,17 +884,23 @@ class _CapacitySheetState extends State<_CapacitySheet> {
     super.dispose();
   }
 
-  String get _hint => _unit == 'Hajm' ? 'm³' : 'tonna';
+  String get _hint => _unit == 'Hajm' ? 'm³' : 'truckForm.tonna'.tr(ref);
   String get _short => _unit == 'Hajm' ? 'm³' : 't';
+
+  // Localized short unit name for the collapsed selector. The canonical _unit
+  // value stays "Og'irlik" / "Hajm" so state + drawer matching are unaffected.
+  String get _unitLabel =>
+      _unit == 'Hajm' ? 'truckForm.volume'.tr(ref) : 'truckForm.weight'.tr(ref);
 
   Future<void> _pickUnit() async {
     final v = await showDsActionDrawer<String>(
       context: context,
-      title: 'Birlik',
+      title: 'truckForm.unit'.tr(ref),
       currentValue: _unit,
-      items: const [
-        DsActionDrawerItem(value: "Og'irlik", label: "Og'irlik (tonna)"),
-        DsActionDrawerItem(value: 'Hajm', label: 'Hajm (m³)'),
+      items: [
+        DsActionDrawerItem(
+            value: "Og'irlik", label: 'truckForm.unitWeight'.tr(ref)),
+        DsActionDrawerItem(value: 'Hajm', label: 'truckForm.unitVolume'.tr(ref)),
       ],
     );
     if (v != null) setState(() => _unit = v);
@@ -934,9 +946,9 @@ class _CapacitySheetState extends State<_CapacitySheet> {
                       size: 22, color: FigmaPalette.ink),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Maksimum yuk olish quvvati',
-                  style: TextStyle(
+                Text(
+                  'truckForm.capacity'.tr(ref),
+                  style: const TextStyle(
                     fontSize: 18,
                     height: 24 / 18,
                     fontWeight: FontWeight.w600,
@@ -994,7 +1006,7 @@ class _CapacitySheetState extends State<_CapacitySheet> {
                     child: Row(
                       children: [
                         Text(
-                          _unit,
+                          _unitLabel,
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
@@ -1011,7 +1023,7 @@ class _CapacitySheetState extends State<_CapacitySheet> {
             ),
             const SizedBox(height: 16),
             _SubmitBar(
-              label: 'Saqlash',
+              label: 'common.save'.tr(ref),
               loading: false,
               onPressed: _valid ? _save : null,
             ),

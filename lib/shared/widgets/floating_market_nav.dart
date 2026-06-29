@@ -1,7 +1,10 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
+import 'package:loadme_mobile/features/notifications/presentation/providers/notifications_providers.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Floating pill bottom navigation — pixel-faithful port of the Figma
@@ -15,7 +18,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 /// The center "FAB" slot renders a raised blue circle that overshoots the
 /// pill by half its height. Use the same widget in both the authed shell
 /// and guest mode so the chrome stays identical.
-class FloatingMarketNav extends StatelessWidget {
+class FloatingMarketNav extends ConsumerWidget {
   const FloatingMarketNav({
     super.key,
     required this.activeIndex,
@@ -51,7 +54,8 @@ class FloatingMarketNav extends StatelessWidget {
   static const double reservedHeight = _pillHeight + _fabOvershoot + 10;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadNotificationsCountProvider);
     return SafeArea(
       top: false,
       child: Padding(
@@ -101,7 +105,7 @@ class FloatingMarketNav extends StatelessWidget {
                           children: [
                             Expanded(
                               child: _NavSlot(
-                                label: 'Asosiy',
+                                label: 'nav.home'.tr(ref),
                                 icon: LucideIcons.search,
                                 active: activeIndex == 0,
                                 onTap: () => onTap(0),
@@ -119,15 +123,16 @@ class FloatingMarketNav extends StatelessWidget {
                             const SizedBox(width: _fabSize),
                             Expanded(
                               child: _NavSlot(
-                                label: 'Xabarlar',
+                                label: 'nav.messages'.tr(ref),
                                 icon: LucideIcons.bell,
                                 active: activeIndex == 3,
                                 onTap: () => onTap(3),
+                                badgeCount: unread,
                               ),
                             ),
                             Expanded(
                               child: _NavSlot(
-                                label: 'Profil',
+                                label: 'nav.profile'.tr(ref),
                                 icon: LucideIcons.user,
                                 active: activeIndex == 4,
                                 onTap: () => onTap(4),
@@ -163,12 +168,17 @@ class _NavSlot extends StatelessWidget {
     required this.icon,
     required this.active,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   final String label;
   final IconData icon;
   final bool active;
   final VoidCallback onTap;
+
+  /// Unread count drawn as a red badge over the icon's top-right. 0 hides it;
+  /// anything over 99 shows "99+".
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +192,7 @@ class _NavSlot extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 20, color: color),
+          _IconWithBadge(icon: icon, color: color, count: badgeCount),
           const SizedBox(height: 3),
           Text(
             label,
@@ -197,6 +207,58 @@ class _NavSlot extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Nav icon with an optional unread badge pinned to its top-right corner.
+class _IconWithBadge extends StatelessWidget {
+  const _IconWithBadge({
+    required this.icon,
+    required this.color,
+    required this.count,
+  });
+
+  final IconData icon;
+  final Color color;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon0 = Icon(icon, size: 20, color: color);
+    if (count <= 0) return icon0;
+
+    final label = count > 99 ? '99+' : '$count';
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        icon0,
+        Positioned(
+          top: -5,
+          right: -7,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            constraints: const BoxConstraints(minWidth: 16),
+            height: 16,
+            decoration: BoxDecoration(
+              color: FigmaPalette.unreadDot,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white, width: 1.5),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 9,
+                height: 1,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

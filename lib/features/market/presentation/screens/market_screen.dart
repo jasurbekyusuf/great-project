@@ -89,6 +89,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
       bottomNavigationBar: widget.guest
           ? FloatingMarketNav(
               activeIndex: 0,
+              secondLabel: 'nav.garage'.tr(ref),
               onTap: (i) {
                 if (i == 0) return;
                 showMobileAuthRequiredSheet(context);
@@ -262,7 +263,10 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
   /// "Barcha yuklar: N" — the count is the real backend total for the active
   /// filter (keyed by its canonical string so equal filters share one fetch).
   String _loadsCountLabel() {
-    final filters = _loadsFilters();
+    // Key the count off the *applied* filter (the single source of truth), not
+    // the local search-sheet state — otherwise a Filtrlar selection narrows the
+    // list but leaves the total stuck on the whole-feed count.
+    final filters = ref.watch(activeLoadsFilterProvider);
     final count = _formatCount(
       ref.watch(loadsCountProvider(loadsFilterKey(filters))).valueOrNull,
     );
@@ -365,7 +369,7 @@ class _PillTabs extends StatelessWidget {
 // Combined search bar — Figma `Input` (343×62, r16, pad 10/14, gap 10).
 // ---------------------------------------------------------------------------
 
-class _CombinedSearchBar extends StatelessWidget {
+class _CombinedSearchBar extends ConsumerWidget {
   const _CombinedSearchBar({
     required this.origin,
     required this.destination,
@@ -379,9 +383,9 @@ class _CombinedSearchBar extends StatelessWidget {
   final VoidCallback onTapAll;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final routeText = (origin == null && destination == null)
-        ? 'Qayerdan → Qayerga'
+        ? 'market.searchPlaceholder'.tr(ref)
         : '${origin?.title ?? '...'} → ${destination?.title ?? '...'}';
 
     return DecoratedBox(
@@ -426,10 +430,10 @@ class _CombinedSearchBar extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Qidiruv',
+                    Text(
+                      'common.search'.tr(ref),
                       maxLines: 1,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         height: 1.25,
                         fontWeight: FontWeight.w400,
@@ -464,9 +468,9 @@ class _CombinedSearchBar extends StatelessWidget {
                   const Icon(LucideIcons.truck,
                       color: FigmaPalette.ink, size: 20),
                   const SizedBox(height: 2),
-                  const Text(
-                    'Hamma',
-                    style: TextStyle(
+                  Text(
+                    'common.all'.tr(ref),
+                    style: const TextStyle(
                       fontSize: 13,
                       height: 18 / 13,
                       fontWeight: FontWeight.w500,
@@ -489,14 +493,14 @@ class _CombinedSearchBar extends StatelessWidget {
 //   right : white pill button (shadow, r8) with blue filter icon + "Filtr"
 // ---------------------------------------------------------------------------
 
-class _CountFilterRow extends StatelessWidget {
+class _CountFilterRow extends ConsumerWidget {
   const _CountFilterRow({required this.countLabel, required this.onFilter});
 
   final String countLabel;
   final VoidCallback onFilter;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -530,16 +534,16 @@ class _CountFilterRow extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Figma uses a funnel (filter) glyph, not sliders.
-                Icon(LucideIcons.filter,
+                const Icon(LucideIcons.filter,
                     size: 18, color: FigmaPalette.primary),
-                SizedBox(width: 6),
+                const SizedBox(width: 6),
                 Text(
-                  'Filtr',
-                  style: TextStyle(
+                  'common.filter'.tr(ref),
+                  style: const TextStyle(
                     fontSize: 14,
                     height: 20 / 14,
                     fontWeight: FontWeight.w500,
@@ -559,19 +563,44 @@ class _CountFilterRow extends StatelessWidget {
 // Location-off banner — shown above the marketplace list while the device
 // can't give a position (location service off, or permission missing). Tapping
 // runs the best-effort `enableLocation` flow (permission prompt → settings).
-//
-// NOTE: the Figma we were given only includes the empty-search frame
-// (6435:39539); no dedicated "location off" frame was shared, so this banner's
-// styling is a best-effort interpretation pending the real design node.
+// Per Figma: a single warning-triangle icon + one line of copy, no chevron.
 // ---------------------------------------------------------------------------
 
-class _LocationBanner extends ConsumerWidget {
+class _LocationBanner extends ConsumerStatefulWidget {
   const _LocationBanner();
 
+  @override
+  ConsumerState<_LocationBanner> createState() => _LocationBannerState();
+}
+
+class _LocationBannerState extends ConsumerState<_LocationBanner>
+    with WidgetsBindingObserver {
   static const _orange = Color(0xFFF2994A);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Returning from the OS location / app-settings screen is exactly when
+    // access may have just been granted. Re-check so the banner clears on its
+    // own, instead of lingering until the user leaves and re-opens the tab.
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(locationEnabledProvider);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Defaults to `true` (banner hidden) until the check resolves and on any
     // geolocator hiccup, so a platform error never nags with a false warning.
     final enabled = ref.watch(locationEnabledProvider).valueOrNull ?? true;
@@ -594,52 +623,22 @@ class _LocationBanner extends ConsumerWidget {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFCE7D2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      LucideIcons.mapPin,
-                      size: 20,
-                      color: _orange,
-                    ),
+                  const Icon(
+                    LucideIcons.triangleAlert,
+                    size: 20,
+                    color: _orange,
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Joylashuvni yoqing',
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 20 / 14,
-                            fontWeight: FontWeight.w600,
-                            color: FigmaPalette.inkStrong,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Yaqin atrofdagi yuklarni topish uchun '
-                          'joylashuvga ruxsat bering.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            height: 16 / 12,
-                            fontWeight: FontWeight.w400,
-                            color: FigmaPalette.gray700,
-                          ),
-                        ),
-                      ],
+                  Expanded(
+                    child: Text(
+                      'market.locationOff.title'.tr(ref),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 20 / 14,
+                        fontWeight: FontWeight.w500,
+                        color: FigmaPalette.inkStrong,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(
-                    LucideIcons.chevronRight,
-                    size: 20,
-                    color: FigmaPalette.gray700,
                   ),
                 ],
               ),

@@ -13,8 +13,10 @@ class LoadEntity {
     this.fromCountry,
     this.toCountry,
     this.comment,
+    this.commodity,
     this.price,
     this.priceLabel,
+    this.advanceLabel,
     this.pickupDate,
     this.deliveryDate,
     this.createdAt,
@@ -30,6 +32,7 @@ class LoadEntity {
     this.verified = false,
     this.isPartial = false,
     this.isActive = true,
+    this.isFavorite = false,
     this.phone,
     this.telegram,
     this.whatsapp,
@@ -51,10 +54,19 @@ class LoadEntity {
 
   final String? comment;
 
+  /// Commodity / product being shipped (`commodity` on the load payload) —
+  /// rendered as the "Mahsulot" detail row. Null when the backend omits it.
+  final String? commodity;
+
   /// Raw numeric price, plus the pre-formatted label ("20 000 000 so'm" or
   /// "Kelishiladi" when there is no price).
   final double? price;
   final String? priceLabel;
+
+  /// Pre-formatted advance/prepayment label ("30 000 000 so'm") from
+  /// `advance_payment`; null when there is no advance — the route card's
+  /// "Avans" column then shows a dash.
+  final String? advanceLabel;
 
   /// ISO timestamps from the backend (`pickup_date` / `delivery_date`).
   final String? pickupDate;
@@ -85,6 +97,12 @@ class LoadEntity {
   /// `is_partial` → "Qisman" vs "To'liq".
   final bool isPartial;
   final bool isActive;
+
+  /// Backend wishlist saved-state for the current viewer (`is_favorite` on the
+  /// `/loads/` list cards and the detail response; false for guests and for
+  /// loads the viewer hasn't saved). The bookmark icon reads this as its source
+  /// of truth, so saved-state survives without a separate favorites-list fetch.
+  final bool isFavorite;
 
   final String? phone;
   final String? telegram;

@@ -61,6 +61,15 @@ Map<String, String> loadsFilterMap(String key) {
   return out;
 }
 
+/// The loads location filter currently applied to the public feed (`pickup_*` /
+/// `delivery_*` → place id). Single source of truth shared by [LoadsController]
+/// (which pages the narrowed feed) and the marketplace count header (which keys
+/// [loadsCountProvider] off it), so "Topildi: N" always matches the rows the
+/// list actually shows — whether the filter came from the Qidiruv search sheet
+/// or the Filtrlar screen.
+final activeLoadsFilterProvider =
+    StateProvider<Map<String, String>>((ref) => const {});
+
 // Async family for load detail page.
 final loadDetailsProvider =
     FutureProvider.family.autoDispose<LoadEntity, String>((ref, id) async {
@@ -89,10 +98,6 @@ class LoadsController extends AutoDisposeAsyncNotifier<List<LoadEntity>> {
   bool _loadingMore = false;
   String? _query;
 
-  // Server-side location filter from the Filtrlar screen — `pickup_region`,
-  // `delivery_district`, … → a place UUID. Sent with every page fetch.
-  Map<String, String> _locationFilters = const {};
-
   // Raw items accumulated across pages. `state` always exposes the *filtered*
   // view of this list, so server pagination and the client-side search filter
   // stay coherent: a new page is appended here, then the whole thing re-filtered.
@@ -109,8 +114,12 @@ class LoadsController extends AutoDisposeAsyncNotifier<List<LoadEntity>> {
     _page = 1;
     _hasMore = true;
     _loadingMore = false;
+    // Watch the active filter so a new Qidiruv / Filtrlar selection re-runs
+    // build (fresh page 1) and stays in lock-step with the count header, which
+    // keys [loadsCountProvider] off the very same provider.
+    final locationFilters = ref.watch(activeLoadsFilterProvider);
     final result = await ref.read(fetchLoadsUseCaseProvider).call(
-        PaginatedInput(page: 1, limit: _limit, filters: _locationFilters));
+        PaginatedInput(page: 1, limit: _limit, filters: locationFilters));
     return result.fold(
       (f) => throw f,
       (list) {
@@ -128,8 +137,9 @@ class LoadsController extends AutoDisposeAsyncNotifier<List<LoadEntity>> {
     _hasMore = true;
     _loadingMore = false;
     state = const AsyncLoading();
+    final locationFilters = ref.read(activeLoadsFilterProvider);
     final result = await ref.read(fetchLoadsUseCaseProvider).call(
-        PaginatedInput(page: 1, limit: _limit, filters: _locationFilters));
+        PaginatedInput(page: 1, limit: _limit, filters: locationFilters));
     state = result.fold(
       (f) => AsyncError(f, StackTrace.current),
       (list) {
@@ -150,11 +160,12 @@ class LoadsController extends AutoDisposeAsyncNotifier<List<LoadEntity>> {
     if (_loadingMore || !_hasMore || state.valueOrNull == null) return;
     _loadingMore = true;
     final next = _page + 1;
+    final locationFilters = ref.read(activeLoadsFilterProvider);
     final result =
         await ref.read(fetchLoadsUseCaseProvider).call(PaginatedInput(
               page: next,
               limit: _limit,
-              filters: _locationFilters,
+              filters: locationFilters,
             ));
     _loadingMore = false;
     result.fold(
@@ -173,13 +184,14 @@ class LoadsController extends AutoDisposeAsyncNotifier<List<LoadEntity>> {
     state = AsyncData(_applyFilter(_all));
   }
 
-  /// Applies the Filtrlar screen's "Qayerdan / Qayerga" choice as a *server*
-  /// filter: re-fetches page 1 of `/loads/available/` constrained by the picked
-  /// places' ids, so the whole marketplace is narrowed — not just the rows
-  /// already paged in. An empty map clears the filter and reloads the full feed.
-  Future<void> applyLocationFilter(Map<String, String> filters) async {
-    _locationFilters = Map<String, String>.unmodifiable(filters);
-    await refresh();
+  /// Applies the Qidiruv / Filtrlar "Qayerdan / Qayerga" choice as a *server*
+  /// filter on `/loads/available/`. Writing [activeLoadsFilterProvider] re-runs
+  /// [build] (fresh page 1) — so the whole marketplace narrows, not just the
+  /// rows already paged in — and updates the count header in the same tick,
+  /// since it keys off the very same provider. An empty map clears the filter.
+  void applyLocationFilter(Map<String, String> filters) {
+    ref.read(activeLoadsFilterProvider.notifier).state =
+        Map<String, String>.unmodifiable(filters);
   }
 
   Future<AppFailure?> saveLoad({

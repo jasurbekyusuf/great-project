@@ -37,6 +37,23 @@ class SupportFile {
   }
 }
 
+/// A preset FAQ button — `{ id, question }` from
+/// `GET /feedback/support/chat/faqs/`. The answer is NOT included here; it is
+/// delivered (and recorded in the thread) only when the button is tapped via
+/// `POST /faqs/<id>/ask/`. The list is already localized (Accept-Language) and
+/// in display order, so render it as-is.
+class SupportFaq {
+  const SupportFaq({required this.id, required this.question});
+
+  final String id;
+  final String question;
+
+  static SupportFaq fromJson(Map<String, dynamic> json) => SupportFaq(
+        id: json['id']?.toString() ?? '',
+        question: (json['question'] ?? '').toString(),
+      );
+}
+
 /// One chat message — from the user/guest or from a support agent.
 class SupportMessage {
   const SupportMessage({
@@ -45,6 +62,7 @@ class SupportMessage {
     required this.isFromStaff,
     required this.createdAt,
     this.isRead = false,
+    this.isAutomated = false,
     this.senderName = '',
     this.files = const [],
     this.pending = false,
@@ -54,6 +72,10 @@ class SupportMessage {
   final String text;
   final bool isFromStaff;
   final bool isRead;
+
+  /// `true` for a canned FAQ answer (`POST /faqs/<id>/ask/`). The operator's
+  /// real replies are `is_automated: false` — used to style the bot reply.
+  final bool isAutomated;
 
   /// Masked display name — `Support` for staff, `You` for the owner. The
   /// agent's real name/phone is never exposed by the backend.
@@ -87,6 +109,7 @@ class SupportMessage {
       text: (json['text'] ?? '').toString(),
       isFromStaff: isStaff,
       isRead: json['is_read'] == true,
+      isAutomated: json['is_automated'] == true,
       senderName: senderName.isNotEmpty
           ? senderName
           : (isStaff ? 'Support' : 'You'),

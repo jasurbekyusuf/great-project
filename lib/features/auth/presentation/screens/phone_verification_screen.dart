@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:loadme_mobile/features/auth/presentation/providers/auth_flow_provider.dart';
@@ -27,7 +28,8 @@ class _PhoneVerificationScreenState
     extends ConsumerState<PhoneVerificationScreen> {
   final _otpController = TextEditingController();
   final _otpFocus = FocusNode();
-  int _seconds = 120;
+  // Resend countdown: 1 minute (Figma + product spec).
+  int _seconds = 60;
   Timer? _timer;
   bool _loading = false;
 
@@ -39,7 +41,7 @@ class _PhoneVerificationScreenState
 
   void _startTimer() {
     _timer?.cancel();
-    _seconds = 120;
+    _seconds = 60;
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (_seconds <= 0) {
         t.cancel();
@@ -77,6 +79,9 @@ class _PhoneVerificationScreenState
     final flow = ref.read(authFlowProvider);
     final code = _otpController.text.trim();
     if (code.length < _kOtpLength) return;
+    // Code is complete — close the OS autofill session so the platform stops
+    // offering the (now consumed) SMS code.
+    TextInput.finishAutofillContext();
     ref.read(authFlowProvider.notifier).setOtp(code);
     setState(() => _loading = true);
     final (result, fail) =
@@ -90,7 +95,8 @@ class _PhoneVerificationScreenState
     setState(() => _loading = false);
     if (fail != null || result == null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(fail?.message ?? 'Xatolik')));
+          .showSnackBar(SnackBar(
+              content: Text(fail?.message ?? 'common.error'.tr(ref))));
       _otpController.clear();
       setState(() {});
       return;
@@ -154,9 +160,9 @@ class _PhoneVerificationScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Kodni kiriting',
-                      style: TextStyle(
+                    Text(
+                      'verify.title'.tr(ref),
+                      style: const TextStyle(
                         fontSize: 32,
                         height: 38.7 / 32,
                         fontWeight: FontWeight.w600,
@@ -165,7 +171,7 @@ class _PhoneVerificationScreenState
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '${_maskedPhone()} raqamga yuborilgan tasdiqlash kodini kiriting',
+                      '${_maskedPhone()} ${'verify.subtitleSuffix'.tr(ref)}',
                       style: const TextStyle(
                         fontSize: 14,
                         height: 22 / 14,
@@ -297,28 +303,35 @@ class _OtpBoxesState extends State<_OtpBoxes> {
             }),
           ),
           Positioned.fill(
-            child: TextField(
-              controller: widget.controller,
-              focusNode: widget.focusNode,
-              autofocus: true,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(widget.length),
-              ],
-              onChanged: widget.onChanged,
-              showCursor: false,
-              cursorWidth: 0,
-              enableInteractiveSelection: false,
-              style: const TextStyle(color: Colors.transparent, height: 0.01),
-              decoration: const InputDecoration(
-                counterText: '',
-                border: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                isCollapsed: true,
-                contentPadding: EdgeInsets.zero,
-                fillColor: Colors.transparent,
+            // Let the OS auto-read the incoming SMS code and fill it without
+            // typing: iOS surfaces it in the QuickType bar; Android 12+ shows
+            // an "Autofill from SMS" suggestion above the keyboard. Filling the
+            // field fires onChanged, which auto-submits once all digits land.
+            child: AutofillGroup(
+              child: TextField(
+                controller: widget.controller,
+                focusNode: widget.focusNode,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                autofillHints: const [AutofillHints.oneTimeCode],
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(widget.length),
+                ],
+                onChanged: widget.onChanged,
+                showCursor: false,
+                cursorWidth: 0,
+                enableInteractiveSelection: false,
+                style: const TextStyle(color: Colors.transparent, height: 0.01),
+                decoration: const InputDecoration(
+                  counterText: '',
+                  border: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  isCollapsed: true,
+                  contentPadding: EdgeInsets.zero,
+                  fillColor: Colors.transparent,
+                ),
               ),
             ),
           ),
@@ -330,7 +343,7 @@ class _OtpBoxesState extends State<_OtpBoxes> {
 
 /// Figma "Buttons" resend row: refresh glyph · "Kodni qayta yuborish" · "Ns".
 /// Muted and disabled while the countdown runs; tappable once it hits zero.
-class _ResendRow extends StatelessWidget {
+class _ResendRow extends ConsumerWidget {
   const _ResendRow({
     required this.seconds,
     required this.canResend,
@@ -342,7 +355,7 @@ class _ResendRow extends StatelessWidget {
   final VoidCallback onResend;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final labelColor = canResend ? FigmaPalette.ink : const Color(0xFF818A9C);
     return Material(
       // Figma resend control is a full-width white button with a 1px #EAECF0
@@ -364,7 +377,7 @@ class _ResendRow extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Kodni qayta yuborish',
+                  'verify.resend'.tr(ref),
                   style: TextStyle(
                     fontSize: 14,
                     height: 20 / 14,
@@ -376,7 +389,7 @@ class _ResendRow extends StatelessWidget {
               if (!canResend) ...[
                 const SizedBox(width: 6),
                 Text(
-                  '$seconds s',
+                  '$seconds ${'verify.secondsShort'.tr(ref)}',
                   style: const TextStyle(
                     fontSize: 14,
                     height: 20 / 14,

@@ -101,4 +101,42 @@ void main() {
     expect(list, hasLength(1));
     expect(list.single.guid, '1');
   });
+
+  // Regression: the marketplace count header ("Barcha yuklar / Topildi: N")
+  // keys off [activeLoadsFilterProvider]. A Filtrlar selection must publish into
+  // that very provider, otherwise the list narrows but the total stays stuck on
+  // the whole-feed count — the reported bug.
+  test('applyLocationFilter publishes the active filter and refetches',
+      () async {
+    when(
+      () => repo.getLoads(
+        page: any(named: 'page'),
+        limit: any(named: 'limit'),
+        filters: any(named: 'filters', that: isEmpty),
+      ),
+    ).thenAnswer((_) async => Right(_page(1, 10)));
+    when(
+      () => repo.getLoads(
+        page: any(named: 'page'),
+        limit: any(named: 'limit'),
+        filters: any(named: 'filters', that: isNotEmpty),
+      ),
+    ).thenAnswer((_) async => Right(_page(9, 2))); // filtered -> narrower feed
+
+    final container = makeContainer();
+    await container.read(loadsControllerProvider.future);
+    expect(container.read(loadsControllerProvider).value, hasLength(10));
+    expect(container.read(activeLoadsFilterProvider), isEmpty);
+
+    const filter = {'pickup_region': 'r-1'};
+    container
+        .read(loadsControllerProvider.notifier)
+        .applyLocationFilter(filter);
+
+    // The shared filter the count header reads is now the applied one ...
+    expect(container.read(activeLoadsFilterProvider), filter);
+    // ... and the feed refetched, narrowed to the filtered rows.
+    final narrowed = await container.read(loadsControllerProvider.future);
+    expect(narrowed, hasLength(2));
+  });
 }

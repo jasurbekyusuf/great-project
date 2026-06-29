@@ -44,8 +44,8 @@ class _SupportFeedbackScreenState extends ConsumerState<SupportFeedbackScreen> {
       _message.clear();
       FocusScope.of(context).unfocus();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Murojaatingiz yuborildi. Tez orada javob beramiz.'),
+        SnackBar(
+          content: Text('support.submitted'.tr(ref)),
         ),
       );
     } catch (e) {

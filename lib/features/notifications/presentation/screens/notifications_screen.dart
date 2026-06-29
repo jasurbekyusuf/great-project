@@ -9,6 +9,7 @@ import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/notifications/presentation/providers/notifications_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_illustration_empty.dart';
 import 'package:loadme_mobile/shared/widgets/app_scaffold.dart';
+import 'package:loadme_mobile/shared/widgets/mobile_segmented_tab.dart';
 
 // Figma "Xabarlar" (6969:25034): a frosted page head, then notifications
 // grouped by "Bugun" / "Bu hafta". Each card is a 40x40 icon tile plus a title
@@ -16,12 +17,27 @@ import 'package:loadme_mobile/shared/widgets/app_scaffold.dart';
 // "Ko'rish ↗" button. Read cards use the muted #FCFCFD surface.
 //
 // Driven by the real `/notifications/` endpoint via [notificationsControllerProvider]:
-// tapping a card marks it read; the bookmark action marks all read.
-class NotificationsScreen extends ConsumerWidget {
+// tapping a card marks it read. The Figma header (6804:11446) is just a back
+// chevron + centered "Xabarlar" with NO right-side action, so there is no
+// mark-all-read control in the bar.
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  // The redesign (Figma 6804:11446) splits the single `/notifications/` feed
+  // into two tabs by kind: "Magnit" = load-match alerts (NotificationKind.load
+  // — the "Sizga mos yuklar" cards), "Tizim xabarlari" = everything else. Both
+  // tabs render off the one fetch, so switching is instant and never re-hits
+  // the network.
+  int _tab = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final async = ref.watch(notificationsControllerProvider);
     final controller = ref.read(notificationsControllerProvider.notifier);
 
@@ -30,45 +46,67 @@ class NotificationsScreen extends ConsumerWidget {
       // Figma Xabarlar frame fill (6804:11447) is #F3F4F7 (sheetBg).
       backgroundColor: FigmaPalette.sheetBg,
       padded: false,
-      actions: [
-        Tooltip(
-          message: "Hammasini o'qilgan deb belgilash",
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => unawaited(controller.markAllRead()),
-            child: const Padding(
-              padding: EdgeInsets.only(left: 8, right: 4),
-              child:
-                  Icon(LucideIcons.bookmark, size: 22, color: FigmaPalette.ink),
+      body: Column(
+        children: [
+          // Figma "Frame 57626" (375x50): the 343x36 segmented control sits in
+          // a band with 16 side / 14 top padding.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: MobileSegmentedTab(
+              // Figma segmented control is 36 tall (thumb 32), not the
+              // app-default 40.
+              height: 36,
+              items: [
+                'notifications.tab.magnit'.tr(ref),
+                'notifications.tab.system'.tr(ref),
+              ],
+              selectedIndex: _tab,
+              onChanged: (i) => setState(() => _tab = i),
             ),
           ),
-        ),
-      ],
-      body: async.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: FigmaPalette.primary),
-        ),
-        error: (e, _) => _ErrorView(onRetry: controller.refresh),
-        data: (items) => items.isEmpty
-            ? DsIllustrationEmpty(
-                // Figma Xabarlar empty (6804:11447): box+magnet art with a
-                // taller shadow halo (231×208) and no action button.
-                asset: 'assets/images/empty_notifications.png',
-                message: 'notifications.empty'.tr(ref),
-                gap: 8,
-                haloSize: const Size(231, 208),
-                haloOffset: const Offset(-16, -16),
-              )
-            : RefreshIndicator(
-                color: FigmaPalette.primary,
-                onRefresh: controller.refresh,
-                child: _list(context, ref, _group(items)),
+          Expanded(
+            child: async.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: FigmaPalette.primary),
               ),
+              error: (e, _) => _ErrorView(onRetry: controller.refresh),
+              data: (items) => _tabBody(context, items, controller.refresh),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _list(BuildContext context, WidgetRef ref, List<_Section> groups) {
+  /// The active tab's content: the feed filtered to the tab's
+  /// [NotificationKind], then date-grouped — or the shared empty state when
+  /// that kind is absent from the feed.
+  Widget _tabBody(
+    BuildContext context,
+    List<AppNotification> items,
+    Future<void> Function() onRefresh,
+  ) {
+    final kind = _tab == 0 ? NotificationKind.load : NotificationKind.system;
+    final filtered = items.where((n) => n.kind == kind).toList();
+    if (filtered.isEmpty) {
+      return DsIllustrationEmpty(
+        // Figma Xabarlar empty (6804:11447): box+magnet art with a
+        // taller shadow halo (231×208) and no action button.
+        asset: 'assets/images/empty_notifications.png',
+        message: 'notifications.empty'.tr(ref),
+        gap: 8,
+        haloSize: const Size(231, 208),
+        haloOffset: const Offset(-16, -16),
+      );
+    }
+    return RefreshIndicator(
+      color: FigmaPalette.primary,
+      onRefresh: onRefresh,
+      child: _list(context, _group(filtered)),
+    );
+  }
+
+  Widget _list(BuildContext context, List<_Section> groups) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
@@ -88,7 +126,7 @@ class NotificationsScreen extends ConsumerWidget {
             if (ci > 0) const SizedBox(height: 8),
             _NotificationCard(
               item: groups[gi].items[ci],
-              onTap: () => _open(context, ref, groups[gi].items[ci]),
+              onTap: () => _open(context, groups[gi].items[ci]),
             ),
           ],
         ],
@@ -96,7 +134,7 @@ class NotificationsScreen extends ConsumerWidget {
     );
   }
 
-  void _open(BuildContext context, WidgetRef ref, AppNotification item) {
+  void _open(BuildContext context, AppNotification item) {
     unawaited(
       ref.read(notificationsControllerProvider.notifier).markRead(item.id),
     );
@@ -123,9 +161,12 @@ class NotificationsScreen extends ConsumerWidget {
       }
     }
     return [
-      if (bugun.isNotEmpty) _Section('Bugun', bugun),
-      if (hafta.isNotEmpty) _Section('Bu hafta', hafta),
-      if (avval.isNotEmpty) _Section('Avvalroq', avval),
+      if (bugun.isNotEmpty)
+        _Section('notifications.group.today'.tr(ref), bugun),
+      if (hafta.isNotEmpty)
+        _Section('notifications.group.week'.tr(ref), hafta),
+      if (avval.isNotEmpty)
+        _Section('notifications.group.earlier'.tr(ref), avval),
     ];
   }
 }
@@ -137,14 +178,14 @@ class _Section {
 }
 
 /// One Figma notification card (343 wide, pad12, r16, gap8).
-class _NotificationCard extends StatelessWidget {
+class _NotificationCard extends ConsumerWidget {
   const _NotificationCard({required this.item, this.onTap});
 
   final AppNotification item;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final unread = !item.isRead;
     final bg = unread ? Colors.white : FigmaPalette.notifCardRead;
     final titleColor = unread ? FigmaPalette.notifTitle : FigmaPalette.inkMuted;
@@ -152,7 +193,9 @@ class _NotificationCard extends StatelessWidget {
     final icon = item.kind == NotificationKind.load
         ? LucideIcons.package
         : LucideIcons.bell;
-    final title = item.title.isNotEmpty ? item.title : 'Bildirishnoma';
+    final title = item.title.isNotEmpty
+        ? item.title
+        : 'notifications.cardFallback'.tr(ref);
 
     return Material(
       color: bg,
@@ -238,13 +281,13 @@ class _NotificationCard extends StatelessWidget {
 }
 
 /// Blue "Ko'rish ↗" pill (#004EEB, r8) shown on load notifications.
-class _SeeButton extends StatelessWidget {
+class _SeeButton extends ConsumerWidget {
   const _SeeButton({this.onTap});
 
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Material(
@@ -253,22 +296,23 @@ class _SeeButton extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(8),
-          child: const Padding(
-            padding: EdgeInsets.fromLTRB(16, 4, 12, 4),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  "Ko'rish",
-                  style: TextStyle(
+                  'notifications.see'.tr(ref),
+                  style: const TextStyle(
                     fontSize: 14,
                     height: 20 / 14,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),
-                SizedBox(width: 4),
-                Icon(LucideIcons.arrowUpRight, size: 18, color: Colors.white),
+                const SizedBox(width: 4),
+                const Icon(LucideIcons.arrowUpRight,
+                    size: 18, color: Colors.white),
               ],
             ),
           ),
@@ -279,13 +323,13 @@ class _SeeButton extends StatelessWidget {
 }
 
 /// Inline error + retry for a failed initial load.
-class _ErrorView extends StatelessWidget {
+class _ErrorView extends ConsumerWidget {
   const _ErrorView({required this.onRetry});
 
   final Future<void> Function() onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -295,10 +339,10 @@ class _ErrorView extends StatelessWidget {
             const Icon(LucideIcons.triangleAlert,
                 size: 40, color: FigmaPalette.inkMuted),
             const SizedBox(height: 12),
-            const Text(
-              "Xabarlarni yuklab bo'lmadi",
+            Text(
+              'notifications.error.title'.tr(ref),
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: FigmaPalette.notifTitle,
@@ -307,9 +351,9 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () => unawaited(onRetry()),
-              child: const Text(
-                'Qayta urinish',
-                style: TextStyle(
+              child: Text(
+                'notifications.error.retry'.tr(ref),
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: FigmaPalette.primary,

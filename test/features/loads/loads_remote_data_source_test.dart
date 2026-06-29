@@ -108,6 +108,32 @@ void main() {
       expect(loads.single.guid, '1');
     });
 
+    test('reads the is_favorite saved-state flag (absent -> false)', () async {
+      // The bookmark icon keys off this per-card flag, so it must round-trip
+      // from the payload and default to false when the backend omits it (e.g.
+      // for a guest viewer).
+      when(
+        () => dio.get<dynamic>(
+          '/loads/available/',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer(
+        (_) async => _resp({
+          'data': {
+            'results': [
+              {'id': 'fav', 'pickup_location': 'A', 'is_favorite': true},
+              {'id': 'plain', 'pickup_location': 'A'}, // omitted -> false
+            ],
+          },
+        }),
+      );
+
+      final loads = await ds.getLoads(page: 1, limit: 10);
+
+      expect(loads[0].isFavorite, isTrue);
+      expect(loads[1].isFavorite, isFalse);
+    });
+
     test('delivery address falls back to to_location, not from_location',
         () async {
       // Only free-text *_location fields, no district/region objects. The
@@ -185,6 +211,47 @@ void main() {
 
       expect(load.guid, 'x1');
       verify(() => dio.get<dynamic>('/loads/x1/')).called(1);
+    });
+  });
+
+  // The Load Details screen (Figma 6435:39895) surfaces two fields the list
+  // cards ignore: `commodity` ("Mahsulot") and a formatted `advance_payment`
+  // ("Avans"). parseLoad is the public passthrough over the private mapper, so
+  // we exercise it directly — no request is made.
+  group('parseLoad — commodity + advance_payment', () {
+    test('maps commodity and formats advance_payment in UZS', () {
+      final load = ds.parseLoad({
+        'id': 'l1',
+        'commodity': 'Paxta',
+        'price': 20000000,
+        'advance_payment': 30000000,
+        'currency': {'code': 'UZS'},
+        'is_partial': true,
+      });
+
+      expect(load.commodity, 'Paxta');
+      expect(load.advanceLabel, "30 000 000 so'm");
+      expect(load.priceLabel, "20 000 000 so'm");
+      expect(load.isPartial, isTrue);
+    });
+
+    test('advanceLabel is null when advance_payment is missing or zero', () {
+      expect(ds.parseLoad({'id': 'l2'}).advanceLabel, isNull);
+      expect(ds.parseLoad({'id': 'l2'}).commodity, isNull);
+      expect(
+        ds.parseLoad({'id': 'l3', 'advance_payment': 0}).advanceLabel,
+        isNull,
+      );
+    });
+
+    test('advanceLabel uses the currency symbol for non-UZS amounts', () {
+      final load = ds.parseLoad({
+        'id': 'l4',
+        'advance_payment': 5000,
+        'currency': {'code': 'USD', 'symbol': r'$'},
+      });
+
+      expect(load.advanceLabel, r'5 000 $');
     });
   });
 }

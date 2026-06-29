@@ -496,10 +496,10 @@ class _MapCard extends StatelessWidget {
               RouteMap(
                 from: detail.pickupLat != null && detail.pickupLng != null
                     ? LatLng(detail.pickupLat!, detail.pickupLng!)
-                    : cityLatLng(detail.fromCity),
+                    : resolveAddressLatLng(detail.fromCity),
                 to: detail.deliveryLat != null && detail.deliveryLng != null
                     ? LatLng(detail.deliveryLat!, detail.deliveryLng!)
-                    : cityLatLng(detail.toCity),
+                    : resolveAddressLatLng(detail.toCity),
                 interactive: false,
               ),
               // "Show in map" pill — Center keeps the white box sized to its

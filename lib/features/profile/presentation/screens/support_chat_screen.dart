@@ -24,16 +24,9 @@ class SupportChatScreen extends ConsumerStatefulWidget {
 }
 
 class _SupportChatScreenState extends ConsumerState<SupportChatScreen> {
-  /// Client-side onboarding helpers shown only while the thread is empty —
-  /// tapping one simply sends that text through the real backend.
+  /// Static client greeting (NOT from the API) shown above the FAQ buttons.
   static const _welcome =
       'Assalomu alaykum! Sizga qanday yordam bera olaman?';
-  static const _quickReplies = <String>[
-    'Qanday yuk olaman?',
-    'Menga mos yuk topolmadim',
-    'Transportni nega qo’shishim kerak?',
-    'Transportni qanday qo’shish kerak?',
-  ];
 
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
@@ -72,8 +65,11 @@ class _SupportChatScreenState extends ConsumerState<SupportChatScreen> {
     }
   }
 
-  void _sendQuick(String text) {
-    ref.read(supportChatControllerProvider.notifier).send(text);
+  /// Tapping an FAQ button is self-service: the backend records the question +
+  /// an automated answer in the thread and returns both (no operator is
+  /// pinged). The controller appends them; free-text still reaches the operator.
+  void _askFaq(String id) {
+    ref.read(supportChatControllerProvider.notifier).askFaq(id);
   }
 
   void _scrollToBottom() {
@@ -150,16 +146,26 @@ class _SupportChatScreenState extends ConsumerState<SupportChatScreen> {
           controller: _scrollController,
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           children: [
-            if (state.messages.isEmpty) ...[
-              // Empty conversation — client-side welcome + quick replies.
-              const _OperatorBubble(name: 'Loadme', text: _welcome, time: ''),
+            // Static greeting + backend FAQ buttons stay pinned at the top, so
+            // the user can keep tapping them or type a custom question at any
+            // point in the thread.
+            const _OperatorBubble(
+              name: 'Loadme Operator',
+              text: _welcome,
+              time: 'Hozir',
+            ),
+            if (state.hasFaqs) ...[
               const SizedBox(height: 8),
-              _QuickReplyCard(replies: _quickReplies, onTap: _sendQuick),
-            ] else
-              for (final m in state.messages) ...[
-                _bubble(m),
-                const SizedBox(height: 8),
-              ],
+              _QuickReplyCard(
+                faqs: state.faqs,
+                askingId: state.askingFaqId,
+                onTap: _askFaq,
+              ),
+            ],
+            for (final m in state.messages) ...[
+              const SizedBox(height: 8),
+              _bubble(m),
+            ],
           ],
         );
     }
@@ -401,9 +407,17 @@ class _UserBubble extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _QuickReplyCard extends StatelessWidget {
-  const _QuickReplyCard({required this.replies, required this.onTap});
+  const _QuickReplyCard({
+    required this.faqs,
+    required this.onTap,
+    this.askingId,
+  });
 
-  final List<String> replies;
+  final List<SupportFaq> faqs;
+
+  /// Id of the FAQ whose `ask/` POST is in flight — its row shows a spinner and
+  /// the whole card stops accepting taps until it resolves.
+  final String? askingId;
   final ValueChanged<String> onTap;
 
   static const _radius = BorderRadius.only(
@@ -415,6 +429,7 @@ class _QuickReplyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final busy = askingId != null;
     return Align(
       alignment: Alignment.centerLeft,
       child: ConstrainedBox(
@@ -426,12 +441,14 @@ class _QuickReplyCard extends StatelessWidget {
             borderRadius: _radius,
             child: Column(
               children: [
-                for (var i = 0; i < replies.length; i++) ...[
+                for (var i = 0; i < faqs.length; i++) ...[
                   _QuickReplyRow(
-                    label: replies[i],
-                    onTap: () => onTap(replies[i]),
+                    label: faqs[i].question,
+                    loading: askingId == faqs[i].id,
+                    // Block taps while any ask is in flight to avoid double-posts.
+                    onTap: busy ? null : () => onTap(faqs[i].id),
                   ),
-                  if (i != replies.length - 1)
+                  if (i != faqs.length - 1)
                     const Padding(
                       padding: EdgeInsets.only(left: 12),
                       child: Divider(
@@ -448,10 +465,15 @@ class _QuickReplyCard extends StatelessWidget {
 }
 
 class _QuickReplyRow extends StatelessWidget {
-  const _QuickReplyRow({required this.label, required this.onTap});
+  const _QuickReplyRow({
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+  });
 
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -477,8 +499,18 @@ class _QuickReplyRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(LucideIcons.chevronRight,
-                  size: 16, color: Color(0xFF000000)),
+              if (loading)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: FigmaPalette.primary,
+                  ),
+                )
+              else
+                const Icon(LucideIcons.chevronRight,
+                    size: 16, color: Color(0xFF000000)),
             ],
           ),
         ),

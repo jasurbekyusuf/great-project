@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/locations/domain/entities/location_entity.dart';
 import 'package:loadme_mobile/features/locations/presentation/providers/locations_providers.dart';
@@ -111,7 +112,9 @@ class _LocationSearchPageState extends ConsumerState<_LocationSearchPage> {
     final children = <Widget>[
       _ActionRow(
         icon: dest ? LucideIcons.mapPinned : LucideIcons.navigation,
-        label: dest ? 'Har qanday joyga' : 'Mening joylashuvim',
+        label: dest
+            ? 'location.anywhere'.tr(ref)
+            : 'location.myLocation'.tr(ref),
         onTap: () => Navigator.of(context).pop(),
       ),
     ];
@@ -121,7 +124,7 @@ class _LocationSearchPageState extends ConsumerState<_LocationSearchPage> {
               if (items.isEmpty) {
                 children
                   ..add(const _RowDivider())
-                  ..add(const _StatusRow.message('Hech narsa topilmadi'));
+                  ..add(_StatusRow.message('common.notFound'.tr(ref)));
               } else {
                 for (final e in items) {
                   children
@@ -139,7 +142,7 @@ class _LocationSearchPageState extends ConsumerState<_LocationSearchPage> {
               ..add(const _StatusRow.loading()),
             error: (_, __) => children
               ..add(const _RowDivider())
-              ..add(const _StatusRow.message('Qidirishda xatolik')),
+              ..add(_StatusRow.message('common.searchError'.tr(ref))),
           );
     }
 
@@ -165,7 +168,9 @@ class _LocationSearchPageState extends ConsumerState<_LocationSearchPage> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: Text(
-                          dest ? 'Yetkazish manzili' : 'Yuk olish manzili',
+                          dest
+                              ? 'location.deliveryTitle'.tr(ref)
+                              : 'location.pickupTitle'.tr(ref),
                           style: const TextStyle(
                             fontSize: 16,
                             height: 24 / 16,
@@ -237,7 +242,7 @@ class _CloseButton extends StatelessWidget {
 
 /// Figma Input [343×56] — white, r16, blue 1.5 border, an #EBEBEB icon box and
 /// the search field, plus a clear-✕ that appears once text is entered.
-class _SearchInput extends StatelessWidget {
+class _SearchInput extends ConsumerWidget {
   const _SearchInput({
     required this.controller,
     required this.isDestination,
@@ -251,7 +256,7 @@ class _SearchInput extends StatelessWidget {
   final VoidCallback onClear;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final hasText = controller.text.isNotEmpty;
     return Container(
       height: 56,
@@ -302,7 +307,9 @@ class _SearchInput extends StatelessWidget {
                 errorBorder: InputBorder.none,
                 focusedErrorBorder: InputBorder.none,
                 disabledBorder: InputBorder.none,
-                hintText: isDestination ? 'Qayerga' : 'Qayerdan',
+                hintText: isDestination
+                    ? 'common.to'.tr(ref)
+                    : 'common.from'.tr(ref),
                 hintStyle: const TextStyle(
                   fontSize: 16,
                   height: 24 / 16,

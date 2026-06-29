@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -111,14 +113,15 @@ Future<List<String>?> showDsTruckTypeDrawer({
 
 /// Full-page grouped multi-select truck-type picker (Figma 6435:41514):
 /// search → "Mashhurlar" 2×2 grid → "Hammasi" accordion → sticky Saqlash bar.
-class TruckTypeFilterScreen extends StatefulWidget {
+class TruckTypeFilterScreen extends ConsumerStatefulWidget {
   const TruckTypeFilterScreen({super.key, required this.initialSelected});
   final List<String> initialSelected;
   @override
-  State<TruckTypeFilterScreen> createState() => _TruckTypeFilterScreenState();
+  ConsumerState<TruckTypeFilterScreen> createState() =>
+      _TruckTypeFilterScreenState();
 }
 
-class _TruckTypeFilterScreenState extends State<TruckTypeFilterScreen> {
+class _TruckTypeFilterScreenState extends ConsumerState<TruckTypeFilterScreen> {
   late final Set<String> _selected = {...widget.initialSelected};
   final _search = TextEditingController();
   String _query = '';
@@ -157,9 +160,9 @@ class _TruckTypeFilterScreenState extends State<TruckTypeFilterScreen> {
                         size: 24, color: FigmaPalette.ink),
                   ),
                   const SizedBox(width: 16),
-                  const Text(
-                    'Transport turi',
-                    style: TextStyle(
+                  Text(
+                    'truckType.title'.tr(ref),
+                    style: const TextStyle(
                       fontSize: 16,
                       height: 24 / 16,
                       fontWeight: FontWeight.w600,
@@ -200,6 +203,7 @@ class _TruckTypeFilterScreenState extends State<TruckTypeFilterScreen> {
                 top: false,
                 minimum: const EdgeInsets.fromLTRB(16, 10, 16, 16),
                 child: _SaveButton(
+                  label: 'common.save'.tr(ref),
                   onTap: () => Navigator.pop(context, _selected.toList()),
                 ),
               ),
@@ -253,7 +257,7 @@ class _TruckTypeFilterScreenState extends State<TruckTypeFilterScreen> {
                 leadingDistribution: TextLeadingDistribution.even,
                 color: FigmaPalette.ink,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isCollapsed: true,
                 filled: false,
                 contentPadding: EdgeInsets.zero,
@@ -263,8 +267,8 @@ class _TruckTypeFilterScreenState extends State<TruckTypeFilterScreen> {
                 errorBorder: InputBorder.none,
                 focusedErrorBorder: InputBorder.none,
                 disabledBorder: InputBorder.none,
-                hintText: 'Qidiruv',
-                hintStyle: TextStyle(
+                hintText: 'common.search'.tr(ref),
+                hintStyle: const TextStyle(
                   fontSize: 16,
                   height: 24 / 16,
                   leadingDistribution: TextLeadingDistribution.even,
@@ -292,7 +296,7 @@ class _TruckTypeFilterScreenState extends State<TruckTypeFilterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Mashhurlar', style: _sectionStyle),
+          Text('truckType.popular'.tr(ref), style: _sectionStyle),
           const SizedBox(height: 12),
           row(0, 1),
           const SizedBox(height: 12),
@@ -311,7 +315,7 @@ class _TruckTypeFilterScreenState extends State<TruckTypeFilterScreen> {
         children: [
           Row(
             children: [
-              const Text('Hammasi', style: _sectionStyle),
+              Text('truckType.all'.tr(ref), style: _sectionStyle),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -398,9 +402,11 @@ class _TruckTypeFilterScreenState extends State<TruckTypeFilterScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: matches.isEmpty
-          ? const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(child: Text('Topilmadi', style: _itemStyle)),
+          ? Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: Text('common.notFound'.tr(ref), style: _itemStyle),
+              ),
             )
           : DecoratedBox(
               decoration: BoxDecoration(
@@ -503,7 +509,8 @@ class _CheckBox extends StatelessWidget {
 }
 
 class _SaveButton extends StatelessWidget {
-  const _SaveButton({required this.onTap});
+  const _SaveButton({required this.label, required this.onTap});
+  final String label;
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
@@ -513,13 +520,13 @@ class _SaveButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        child: const SizedBox(
+        child: SizedBox(
           height: 48,
           width: double.infinity,
           child: Center(
             child: Text(
-              'Saqlash',
-              style: TextStyle(fontSize: 14, height: 20 / 14, fontWeight: FontWeight.w600, color: Colors.white),
+              label,
+              style: const TextStyle(fontSize: 14, height: 20 / 14, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ),
         ),

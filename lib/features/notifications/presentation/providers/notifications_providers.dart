@@ -27,6 +27,16 @@ final notificationsControllerProvider = AutoDisposeAsyncNotifierProvider<
   NotificationsController.new,
 );
 
+/// Unread count for the bottom-nav "Xabarlar" badge, derived from the loaded
+/// list. Returns 0 while loading / on error (guests get a 401 → no badge), so
+/// the badge only appears once there are real unread notifications.
+final unreadNotificationsCountProvider = Provider.autoDispose<int>((ref) {
+  return ref.watch(notificationsControllerProvider).maybeWhen(
+        data: (list) => list.where((n) => !n.isRead).length,
+        orElse: () => 0,
+      );
+});
+
 class NotificationsController
     extends AutoDisposeAsyncNotifier<List<AppNotification>> {
   NotificationsRepository get _repo =>

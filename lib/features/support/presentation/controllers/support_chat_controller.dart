@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loadme_mobile/config/env/app_env.dart';
 import 'package:loadme_mobile/core/logging/app_logger.dart';
@@ -26,18 +27,30 @@ enum SupportChatPhase { loading, ready, error }
 class SupportChatState {
   const SupportChatState({
     this.messages = const [],
+    this.faqs = const [],
     this.phase = SupportChatPhase.loading,
     this.sending = false,
+    this.askingFaqId,
     this.live = false,
     this.errorMessage,
   });
 
   /// Chronological, oldest→newest.
   final List<SupportMessage> messages;
+
+  /// Preset FAQ quick-reply buttons (from the backend, already localized and in
+  /// display order). Empty when none are configured or the list failed to load
+  /// — the chat still works without them.
+  final List<SupportFaq> faqs;
+
   final SupportChatPhase phase;
 
-  /// A POST is in flight (the send button is busy).
+  /// A free-text POST is in flight (the send button is busy).
   final bool sending;
+
+  /// The FAQ currently being asked (its `ask/` POST is in flight) — lets the
+  /// screen disable just that row. `null` when no FAQ tap is pending.
+  final String? askingFaqId;
 
   /// The live WebSocket is currently connected (purely informational).
   final bool live;
@@ -48,19 +61,25 @@ class SupportChatState {
 
   bool get isReady => phase == SupportChatPhase.ready;
   bool get hasUserMessage => messages.any((m) => !m.isFromStaff);
+  bool get hasFaqs => faqs.isNotEmpty;
 
   SupportChatState copyWith({
     List<SupportMessage>? messages,
+    List<SupportFaq>? faqs,
     SupportChatPhase? phase,
     bool? sending,
+    String? askingFaqId,
+    bool clearAskingFaq = false,
     bool? live,
     String? errorMessage,
     bool clearError = false,
   }) {
     return SupportChatState(
       messages: messages ?? this.messages,
+      faqs: faqs ?? this.faqs,
       phase: phase ?? this.phase,
       sending: sending ?? this.sending,
+      askingFaqId: clearAskingFaq ? null : (askingFaqId ?? this.askingFaqId),
       live: live ?? this.live,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
@@ -119,6 +138,7 @@ class SupportChatController extends AutoDisposeNotifier<SupportChatState> {
       _lastId = _newestRealId(history);
       state = state.copyWith(messages: history, phase: SupportChatPhase.ready);
       unawaited(_markReadSafe());
+      unawaited(_loadFaqs());
       _startPolling();
       await _connectSocket();
     } catch (e) {
@@ -187,6 +207,42 @@ class SupportChatController extends AutoDisposeNotifier<SupportChatState> {
   /// Clears the one-shot [SupportChatState.errorMessage] after the screen has
   /// shown it.
   void consumeError() => state = state.copyWith(clearError: true);
+
+  // --- FAQ quick-replies -----------------------------------------------------
+
+  /// Loads the preset FAQ buttons. Best-effort: a failure leaves the list empty
+  /// and never blocks the chat (free-text always works).
+  Future<void> _loadFaqs() async {
+    try {
+      final faqs = await _ds.getFaqs(guestId: _guestId);
+      if (_disposed) return;
+      state = state.copyWith(faqs: faqs);
+    } catch (e) {
+      _log.w('faqs load failed: $e');
+    }
+  }
+
+  /// Taps an FAQ button: records the question + the automated answer in the
+  /// thread and appends both (no operator is pinged). A 404 means the FAQ is no
+  /// longer active, so the list is refreshed. Returns `false` on failure.
+  Future<bool> askFaq(String faqId) async {
+    if (faqId.isEmpty || state.askingFaqId != null) return false;
+    state = state.copyWith(askingFaqId: faqId, clearError: true);
+    try {
+      final pair = await _ds.askFaq(faqId, guestId: _guestId);
+      _ingest(pair);
+      state = state.copyWith(clearAskingFaq: true);
+      return true;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) unawaited(_loadFaqs());
+      state = state.copyWith(clearAskingFaq: true, errorMessage: _msg(e));
+      return false;
+    } catch (e) {
+      _log.w('askFaq failed: $e');
+      state = state.copyWith(clearAskingFaq: true, errorMessage: _msg(e));
+      return false;
+    }
+  }
 
   // --- polling ---------------------------------------------------------------
 

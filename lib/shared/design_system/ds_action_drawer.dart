@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 
 // Mirrors web `ActionDrawer` (src/components/drawers/ActionDrawer.jsx) `list` mode.
@@ -38,7 +40,7 @@ Future<T?> showDsActionDrawer<T>({
   );
 }
 
-class _DsActionDrawer<T> extends StatefulWidget {
+class _DsActionDrawer<T> extends ConsumerStatefulWidget {
   const _DsActionDrawer({
     required this.title,
     required this.items,
@@ -52,10 +54,11 @@ class _DsActionDrawer<T> extends StatefulWidget {
   final bool showConfirm;
 
   @override
-  State<_DsActionDrawer<T>> createState() => _DsActionDrawerState<T>();
+  ConsumerState<_DsActionDrawer<T>> createState() =>
+      _DsActionDrawerState<T>();
 }
 
-class _DsActionDrawerState<T> extends State<_DsActionDrawer<T>> {
+class _DsActionDrawerState<T> extends ConsumerState<_DsActionDrawer<T>> {
   late T? _selected = widget.currentValue;
 
   @override
@@ -131,14 +134,14 @@ class _DsActionDrawerState<T> extends State<_DsActionDrawer<T>> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Bekor qilish'),
+                      child: Text('common.cancel'.tr(ref)),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
                       onPressed: _selected == null ? null : () => Navigator.pop(context, _selected),
-                      child: const Text('Tasdiqlash'),
+                      child: Text('common.confirm'.tr(ref)),
                     ),
                   ),
                 ],
@@ -205,7 +208,7 @@ Future<T?> showDsSelectSheet<T>({
   required String title,
   required List<DsSelectItem<T>> items,
   T? currentValue,
-  String saveLabel = 'Saqlash',
+  String? saveLabel,
 }) {
   return showModalBottomSheet<T>(
     context: context,
@@ -225,7 +228,7 @@ Future<T?> showDsSelectSheet<T>({
   );
 }
 
-class _DsSelectSheet<T> extends StatefulWidget {
+class _DsSelectSheet<T> extends ConsumerStatefulWidget {
   const _DsSelectSheet({
     required this.title,
     required this.items,
@@ -236,13 +239,13 @@ class _DsSelectSheet<T> extends StatefulWidget {
   final String title;
   final List<DsSelectItem<T>> items;
   final T? currentValue;
-  final String saveLabel;
+  final String? saveLabel;
 
   @override
-  State<_DsSelectSheet<T>> createState() => _DsSelectSheetState<T>();
+  ConsumerState<_DsSelectSheet<T>> createState() => _DsSelectSheetState<T>();
 }
 
-class _DsSelectSheetState<T> extends State<_DsSelectSheet<T>> {
+class _DsSelectSheetState<T> extends ConsumerState<_DsSelectSheet<T>> {
   late T? _selected = widget.currentValue;
 
   @override
@@ -306,7 +309,7 @@ class _DsSelectSheetState<T> extends State<_DsSelectSheet<T>> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _SelectSaveButton(
-                label: widget.saveLabel,
+                label: widget.saveLabel ?? 'common.save'.tr(ref),
                 onTap: () => Navigator.pop(context, _selected),
               ),
             ),
@@ -454,7 +457,7 @@ Future<List<T>?> showDsCheckSheet<T>({
   required String title,
   required List<DsSelectItem<T>> items,
   List<T> initialSelected = const [],
-  String saveLabel = 'Tayyor',
+  String? saveLabel,
 }) {
   return showModalBottomSheet<List<T>>(
     context: context,
@@ -474,7 +477,7 @@ Future<List<T>?> showDsCheckSheet<T>({
   );
 }
 
-class _DsCheckSheet<T> extends StatefulWidget {
+class _DsCheckSheet<T> extends ConsumerStatefulWidget {
   const _DsCheckSheet({
     required this.title,
     required this.items,
@@ -485,13 +488,13 @@ class _DsCheckSheet<T> extends StatefulWidget {
   final String title;
   final List<DsSelectItem<T>> items;
   final List<T> initialSelected;
-  final String saveLabel;
+  final String? saveLabel;
 
   @override
-  State<_DsCheckSheet<T>> createState() => _DsCheckSheetState<T>();
+  ConsumerState<_DsCheckSheet<T>> createState() => _DsCheckSheetState<T>();
 }
 
-class _DsCheckSheetState<T> extends State<_DsCheckSheet<T>> {
+class _DsCheckSheetState<T> extends ConsumerState<_DsCheckSheet<T>> {
   late final Set<T> _selected = {...widget.initialSelected};
 
   void _toggle(T v) => setState(
@@ -558,7 +561,7 @@ class _DsCheckSheetState<T> extends State<_DsCheckSheet<T>> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _SelectSaveButton(
-                label: widget.saveLabel,
+                label: widget.saveLabel ?? 'common.done'.tr(ref),
                 onTap: () => Navigator.pop(context, _selected.toList()),
               ),
             ),

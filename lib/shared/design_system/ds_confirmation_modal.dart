@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/app_color_tokens.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 
@@ -23,13 +25,16 @@ Future<bool> showDsConfirmation(
   DsConfirmIntent intent = DsConfirmIntent.primary,
   IconData? icon,
 }) async {
+  final l10n = ProviderScope.containerOf(context, listen: false).read(
+    appL10nProvider,
+  );
   final result = await showDialog<bool>(
     context: context,
     barrierColor: Colors.black.withValues(alpha: 0.45),
     builder: (ctx) => DsConfirmationModal(
-      title: title ?? 'Подтверждение',
-      message: message ?? 'Вы уверены, что хотите продолжить?',
-      confirmText: confirmText ?? 'Подтвердить',
+      title: title ?? l10n.tr('common.confirmTitle'),
+      message: message ?? l10n.tr('common.confirmMessage'),
+      confirmText: confirmText ?? l10n.tr('common.confirm'),
       cancelText: cancelText,
       intent: intent,
       icon: icon,

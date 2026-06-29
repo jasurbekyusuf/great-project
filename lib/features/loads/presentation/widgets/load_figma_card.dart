@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 import 'package:loadme_mobile/core/utils/address_format.dart';
@@ -188,6 +190,9 @@ class _RouteBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final radiusLabel = ProviderScope.containerOf(context, listen: false)
+        .read(appL10nProvider)
+        .tr('magnit.radius');
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -202,7 +207,9 @@ class _RouteBlock extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      radiusKm == null ? 'Radius: —' : 'Radius: ${radiusKm}km',
+                      radiusKm == null
+                          ? '$radiusLabel: —'
+                          : '$radiusLabel: ${radiusKm}km',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

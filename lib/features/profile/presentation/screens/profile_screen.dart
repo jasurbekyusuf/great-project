@@ -11,6 +11,7 @@ import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
 import 'package:loadme_mobile/shared/design_system/ds_confirmation_modal.dart';
 import 'package:loadme_mobile/shared/design_system/ds_error_state.dart';
 import 'package:loadme_mobile/shared/design_system/ds_loader.dart';
+import 'package:loadme_mobile/shared/widgets/floating_market_nav.dart';
 
 /// Figma "Profil" (6985:12842). A blue gradient header with a ringed avatar, a
 /// role pill, name + phone and an edit pen; then a row of three quick-action
@@ -42,25 +43,25 @@ class ProfileScreen extends ConsumerWidget {
           final settings = <_RowData>[
             _RowData(
               icon: LucideIcons.dollarSign,
-              title: 'Valyuta',
+              title: 'form.label.currency'.tr(ref),
               value: _currencyShort(currencyCode),
               onTap: () => _openCurrencyPicker(context, ref),
             ),
             _RowData(
               icon: LucideIcons.languages,
-              title: 'Ilova tili',
+              title: 'profile.language'.tr(ref),
               value: _localeLabel(locale),
               onTap: () => _openLanguagePicker(context, ref),
             ),
             _RowData(
               icon: LucideIcons.sun,
-              title: 'Ekran rejimi',
+              title: 'picker.theme'.tr(ref),
               value: _themeLabel(ref, themeMode),
               onTap: () => _openThemePicker(context, ref),
             ),
             _RowData(
               icon: LucideIcons.logOut,
-              title: 'Akkauntdan chiqish',
+              title: 'profile.logoutRow'.tr(ref),
               onTap: () => _confirmLogout(context, ref),
             ),
           ];
@@ -87,14 +88,21 @@ class ProfileScreen extends ConsumerWidget {
               SafeArea(
                 bottom: false,
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 24),
+                  // Clear the floating nav (it overlays the body) plus the
+                  // bottom safe-area inset, so the version text can scroll into
+                  // view on short screens.
+                  padding: EdgeInsets.only(
+                    bottom: FloatingMarketNav.reservedHeight +
+                        MediaQuery.of(context).viewPadding.bottom +
+                        24,
+                  ),
                   child: Column(
                     children: [
                       _ProfileHeader(
                         fullName: profile.fullName,
                         phone: profile.phone,
                         avatarUrl: profile.avatarUrl,
-                        roleLabel: _roleLabel(role),
+                        roleLabel: _roleLabel(ref, role),
                         onEdit: () => context.push('/profile/edit'),
                       ),
                       Padding(
@@ -102,6 +110,9 @@ class ProfileScreen extends ConsumerWidget {
                         child: Column(
                           children: [
                             _QuickActionsRow(
+                              guidesLabel: 'profile.guides'.tr(ref),
+                              contactLabel: 'profile.contact'.tr(ref),
+                              savedLabel: 'profile.saved'.tr(ref),
                               onGuides: () => context.push('/instructions'),
                               onContact: () => context.push('/profile/chat'),
                               onSaved: () => context.push('/profile/saved'),
@@ -112,19 +123,19 @@ class ProfileScreen extends ConsumerWidget {
                             _SettingsGroup(rows: [
                               _RowData(
                                 icon: LucideIcons.fileText,
-                                title: 'Foydalanish shartlari',
+                                title: 'profile.terms'.tr(ref),
                                 onTap: () => context.push('/terms'),
                               ),
                               _RowData(
                                 icon: LucideIcons.circleHelp,
-                                title: 'Ko\'p beriladigan savollar',
+                                title: 'profile.faq'.tr(ref),
                                 onTap: () => context.push('/faq'),
                               ),
                             ]),
                             const SizedBox(height: 16),
-                            const Text(
-                              'Versiya 1.2.0',
-                              style: TextStyle(
+                            Text(
+                              '${'profile.version'.tr(ref)} 1.2.0',
+                              style: const TextStyle(
                                 fontSize: 14,
                                 height: 20 / 14,
                                 fontWeight: FontWeight.w400,
@@ -145,10 +156,10 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  static String _roleLabel(String role) => switch (role) {
-        'carrier' => 'Haydovchi',
-        'broker' => 'Dispecher',
-        _ => 'Yuk egasi',
+  static String _roleLabel(WidgetRef ref, String role) => switch (role) {
+        'carrier' => 'role.carrier'.tr(ref),
+        'broker' => 'role.broker'.tr(ref),
+        _ => 'role.shipper'.tr(ref),
       };
 
   static String _localeLabel(Locale locale) {
@@ -441,11 +452,17 @@ class _AvatarWithPill extends StatelessWidget {
 
 class _QuickActionsRow extends StatelessWidget {
   const _QuickActionsRow({
+    required this.guidesLabel,
+    required this.contactLabel,
+    required this.savedLabel,
     required this.onGuides,
     required this.onContact,
     required this.onSaved,
   });
 
+  final String guidesLabel;
+  final String contactLabel;
+  final String savedLabel;
   final VoidCallback onGuides;
   final VoidCallback onContact;
   final VoidCallback onSaved;
@@ -457,7 +474,7 @@ class _QuickActionsRow extends StatelessWidget {
         Expanded(
           child: _QuickCard(
             icon: LucideIcons.bookOpen,
-            label: 'Qo\'llanmalar',
+            label: guidesLabel,
             onTap: onGuides,
           ),
         ),
@@ -465,7 +482,7 @@ class _QuickActionsRow extends StatelessWidget {
         Expanded(
           child: _QuickCard(
             icon: LucideIcons.messageCircle,
-            label: 'Bog\'lanish',
+            label: contactLabel,
             onTap: onContact,
           ),
         ),
@@ -473,7 +490,7 @@ class _QuickActionsRow extends StatelessWidget {
         Expanded(
           child: _QuickCard(
             icon: LucideIcons.bookmark,
-            label: 'Saqlanganlar',
+            label: savedLabel,
             onTap: onSaved,
           ),
         ),

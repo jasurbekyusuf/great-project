@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -17,11 +19,11 @@ Future<void> showMobileAuthRequiredSheet(BuildContext context) {
   );
 }
 
-class _AuthRequiredModal extends StatelessWidget {
+class _AuthRequiredModal extends ConsumerWidget {
   const _AuthRequiredModal();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.colors;
 
     return Dialog(
@@ -54,7 +56,7 @@ class _AuthRequiredModal extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Ilovadan to‘liq foydalanish uchun tizimga kirishingiz zarur',
+                'authGate.title'.tr(ref),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
@@ -68,7 +70,7 @@ class _AuthRequiredModal extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _ModalButton(
-                      label: 'Hozir emas',
+                      label: 'authGate.notNow'.tr(ref),
                       filled: false,
                       onTap: () => Navigator.pop(context),
                     ),
@@ -76,7 +78,7 @@ class _AuthRequiredModal extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _ModalButton(
-                      label: 'Ha, kiraman',
+                      label: 'authGate.signIn'.tr(ref),
                       filled: true,
                       onTap: () {
                         Navigator.pop(context);
