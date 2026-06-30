@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:loadme_mobile/core/result/result.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/garage/presentation/providers/garage_providers.dart';
@@ -208,7 +209,7 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
           measure.contains('m³') || measure.toLowerCase().contains('m3');
       final mUnit = mValue == null ? null : (isVolume ? 'm3' : 'ton');
       // Add the new vehicle to the garage and refresh the Transportlar list.
-      await ref.read(garageRepositoryProvider).addVehicle(
+      final result = await ref.read(garageRepositoryProvider).addVehicle(
             GarageVehicle(
               id: DateTime.now().microsecondsSinceEpoch.toString(),
               name: _truckType?.name ?? '',
@@ -221,6 +222,21 @@ class _TruckFormScreenState extends ConsumerState<TruckFormScreen> {
               measurementUnit: mUnit,
             ),
           );
+      if (!mounted) return;
+      // The repository never throws (Guard maps errors to a Result). Surface a
+      // failed POST /trucks/ instead of silently popping as if it succeeded —
+      // otherwise a backend 400 looks like "nothing happened".
+      final failure = result.failureOrNull;
+      if (failure != null) {
+        setState(() => _submitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(failure.message),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
       ref.invalidate(garageVehiclesProvider);
     } else {
       await Future<void>.delayed(const Duration(milliseconds: 350));
@@ -751,7 +767,8 @@ class _PlateField extends StatelessWidget {
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               textAlignVertical: TextAlignVertical.center,
-              maxLength: 3,
+              // Uzbek region code is always two digits (01–99).
+              maxLength: 2,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               style: _regionStyle,
               cursorColor: Colors.black,
@@ -777,6 +794,11 @@ class _PlateField extends StatelessWidget {
                       textCapitalization: TextCapitalization.characters,
                       maxLength: 10,
                       inputFormatters: [
+                        // Uzbek plate body is letters, digits and spaces only
+                        // (e.g. "A 701 AS"), always upper-cased.
+                        FilteringTextInputFormatter.allow(
+                          RegExp('[A-Za-z0-9 ]'),
+                        ),
                         TextInputFormatter.withFunction(
                           (o, n) => n.copyWith(text: n.text.toUpperCase()),
                         ),
@@ -1061,11 +1083,15 @@ class _VehicleImageCard extends StatelessWidget {
             if (photoUrl != null)
               Image.network(photoUrl!, fit: BoxFit.cover)
             else
-              const ColoredBox(
-                color: Color(0xFFE5E7EB),
-                child: Center(
-                  child: Icon(LucideIcons.truck,
-                      size: 56, color: FigmaPalette.muted),
+              Image.asset(
+                'assets/images/truck_placeholder.png',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const ColoredBox(
+                  color: Color(0xFFE5E7EB),
+                  child: Center(
+                    child: Icon(LucideIcons.truck,
+                        size: 56, color: FigmaPalette.muted),
+                  ),
                 ),
               ),
             Positioned(

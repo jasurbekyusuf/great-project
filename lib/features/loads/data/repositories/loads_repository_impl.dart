@@ -1,6 +1,7 @@
 import 'package:loadme_mobile/core/result/guard.dart';
 import 'package:loadme_mobile/core/result/result.dart';
 import 'package:loadme_mobile/features/loads/data/datasources/loads_remote_data_source.dart';
+import 'package:loadme_mobile/features/loads/domain/entities/load_draft.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 import 'package:loadme_mobile/features/loads/domain/repositories/loads_repository.dart';
 
@@ -45,30 +46,12 @@ class LoadsRepositoryImpl implements LoadsRepository {
       _guard(() => _remote.getLoadById(id));
 
   @override
-  AsyncResult<void> addLoad({
-    required String fromAddress,
-    required String toAddress,
-    required String comment,
-  }) =>
-      _guard(() => _remote.addLoad(
-            fromAddress: fromAddress,
-            toAddress: toAddress,
-            comment: comment,
-          ));
+  AsyncResult<void> addLoad(LoadDraft draft) =>
+      _guard(() => _remote.addLoad(draft));
 
   @override
-  AsyncResult<void> updateLoad({
-    required String loadId,
-    required String fromAddress,
-    required String toAddress,
-    required String comment,
-  }) =>
-      _guard(() => _remote.updateLoad(
-            loadId: loadId,
-            fromAddress: fromAddress,
-            toAddress: toAddress,
-            comment: comment,
-          ));
+  AsyncResult<void> updateLoad(String loadId, LoadDraft draft) =>
+      _guard(() => _remote.updateLoad(loadId, draft));
 
   @override
   AsyncResult<void> updateLoadStatus({

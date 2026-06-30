@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:loadme_mobile/features/loads/domain/entities/load_draft.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 
 /// Talks to the real LoadMe `/loads/` endpoints.
@@ -77,35 +78,45 @@ class LoadsRemoteDataSource {
     }
   }
 
-  Future<void> addLoad({
-    required String fromAddress,
-    required String toAddress,
-    required String comment,
-  }) async {
-    await _dio.post<dynamic>(
-      '/loads/',
-      data: FormData.fromMap({
-        'from_location': fromAddress,
-        'to_location': toAddress,
-        'comment': comment,
-      }),
-    );
+  Future<void> addLoad(LoadDraft draft) async {
+    await _dio.post<dynamic>('/loads/', data: _draftForm(draft));
   }
 
-  Future<void> updateLoad({
-    required String loadId,
-    required String fromAddress,
-    required String toAddress,
-    required String comment,
-  }) async {
-    await _dio.patch<dynamic>(
-      '/loads/$loadId/',
-      data: FormData.fromMap({
-        'from_location': fromAddress,
-        'to_location': toAddress,
-        'comment': comment,
-      }),
-    );
+  Future<void> updateLoad(String loadId, LoadDraft draft) async {
+    await _dio.patch<dynamic>('/loads/$loadId/', data: _draftForm(draft));
+  }
+
+  /// Builds the multipart body for create/update, dropping every empty field so
+  /// DRF validation never trips on a blank string. The structured location ids
+  /// are keyed by the picked place's kind (`pickup_region` / `delivery_district`
+  /// …) — the exact contract the browse filter uses — while `from_location` /
+  /// `to_location` keep a human-readable fallback for the route label.
+  FormData _draftForm(LoadDraft d) {
+    final map = <String, dynamic>{
+      'from_location': d.fromAddress,
+      'to_location': d.toAddress,
+    };
+
+    void put(String key, String? value) {
+      if (value != null && value.trim().isNotEmpty) map[key] = value.trim();
+    }
+
+    if (d.pickupKind != null) put('pickup_${d.pickupKind}', d.pickupId);
+    if (d.deliveryKind != null) put('delivery_${d.deliveryKind}', d.deliveryId);
+    if (d.truckTypeIds.isNotEmpty) map['truck_type'] = d.truckTypeIds.join(',');
+    put('price', d.price);
+    put('currency', d.currencyCode);
+    put('payment_type', d.paymentType);
+    put('measurement_value', d.measurementValue);
+    put('measurement_unit', d.measurementUnit);
+    put('advance_payment', d.advancePayment);
+    put('pickup_date', d.pickupDate);
+    put('delivery_date', d.deliveryDate);
+    if (d.isPartial != null) map['is_partial'] = d.isPartial.toString();
+    put('commodity', d.commodity);
+    put('comment', d.comment);
+
+    return FormData.fromMap(map);
   }
 
   /// Closing a load is a soft DELETE; re-activating restores it. There is no
@@ -167,6 +178,8 @@ class LoadsRemoteDataSource {
       radiusKm: _toInt(data['radius_km'] ??
           data['deadhead_radius_km'] ??
           data['pickup_radius_km']),
+      ownerId: _str(
+          owner['id'] ?? owner['guid'] ?? owner['user_id'] ?? owner['user']),
       ownerName: _str(owner['display_name'] ??
           owner['full_name'] ??
           owner['company_name'] ??

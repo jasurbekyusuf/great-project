@@ -7,6 +7,7 @@ import 'package:loadme_mobile/features/auth/presentation/providers/current_user_
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
 import 'package:loadme_mobile/features/loads/presentation/widgets/loads_list_view.dart';
 import 'package:loadme_mobile/features/locations/presentation/providers/location_status_provider.dart';
+import 'package:loadme_mobile/features/magnit/presentation/providers/magnit_providers.dart';
 import 'package:loadme_mobile/features/market/presentation/widgets/loads_search_sheet.dart';
 import 'package:loadme_mobile/features/trucks/presentation/controllers/trucks_controller.dart';
 import 'package:loadme_mobile/features/trucks/presentation/widgets/trucks_list_view.dart';
@@ -135,10 +136,11 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         child: _CountFilterRow(
                           countLabel: _tab == MarketTab.loads
                               ? _loadsCountLabel()
-                              : '${'trucks.title'.tr(ref)}: ${_formatCount(ref.watch(trucksCountProvider).valueOrNull)}',
+                              : _trucksCountLabel(),
                           onFilter: _openFilters,
                         ),
                       ),
+                      _buildFilterChips(),
                       Expanded(
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 220),
@@ -183,7 +185,18 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                       .tr(ref),
               ],
               selectedIndex: tabOrder.indexOf(_tab),
-              onChanged: (i) => setState(() => _tab = tabOrder[i]),
+              onChanged: (i) {
+                setState(() => _tab = tabOrder[i]);
+                // Carry the current Qidiruv selection onto the newly-active
+                // feed so the chips and list stay coherent across a tab switch.
+                // No-op when nothing is picked (avoids an extra fetch on a
+                // plain tab toggle).
+                if (_origin != null ||
+                    _destination != null ||
+                    (_truckType?.trim().isNotEmpty ?? false)) {
+                  _runSearch();
+                }
+              },
             ),
           ),
 
@@ -221,7 +234,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
         _destination = result.destination;
         _truckType = result.truckType;
       });
-      _runSearch();
+      await _runSearch();
     }
   }
 
@@ -231,30 +244,46 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     context.push(widget.guest ? '/guest-filters' : '/loads/filters');
   }
 
-  void _runSearch() {
+  Future<void> _runSearch() async {
+    // Apply the picked places as a *server* filter (the same path the Filtrlar
+    // screen uses) so the whole feed narrows — not just the rows already paged
+    // in. An empty pick clears the filter. The filter map is identical for both
+    // feeds (`pickup_*` / `delivery_*` / `truck_type`); only the target
+    // controller differs.
+    final filters = await _searchFilters();
     if (_tab == MarketTab.loads) {
-      // Apply the picked places as a *server* filter on `/loads/available/`
-      // (the same path the Filtrlar screen uses) so the whole feed narrows —
-      // not just the rows already paged in. An empty pick clears the filter.
-      ref
-          .read(loadsControllerProvider.notifier)
-          .applyLocationFilter(_loadsFilters());
+      ref.read(loadsControllerProvider.notifier).applyLocationFilter(filters);
     } else {
-      ref.invalidate(trucksControllerProvider);
+      ref.read(trucksControllerProvider.notifier).applyLocationFilter(filters);
     }
   }
 
-  /// The active loads search as a server filter map (`pickup_*` / `delivery_*`
-  /// → place id), empty when no Qidiruv place is set. Shared by the feed
-  /// narrowing, the count header, and the empty-state nearby fallback so all
-  /// three stay coherent.
-  Map<String, String> _loadsFilters() {
+  /// The active Qidiruv search as a server filter map (`pickup_*` / `delivery_*`
+  /// → place id, plus `truck_type` → comma-joined backend UUIDs), empty when no
+  /// Qidiruv place/transport is set. Shared by the feed narrowing and the count
+  /// header so both stay coherent. The transport pick arrives as hardcoded Uzbek
+  /// labels, so it is resolved to backend `truck_type` ids via the `/trucks/types/`
+  /// directory — without that the API ignores the param and the feed comes back
+  /// unfiltered (the "Isuzu tanlasam Tent chiqyapti" bug).
+  Future<Map<String, String>> _searchFilters() async {
     final filters = <String, String>{};
     final origin = _origin;
     final destination = _destination;
     if (origin != null) filters['pickup_${origin.filterKey}'] = origin.id;
     if (destination != null) {
       filters['delivery_${destination.filterKey}'] = destination.id;
+    }
+    final truckType = _truckType;
+    if (truckType != null && truckType.trim().isNotEmpty) {
+      final labels =
+          truckType.split(', ').where((s) => s.trim().isNotEmpty).toList();
+      try {
+        final types = await ref.read(truckTypesProvider.future);
+        final ids = resolveTruckTypeIds(types, labels);
+        if (ids.isNotEmpty) filters['truck_type'] = ids.join(',');
+      } catch (_) {
+        // Directory fetch failed — narrow by location only rather than blocking.
+      }
     }
     return filters;
   }
@@ -273,6 +302,80 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     final label =
         (filters.isEmpty ? 'loads.allCount' : 'loads.foundCount').tr(ref);
     return '$label: $count';
+  }
+
+  /// "{trucks.title}: N" header, keyed off the *applied* trucks filter so the
+  /// total tracks the narrowed feed after a Qidiruv. Switches to the generic
+  /// "Topildi: N" once a filter is active, matching the loads header.
+  String _trucksCountLabel() {
+    final filters = ref.watch(activeTrucksFilterProvider);
+    final count = _formatCount(
+      ref.watch(trucksCountProvider(trucksFilterKey(filters))).valueOrNull,
+    );
+    final label =
+        (filters.isEmpty ? 'trucks.title' : 'loads.foundCount').tr(ref);
+    return '$label: $count';
+  }
+
+  /// Removable chips for the currently-active Qidiruv selection — Figma frame
+  /// 6435:43206 ("filter tanlangandan keyin tepada turibdi, x ham chiqyabdi").
+  ///
+  /// Each chip mirrors a piece of the local search state (origin, destination,
+  /// and one chip per picked transport label) and removes just that piece on
+  /// the ✕ tap, then re-runs the search so the feed + count stay coherent.
+  /// Collapses to nothing (zero height) when no filter is set.
+  Widget _buildFilterChips() {
+    final truckLabels = (_truckType ?? '')
+        .split(', ')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    final chips = <Widget>[
+      if (_origin != null)
+        _FilterChip(label: _origin!.title, onRemove: _removeOrigin),
+      if (_destination != null)
+        _FilterChip(label: _destination!.title, onRemove: _removeDestination),
+      for (final label in truckLabels)
+        _FilterChip(label: label, onRemove: () => _removeTruckLabel(label)),
+    ];
+
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    // 12px below the count row (count Padding already adds 8 at its bottom).
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 8),
+      child: SizedBox(
+        height: 28,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: chips.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (_, i) => chips[i],
+        ),
+      ),
+    );
+  }
+
+  void _removeOrigin() {
+    setState(() => _origin = null);
+    _runSearch();
+  }
+
+  void _removeDestination() {
+    setState(() => _destination = null);
+    _runSearch();
+  }
+
+  void _removeTruckLabel(String label) {
+    final remaining = (_truckType ?? '')
+        .split(', ')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty && s != label)
+        .toList();
+    setState(() => _truckType = remaining.isEmpty ? null : remaining.join(', '));
+    _runSearch();
   }
 }
 
@@ -560,6 +663,54 @@ class _CountFilterRow extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
+// Selected-filter chip — Figma frame 6435:43201 (Frame 2087329704).
+//   white fill, height 28, r8, pad 4/12, gap 6;
+//   label 14/500 #0B1020; trailing ✕ (Lucide X) 16px black, stroke 1.5.
+// ---------------------------------------------------------------------------
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({required this.label, required this.onRemove});
+
+  final String label;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 20 / 14,
+                fontWeight: FontWeight.w500,
+                color: FigmaPalette.countLabel,
+              ),
+            ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: onRemove,
+              behavior: HitTestBehavior.opaque,
+              child: const Icon(LucideIcons.x, size: 16, color: Colors.black),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Location-off banner — shown above the marketplace list while the device
 // can't give a position (location service off, or permission missing). Tapping
 // runs the best-effort `enableLocation` flow (permission prompt → settings).
@@ -630,13 +781,20 @@ class _LocationBannerState extends ConsumerState<_LocationBanner>
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      'market.locationOff.title'.tr(ref),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        height: 20 / 14,
-                        fontWeight: FontWeight.w500,
-                        color: FigmaPalette.inkStrong,
+                    // Keep the warning on a single line: shrink the copy to fit
+                    // the row width on narrow phones rather than wrapping to two.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'market.locationOff.title'.tr(ref),
+                        maxLines: 1,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 20 / 14,
+                          fontWeight: FontWeight.w500,
+                          color: FigmaPalette.inkStrong,
+                        ),
                       ),
                     ),
                   ),

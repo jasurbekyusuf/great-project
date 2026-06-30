@@ -26,6 +26,7 @@ class LoadEntity {
     this.volumeM3,
     this.distanceKm,
     this.radiusKm,
+    this.ownerId,
     this.ownerName,
     this.ownerRating,
     this.roleBadge,
@@ -86,6 +87,11 @@ class LoadEntity {
 
   final int? distanceKm;
   final int? radiusKm;
+
+  /// Owner's user UUID (`owner.id`) — the `to_user` target when rating or
+  /// reporting the load owner from the detail screen. Null when the backend
+  /// omits the nested owner object.
+  final String? ownerId;
 
   final String? ownerName;
   final double? ownerRating;

@@ -32,6 +32,10 @@ class _PhoneVerificationScreenState
   int _seconds = 60;
   Timer? _timer;
   bool _loading = false;
+  // True after a wrong code: boxes turn red and "Kod xato kiritildi" shows
+  // below them (Figma 6937:25204 error state). Cleared as soon as the user
+  // edits the code again.
+  bool _error = false;
 
   @override
   void initState() {
@@ -69,7 +73,8 @@ class _PhoneVerificationScreenState
   }
 
   Future<void> _onChanged(String value) async {
-    setState(() {});
+    // Any edit clears the error state (red boxes / message go away).
+    setState(() => _error = false);
     if (value.length == _kOtpLength && !_loading) {
       await _submit();
     }
@@ -94,11 +99,10 @@ class _PhoneVerificationScreenState
     if (!mounted) return;
     setState(() => _loading = false);
     if (fail != null || result == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(
-              content: Text(fail?.message ?? 'common.error'.tr(ref))));
-      _otpController.clear();
-      setState(() {});
+      // Wrong code → show the Figma inline error (red boxes + message) instead
+      // of surfacing the raw API/Dio exception. The entered digits stay put so
+      // the user can fix them; editing clears the error via _onChanged.
+      setState(() => _error = true);
       return;
     }
     if (result.session != null) {
@@ -186,7 +190,20 @@ class _PhoneVerificationScreenState
                       length: _kOtpLength,
                       value: _otpController.text,
                       onChanged: _onChanged,
+                      hasError: _error,
                     ),
+                    if (_error) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'verify.codeError'.tr(ref),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 22 / 14,
+                          fontWeight: FontWeight.w400,
+                          color: Color(0xFF303236),
+                        ),
+                      ),
+                    ],
                     // Remainder of the 176px input zone (boxes sit at its top).
                     const SizedBox(height: 120),
                     const SizedBox(height: 32),
@@ -216,6 +233,7 @@ class _OtpBoxes extends StatefulWidget {
     required this.length,
     required this.value,
     required this.onChanged,
+    this.hasError = false,
   });
 
   final TextEditingController controller;
@@ -223,6 +241,7 @@ class _OtpBoxes extends StatefulWidget {
   final int length;
   final String value;
   final ValueChanged<String> onChanged;
+  final bool hasError;
 
   @override
   State<_OtpBoxes> createState() => _OtpBoxesState();
@@ -272,12 +291,15 @@ class _OtpBoxesState extends State<_OtpBoxes> {
                 decoration: BoxDecoration(
                   color: FigmaPalette.chipBg,
                   borderRadius: BorderRadius.circular(12),
-                  // Figma highlights the current box with a #004EEB ring at the
-                  // Border.all default width (1.0), matching the focused phone
-                  // field on the welcome screen.
-                  border: active
-                      ? Border.all(color: FigmaPalette.primary)
-                      : null,
+                  // Wrong code → every box gets the #E73B36 error ring (Figma
+                  // 6937:25204). Otherwise the current box gets the #004EEB
+                  // ring at the Border.all default width (1.0), matching the
+                  // focused phone field on the welcome screen.
+                  border: widget.hasError
+                      ? Border.all(color: FigmaPalette.otpErrorBorder)
+                      : active
+                          ? Border.all(color: FigmaPalette.primary)
+                          : null,
                 ),
                 child: filled
                     ? Text(

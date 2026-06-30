@@ -18,6 +18,9 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
       _guard(_ds.getNotifications);
 
   @override
+  AsyncResult<int> getUnreadCount() => _guard(_ds.getUnreadCount);
+
+  @override
   AsyncResult<void> markRead(String id) => _guard(() => _ds.markRead(id));
 
   @override

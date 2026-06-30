@@ -146,8 +146,10 @@ class FloatingMarketNav extends ConsumerWidget {
                 ),
               ),
               // ── Raised centre FAB ───────────────────────────────────
+              // Nudged 8px down from the pure half-overshoot so the magnet
+              // (carrier) / plus (shipper-broker) sits lower, matching Figma.
               Positioned(
-                bottom: _pillHeight - _fabSize / 2,
+                bottom: _pillHeight - _fabSize / 2 - 8,
                 child: _CenterFab(
                   active: activeIndex == 2,
                   icon: fabIcon,

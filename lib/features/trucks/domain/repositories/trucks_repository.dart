@@ -3,10 +3,16 @@ import 'package:loadme_mobile/features/trucks/domain/entities/truck_detail_entit
 import 'package:loadme_mobile/features/trucks/domain/entities/truck_entity.dart';
 
 abstract interface class TrucksRepository {
-  AsyncResult<List<TruckEntity>> getTrucks({required int page, required int limit});
+  AsyncResult<List<TruckEntity>> getTrucks({
+    required int page,
+    required int limit,
+    Map<String, String>? filters,
+  });
 
-  /// Total number of public truck routes (the marketplace header count).
-  AsyncResult<int> getTrucksCount();
+  /// Total number of public truck routes (the marketplace header count). When
+  /// [filters] are supplied (a `pickup_*` / `delivery_*` search) the count is
+  /// the filtered total — i.e. the "Topildi: N" header after a Qidiruv.
+  AsyncResult<int> getTrucksCount({Map<String, String>? filters});
 
   AsyncResult<List<TruckEntity>> getMyPostTrucks({
     required int page,

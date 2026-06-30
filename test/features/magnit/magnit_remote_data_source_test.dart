@@ -135,7 +135,8 @@ void main() {
       expect(body['pickup_country'], 'c-uz');
       expect(body['pickup_region'], 'r-tash');
       expect(body['delivery_region'], 'r-sam');
-      expect(body['deadhead_radius_km'], 100);
+      // The route contract types deadhead_radius_km as a string ("100").
+      expect(body['deadhead_radius_km'], '100');
       // Nulls must be omitted, never sent as empty strings, so backend
       // validation never trips on a blank filter id.
       expect(body.containsKey('pickup_district'), isFalse);

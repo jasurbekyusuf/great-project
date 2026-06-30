@@ -28,6 +28,24 @@ class NotificationsRemoteDataSource {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
+  /// Authoritative unread count for the bottom-nav badge
+  /// (`GET /notifications/unread-count/`) — independent of the heavier list
+  /// fetch, so the badge shows even before the Xabarlar screen is opened.
+  Future<int> getUnreadCount() async {
+    final res = await _dio.get<dynamic>('/notifications/unread-count/');
+    final data = _peel(res.data);
+    if (data is num) return data.toInt();
+    if (data is Map) {
+      final v = data['count'] ??
+          data['unread_count'] ??
+          data['unread'] ??
+          data['total'];
+      if (v is num) return v.toInt();
+      return int.tryParse('${v ?? ''}') ?? 0;
+    }
+    return int.tryParse('$data') ?? 0;
+  }
+
   Future<void> markRead(String id) async {
     await _dio.post<dynamic>('/notifications/$id/read/');
   }

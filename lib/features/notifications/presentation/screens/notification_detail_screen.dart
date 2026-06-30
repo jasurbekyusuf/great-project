@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/notifications/domain/entities/app_notification.dart';
@@ -8,7 +7,7 @@ import 'package:loadme_mobile/shared/widgets/app_scaffold.dart';
 
 /// Figma "Xabarlar" announcement detail (6969:25428 → 6969:42066): a r16 hero
 /// image (when the notification carries one), a date, a heading and the body,
-/// under the shared frosted page head with a bookmark action.
+/// under the shared frosted page head.
 ///
 /// Driven by the [AppNotification] passed via `GoRoute.extra` from the list. A
 /// direct deep-link (no extra) falls back to a generic sample so the layout is
@@ -33,12 +32,6 @@ class NotificationDetailScreen extends ConsumerWidget {
       title: 'notifications.title'.tr(ref),
       backgroundColor: FigmaPalette.sheetBg,
       padded: false,
-      actions: const [
-        Padding(
-          padding: EdgeInsets.only(right: 4),
-          child: Icon(LucideIcons.bookmark, size: 22, color: FigmaPalette.ink),
-        ),
-      ],
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [

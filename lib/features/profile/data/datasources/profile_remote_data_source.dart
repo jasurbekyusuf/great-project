@@ -23,13 +23,16 @@ class ProfileRemoteDataSource {
   /// `telegram_username`, `whatsapp_number` — NOT the nested `profile` shape the
   /// GET returns. `phone_number` is the OTP-verified login identity and is not
   /// editable here, so it is never sent. Only non-null fields are included so a
-  /// partial edit never blanks an untouched value. Returns the re-parsed user.
+  /// partial edit never blanks an untouched value. When [photoPath] is given the
+  /// chosen avatar is attached as the multipart `photo` file. Returns the
+  /// re-parsed user.
   Future<ProfileEntity> updateProfile({
     String? fullName,
     String? companyName,
     String? personType,
     String? telegramUsername,
     String? whatsappNumber,
+    String? photoPath,
   }) async {
     final fields = <String, dynamic>{
       if (fullName != null) 'full_name': fullName,
@@ -37,6 +40,11 @@ class ProfileRemoteDataSource {
       if (personType != null) 'person_type': personType,
       if (telegramUsername != null) 'telegram_username': telegramUsername,
       if (whatsappNumber != null) 'whatsapp_number': whatsappNumber,
+      if (photoPath != null && photoPath.isNotEmpty)
+        'photo': await MultipartFile.fromFile(
+          photoPath,
+          filename: photoPath.split(RegExp(r'[\\/]')).last,
+        ),
     };
     final res = await _dio.patch<dynamic>(
       '/users/me/',

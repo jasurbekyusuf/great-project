@@ -25,4 +25,28 @@ class GarageVehicle {
   final String? truckModelId; // truck_model UUID from `GET /trucks/models/`
   final String? measurementValue; // e.g. "8.5"
   final String? measurementUnit; // "ton" | "m3"
+
+  GarageVehicle copyWith({
+    String? id,
+    String? name,
+    String? model,
+    String? plate,
+    String? photoUrl,
+    String? truckTypeId,
+    String? truckModelId,
+    String? measurementValue,
+    String? measurementUnit,
+  }) {
+    return GarageVehicle(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      model: model ?? this.model,
+      plate: plate ?? this.plate,
+      photoUrl: photoUrl ?? this.photoUrl,
+      truckTypeId: truckTypeId ?? this.truckTypeId,
+      truckModelId: truckModelId ?? this.truckModelId,
+      measurementValue: measurementValue ?? this.measurementValue,
+      measurementUnit: measurementUnit ?? this.measurementUnit,
+    );
+  }
 }

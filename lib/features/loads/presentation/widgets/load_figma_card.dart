@@ -207,9 +207,7 @@ class _RouteBlock extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      radiusKm == null
-                          ? '$radiusLabel: —'
-                          : '$radiusLabel: ${radiusKm}km',
+                      '$radiusLabel: ${radiusKm ?? 0}km',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

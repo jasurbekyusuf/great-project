@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/services/app_state_providers.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
@@ -32,6 +33,8 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
   void initState() {
     super.initState();
     _phoneFocus.addListener(() => setState(() {}));
+    // Rebuild on text change so the trailing clear (✕) shows/hides.
+    _phoneController.addListener(() => setState(() {}));
   }
 
   @override
@@ -216,7 +219,10 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
                                       // default width), down from the old 1.5.
                                     ),
                                   ),
-                                  child: TextField(
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextField(
                                     controller: _phoneController,
                                     focusNode: _phoneFocus,
                                     keyboardType: TextInputType.phone,
@@ -254,6 +260,22 @@ class _AuthWelcomeScreenState extends ConsumerState<AuthWelcomeScreen> {
                                         color: FigmaPalette.label,
                                       ),
                                     ),
+                                  ),
+                                      ),
+                                      if (_phoneController.text.isNotEmpty)
+                                        GestureDetector(
+                                          onTap: _phoneController.clear,
+                                          behavior: HitTestBehavior.opaque,
+                                          child: const Padding(
+                                            padding: EdgeInsets.only(left: 8),
+                                            child: Icon(
+                                              LucideIcons.x,
+                                              size: 20,
+                                              color: FigmaPalette.label,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
                               ),

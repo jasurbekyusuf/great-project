@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:loadme_mobile/core/logging/app_logger.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/utils/address_format.dart';
 import 'package:loadme_mobile/core/utils/phone_launcher.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:loadme_mobile/features/feedback/presentation/feedback_providers.dart';
+import 'package:loadme_mobile/features/feedback/presentation/feedback_sheets.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
 import 'package:loadme_mobile/features/saved/presentation/providers/saved_providers.dart';
@@ -283,11 +286,18 @@ class _Body extends ConsumerWidget {
   }
 
   /// Opens the dialer for the load owner's phone. A missing number surfaces a
-  /// short notice instead of failing silently.
+  /// short notice instead of failing silently. A successful hand-off marks this
+  /// load contacted, which lifts the owner-card rate/report gate (you can rate
+  /// or report someone only after you've reached out to them).
   Future<void> _contactByPhone(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
     final ok = await launchPhoneDial(load.phone);
-    if (!ok) {
+    AppLogger.tagged('Feedback').i(
+        'LOAD contact: guid=${load.guid} ownerId=${load.ownerId} '
+        'phone=${load.phone} dialOk=$ok');
+    if (ok) {
+      ref.read(contactedProvider.notifier).markContacted(load.guid);
+    } else {
       messenger.showSnackBar(
         SnackBar(content: Text('detail.noPhone'.tr(ref))),
       );
@@ -437,7 +447,7 @@ class _RouteCard extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Flexible(
                   child: _money('loadForm.advance'.tr(ref),
-                      load.advanceLabel ?? '—', FigmaPalette.gray700),
+                      load.advanceLabel ?? 'common.notSpecified'.tr(ref), FigmaPalette.gray700),
                 ),
               ],
             ),
@@ -601,8 +611,7 @@ class _DetailsCard extends ConsumerWidget {
                         ? 'detail.partial'.tr(ref)
                         : 'detail.full'.tr(ref)),
                 _row(LucideIcons.mapPin, '${'detail.radiusToLoad'.tr(ref)}:',
-                    value:
-                        load.radiusKm != null ? '${load.radiusKm} km' : '—'),
+                    value: '${load.radiusKm ?? 0} km'),
                 _row(LucideIcons.route, '${'detail.field.distance'.tr(ref)}:',
                     value: load.distanceKm != null
                         ? '${load.distanceKm} km'
@@ -723,64 +732,130 @@ class _MapCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Resolve the two endpoints once so the inline preview and the full-screen
+    // map it opens share the exact same route.
+    final from = load.pickupLat != null && load.pickupLng != null
+        ? LatLng(load.pickupLat!, load.pickupLng!)
+        : resolveAddressLatLng(load.fromAddress);
+    final to = load.deliveryLat != null && load.deliveryLng != null
+        ? LatLng(load.deliveryLat!, load.deliveryLng!)
+        : resolveAddressLatLng(load.toAddress);
+
     return _Card(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: SizedBox(
-          height: 207,
-          child: Stack(
-            fit: StackFit.expand,
-            alignment: Alignment.center,
-            children: [
-              // Live OpenStreetMap preview (non-interactive inside the card).
-              RouteMap(
-                from: load.pickupLat != null && load.pickupLng != null
-                    ? LatLng(load.pickupLat!, load.pickupLng!)
-                    : resolveAddressLatLng(load.fromAddress),
-                to: load.deliveryLat != null && load.deliveryLng != null
-                    ? LatLng(load.deliveryLat!, load.deliveryLng!)
-                    : resolveAddressLatLng(load.toAddress),
-                interactive: false,
-              ),
-              // "Show in map" pill — wrapped in Center so the white Container
-              // sizes to its content instead of expanding (StackFit.expand)
-              // and painting over the whole map.
-              Center(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x1A101828),
-                        offset: Offset(0, 2),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(LucideIcons.map,
-                          size: 18, color: FigmaPalette.primary),
-                      const SizedBox(width: 8),
-                      Text(
-                        'detail.showOnMap'.tr(ref),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        // The preview (and its "Xaritada ko‘rish" pill) had no handler at all —
+        // tapping did nothing. Open the full, interactive map instead.
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            fullscreenDialog: true,
+            builder: (_) => _RouteMapScreen(from: from, to: to),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            height: 207,
+            child: Stack(
+              fit: StackFit.expand,
+              alignment: Alignment.center,
+              children: [
+                // Live OpenStreetMap preview. IgnorePointer stops its (non-
+                // interactive) gesture layer from swallowing the tap, so the
+                // GestureDetector above always opens the full map.
+                IgnorePointer(
+                  child: RouteMap(from: from, to: to, interactive: false),
+                ),
+                // "Show in map" pill — wrapped in Center so the white Container
+                // sizes to its content instead of expanding (StackFit.expand)
+                // and painting over the whole map.
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x1A101828),
+                          offset: Offset(0, 2),
+                          blurRadius: 8,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(LucideIcons.map,
+                            size: 18, color: FigmaPalette.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'detail.showOnMap'.tr(ref),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Full-screen interactive route map (opened from the map card)
+// ---------------------------------------------------------------------------
+
+/// A full-bleed pannable/zoomable [RouteMap] with a floating back button. Pushed
+/// as a fullscreen dialog from [_MapCard] so "Xaritada ko‘rish" actually opens
+/// the route rather than sitting inert.
+class _RouteMapScreen extends StatelessWidget {
+  const _RouteMapScreen({required this.from, required this.to});
+
+  final LatLng from;
+  final LatLng to;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          Positioned.fill(child: RouteMap(from: from, to: to)),
+          // A plain white circle so the control stays legible over the tiles.
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Material(
+                  color: Colors.white,
+                  shape: const CircleBorder(),
+                  elevation: 2,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Icon(LucideIcons.chevronLeft,
+                          size: 22, color: FigmaPalette.ink),
+                    ),
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -860,9 +935,7 @@ class _OwnerCard extends ConsumerWidget {
                 child: _ActionChip(
                   icon: LucideIcons.star,
                   label: 'transport.rate'.tr(ref),
-                  onTap: () => unawaited(
-                    showContactGateModal(context, DsContactGate.rate),
-                  ),
+                  onTap: () => _onRate(context, ref),
                 ),
               ),
               const SizedBox(width: 12),
@@ -870,9 +943,7 @@ class _OwnerCard extends ConsumerWidget {
                 child: _ActionChip(
                   icon: LucideIcons.scrollText,
                   label: 'transport.report'.tr(ref),
-                  onTap: () => unawaited(
-                    showContactGateModal(context, DsContactGate.report),
-                  ),
+                  onTap: () => _onReport(context, ref),
                 ),
               ),
             ],
@@ -880,6 +951,36 @@ class _OwnerCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  // Baholash — only after contacting (and only when the owner id is known, so
+  // the rating has a `to_user`); otherwise the gate modal explains why. A load
+  // owner is rated without a `truck_route` (loads aren't routes).
+  void _onRate(BuildContext context, WidgetRef ref) {
+    final id = load.ownerId;
+    final contacted = ref.read(contactedProvider.notifier).hasContacted(load.guid);
+    AppLogger.tagged('Feedback').i(
+        'LOAD rate-tap: ownerId=$id contacted=$contacted '
+        'gateOpen=${!(id == null || id.isEmpty || !contacted)}');
+    if (id == null ||
+        id.isEmpty ||
+        !ref.read(contactedProvider.notifier).hasContacted(load.guid)) {
+      unawaited(showContactGateModal(context, DsContactGate.rate));
+      return;
+    }
+    unawaited(showRatingSheet(context, toUser: id));
+  }
+
+  // Shikoyat — same gate; on pass, files a complaint about this load's owner.
+  void _onReport(BuildContext context, WidgetRef ref) {
+    final id = load.ownerId;
+    if (id == null ||
+        id.isEmpty ||
+        !ref.read(contactedProvider.notifier).hasContacted(load.guid)) {
+      unawaited(showContactGateModal(context, DsContactGate.report));
+      return;
+    }
+    unawaited(showComplaintSheet(context, toUser: id, load: load.guid));
   }
 
   // Figma owner card: Telegram / Whatsapp sit side by side as label-over-value

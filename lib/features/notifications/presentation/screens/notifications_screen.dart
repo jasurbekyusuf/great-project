@@ -6,9 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
+import 'package:loadme_mobile/features/auth/presentation/providers/current_user_provider.dart';
 import 'package:loadme_mobile/features/notifications/presentation/providers/notifications_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_illustration_empty.dart';
-import 'package:loadme_mobile/shared/widgets/app_scaffold.dart';
+import 'package:loadme_mobile/shared/widgets/frosted_header.dart';
 import 'package:loadme_mobile/shared/widgets/mobile_segmented_tab.dart';
 
 // Figma "Xabarlar" (6969:25034): a frosted page head, then notifications
@@ -41,28 +42,33 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final async = ref.watch(notificationsControllerProvider);
     final controller = ref.read(notificationsControllerProvider.notifier);
 
-    return AppScaffold(
-      title: 'notifications.title'.tr(ref),
-      // Figma Xabarlar frame fill (6804:11447) is #F3F4F7 (sheetBg).
+    // Magnit (load-match alerts) is a driver-only feature, so the "Magnit"
+    // tab only makes sense for carriers. Shipper/broker get a single,
+    // untabbed feed — no Magnit surface for them.
+    final isCarrier = ref.watch(currentUserRoleSyncProvider) == 'carrier';
+
+    // Figma "Xabarlar" (6969:25034) puts the title row AND the segmented tabs
+    // inside one frosted, rounded-bottom header (same as the Garaj page),
+    // floating over the #F3F4F7 (sheetBg) frame.
+    return Scaffold(
       backgroundColor: FigmaPalette.sheetBg,
-      padded: false,
       body: Column(
         children: [
-          // Figma "Frame 57626" (375x50): the 343x36 segmented control sits in
-          // a band with 16 side / 14 top padding.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-            child: MobileSegmentedTab(
-              // Figma segmented control is 36 tall (thumb 32), not the
-              // app-default 40.
-              height: 36,
-              items: [
-                'notifications.tab.magnit'.tr(ref),
-                'notifications.tab.system'.tr(ref),
-              ],
-              selectedIndex: _tab,
-              onChanged: (i) => setState(() => _tab = i),
-            ),
+          FrostedHeader(
+            title: 'notifications.title'.tr(ref),
+            bottom: isCarrier
+                ? MobileSegmentedTab(
+                    // Figma segmented control is 36 tall (thumb 32), not the
+                    // app-default 40.
+                    height: 36,
+                    items: [
+                      'notifications.tab.magnit'.tr(ref),
+                      'notifications.tab.system'.tr(ref),
+                    ],
+                    selectedIndex: _tab,
+                    onChanged: (i) => setState(() => _tab = i),
+                  )
+                : null,
           ),
           Expanded(
             child: async.when(
@@ -70,7 +76,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 child: CircularProgressIndicator(color: FigmaPalette.primary),
               ),
               error: (e, _) => _ErrorView(onRetry: controller.refresh),
-              data: (items) => _tabBody(context, items, controller.refresh),
+              data: (items) =>
+                  _tabBody(context, items, controller.refresh, isCarrier),
             ),
           ),
         ],
@@ -85,9 +92,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     BuildContext context,
     List<AppNotification> items,
     Future<void> Function() onRefresh,
+    bool isCarrier,
   ) {
-    final kind = _tab == 0 ? NotificationKind.load : NotificationKind.system;
-    final filtered = items.where((n) => n.kind == kind).toList();
+    // Carriers split the feed by tab (Magnit vs system); everyone else sees
+    // the whole feed in one list since Magnit doesn't apply to them.
+    final filtered = isCarrier
+        ? items
+            .where((n) =>
+                n.kind ==
+                (_tab == 0 ? NotificationKind.load : NotificationKind.system))
+            .toList()
+        : items;
     if (filtered.isEmpty) {
       return DsIllustrationEmpty(
         // Figma Xabarlar empty (6804:11447): box+magnet art with a

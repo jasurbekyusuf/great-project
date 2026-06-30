@@ -27,12 +27,28 @@ final notificationsControllerProvider = AutoDisposeAsyncNotifierProvider<
   NotificationsController.new,
 );
 
-/// Unread count for the bottom-nav "Xabarlar" badge, derived from the loaded
-/// list. Returns 0 while loading / on error (guests get a 401 → no badge), so
-/// the badge only appears once there are real unread notifications.
+/// Authoritative unread count from the dedicated endpoint
+/// (`GET /notifications/unread-count/`). Drives the badge before the Xabarlar
+/// list is ever opened and when the heavier list fetch fails. Returns 0 on
+/// error (guests get a 401 → no badge).
+final unreadNotificationsCountFetchProvider =
+    FutureProvider.autoDispose<int>((ref) async {
+  final result = await ref.watch(notificationsRepositoryProvider).getUnreadCount();
+  return result.fold((_) => 0, (count) => count);
+});
+
+/// Unread count for the bottom-nav "Xabarlar" badge. Prefers the loaded list so
+/// optimistic mark-read updates the badge instantly; otherwise falls back to
+/// the dedicated unread-count endpoint so the badge shows on app start even
+/// when the list hasn't been opened (the previous list-only derivation read 0
+/// until the Xabarlar screen had successfully loaded).
 final unreadNotificationsCountProvider = Provider.autoDispose<int>((ref) {
-  return ref.watch(notificationsControllerProvider).maybeWhen(
-        data: (list) => list.where((n) => !n.isRead).length,
+  final listState = ref.watch(notificationsControllerProvider);
+  if (listState is AsyncData<List<AppNotification>>) {
+    return listState.value.where((n) => !n.isRead).length;
+  }
+  return ref.watch(unreadNotificationsCountFetchProvider).maybeWhen(
+        data: (count) => count,
         orElse: () => 0,
       );
 });

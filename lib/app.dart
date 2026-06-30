@@ -12,14 +12,15 @@ class LoadmeApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final locale = ref.watch(localeProvider);
-    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       title: 'Loadme',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: themeMode,
+      // Dark tema hali tayyor emas — system/foydalanuvchi dark tanlasa ham
+      // light ko'rinsin (aks holda UI buziladi).
+      darkTheme: AppTheme.light(),
+      themeMode: ThemeMode.light,
       locale: locale,
       supportedLocales: supportedAppLocales,
       localizationsDelegates: const [

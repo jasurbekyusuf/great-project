@@ -10,6 +10,7 @@ class UpdateProfileInput {
     this.personType,
     this.telegramUsername,
     this.whatsappNumber,
+    this.photoPath,
   });
 
   final String? fullName;
@@ -17,6 +18,9 @@ class UpdateProfileInput {
   final String? personType;
   final String? telegramUsername;
   final String? whatsappNumber;
+
+  /// Local file path of a newly picked avatar; null when the photo is unchanged.
+  final String? photoPath;
 }
 
 class UpdateProfileUseCase implements UseCase<UpdateProfileInput, ProfileEntity> {
@@ -31,5 +35,6 @@ class UpdateProfileUseCase implements UseCase<UpdateProfileInput, ProfileEntity>
         personType: input.personType,
         telegramUsername: input.telegramUsername,
         whatsappNumber: input.whatsappNumber,
+        photoPath: input.photoPath,
       );
 }

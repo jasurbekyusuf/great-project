@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/locations/domain/entities/location_entity.dart';
+import 'package:loadme_mobile/features/locations/presentation/providers/location_status_provider.dart';
 import 'package:loadme_mobile/features/locations/presentation/providers/locations_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/design_system/ds_truck_type_drawer.dart';
@@ -94,6 +95,9 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
   // 0 = Qayerdan (origin), 1 = Qayerga (destination).
   int _active = 0;
 
+  // A "Mening joylashuvim" GPS lookup is in flight (spinner on the action row).
+  bool _locating = false;
+
   LocationItem? _origin;
   LocationItem? _destination;
   late final List<String> _selectedTrucks =
@@ -155,10 +159,11 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
   TextEditingController get _activeController =>
       _active == 0 ? _originController : _destController;
 
-  // The inline suggestions list opens only while the focused field has a query
-  // (the empty-focused state shows Transport + Tayyor instead — Figma 34680).
-  bool get _dropdownOpen =>
-      _activeFocus.hasFocus && _activeController.text.trim().isNotEmpty;
+  // The inline suggestions open as soon as a location field is focused, so the
+  // leading "Mening joylashuvim" (Qayerdan) / "Har qanday joyga" (Qayerga) row
+  // is visible right away — even before typing. Live `/locations/search/` rows
+  // append below it once a query is entered.
+  bool get _dropdownOpen => _originFocus.hasFocus || _destFocus.hasFocus;
 
   void _onChanged(bool origin, String _) {
     // Free typing detaches any previously chosen location for that field.
@@ -184,18 +189,38 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
     _activeFocus.unfocus();
   }
 
-  // "Har qanday joydan / joyga" — clears the active field's constraint.
+  // "Har qanday joyga" (destination) — clears the delivery constraint.
   void _selectAny() {
     setState(() {
-      if (_active == 0) {
-        _origin = null;
-        _originController.clear();
-      } else {
-        _destination = null;
-        _destController.clear();
-      }
+      _destination = null;
+      _destController.clear();
     });
-    _activeFocus.unfocus();
+    _destFocus.unfocus();
+  }
+
+  // "Mening joylashuvim" (origin only): take a GPS fix, reverse-geocode it to a
+  // directory place and fill the Qayerdan field with it. A null result means
+  // location is off/denied or unmatched — show a clear message and kick off the
+  // permission/settings flow so the user can grant access and try again.
+  Future<void> _useMyLocation() async {
+    if (_locating) return;
+    setState(() => _locating = true);
+    final place = await resolveCurrentLocation(ref);
+    if (!mounted) return;
+    if (place != null) {
+      setState(() {
+        _origin = LocationItem.fromEntity(place);
+        _originController.text = place.name;
+        _locating = false;
+      });
+      _originFocus.unfocus();
+      return;
+    }
+    setState(() => _locating = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('location.locateFailed'.tr(ref))),
+    );
+    await enableLocation(ref);
   }
 
   void _clear(bool origin) {
@@ -216,7 +241,10 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
   bool get _truckDropdownOpen => _truckFocus.hasFocus;
 
   List<String> get _truckSuggestions {
-    final q = _truckController.text.trim().toLowerCase();
+    final raw = _truckController.text.trim();
+    // The "Har qanday transport" label is a chosen value, not a real query —
+    // show the popular quick-picks rather than filtering the taxonomy by it.
+    final q = raw == 'search.anyTruck'.tr(ref) ? '' : raw.toLowerCase();
     if (q.isEmpty) return kPopularTruckTypes;
     return _kAllTruckTypes.where((t) => t.toLowerCase().contains(q)).toList();
   }
@@ -236,11 +264,13 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
     _truckFocus.unfocus();
   }
 
-  // "Har qanday transport" — clears any chosen type.
+  // "Har qanday transport" — a real, visible choice that means "no truck-type
+  // filter". The field shows the label so the user sees it as selected, while
+  // [_selectedTrucks] stays empty (so the search sends no `truck_type`).
   void _selectAnyTruck() {
     setState(() {
       _selectedTrucks.clear();
-      _truckController.clear();
+      _truckController.text = 'search.anyTruck'.tr(ref);
     });
     _truckFocus.unfocus();
   }
@@ -316,14 +346,24 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
                 // by an 8px gap (Figma 6435:34680): each paints its own white
                 // fill and the focused one a fully-rounded 1.5px blue outline.
                 originField,
-                const SizedBox(height: 8),
-                destField,
-                // The matching suggestions open beneath the whole pair (36792).
-                if (_dropdownOpen) ...[
+                // The suggestions open directly UNDER the active field (Figma
+                // 6435:35372 anchors the panel beneath Qayerdan; 6435:36792
+                // beneath Qayerga) — not always at the bottom of the pair.
+                // Qayerdan active → panel right under Qayerdan (Qayerga is
+                // hidden behind it, as in the mock). Qayerga active → both
+                // fields stay visible and the panel sits under Qayerga.
+                if (_active == 0 && _dropdownOpen) ...[
                   const SizedBox(height: 8),
                   // Flexible so the list shrinks (and scrolls internally) to fit
                   // the space left above the keyboard instead of overflowing.
                   Flexible(child: _dropdown()),
+                ] else ...[
+                  const SizedBox(height: 8),
+                  destField,
+                  if (_active == 1 && _dropdownOpen) ...[
+                    const SizedBox(height: 8),
+                    Flexible(child: _dropdown()),
+                  ],
                 ],
                 if (!_dropdownOpen) ...[
                   const SizedBox(height: 12),
@@ -395,11 +435,11 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
   // the live `/locations/search/` matches split by hairline dividers. The query
   // is debounced (300ms) inside `locationSearchProvider`.
   Widget _dropdown() {
-    final anyLabel = _active == 0
-        ? 'search.anywhereFrom'.tr(ref)
-        : 'location.anywhere'.tr(ref);
+    // Origin → "Mening joylashuvim" (GPS); destination → "Har qanday joyga"
+    // (clears the delivery constraint). These were the leading rows in the
+    // original design and are restored here.
+    final isOrigin = _active == 0;
     final query = _activeController.text.trim();
-    final results = ref.watch(locationSearchProvider(query));
     return Container(
       constraints: const BoxConstraints(maxHeight: 280),
       decoration: BoxDecoration(
@@ -419,16 +459,30 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
         shrinkWrap: true,
         children: [
           InkWell(
-            onTap: _selectAny,
+            onTap: isOrigin ? (_locating ? null : _useMyLocation) : _selectAny,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  const Icon(LucideIcons.mapPin,
-                      size: 20, color: FigmaPalette.inkStrong),
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: isOrigin && _locating
+                        ? const CircularProgressIndicator(
+                            strokeWidth: 2, color: FigmaPalette.primary)
+                        : Icon(
+                            isOrigin
+                                ? LucideIcons.navigation
+                                : LucideIcons.mapPinned,
+                            size: 20,
+                            color: FigmaPalette.inkStrong,
+                          ),
+                  ),
                   const SizedBox(width: 12),
                   Text(
-                    anyLabel,
+                    isOrigin
+                        ? 'location.myLocation'.tr(ref)
+                        : 'location.anywhere'.tr(ref),
                     style: const TextStyle(
                       fontSize: 14,
                       height: 20 / 14,
@@ -440,34 +494,37 @@ class _LoadsSearchSheetState extends ConsumerState<_LoadsSearchSheet> {
               ),
             ),
           ),
-          ...results.when(
-            data: (items) {
-              if (items.isEmpty) {
+          // Live matches append below the action row only once a query is
+          // typed; an empty focused field shows just the leading row.
+          if (query.isNotEmpty)
+            ...ref.watch(locationSearchProvider(query)).when(
+              data: (items) {
+                if (items.isEmpty) {
+                  return [
+                    const Divider(
+                        height: 1, thickness: 1, color: FigmaPalette.divider),
+                    _statusTile('common.notFound'.tr(ref)),
+                  ];
+                }
                 return [
-                  const Divider(
-                      height: 1, thickness: 1, color: FigmaPalette.divider),
-                  _statusTile('common.notFound'.tr(ref)),
+                  for (final loc in items) ...[
+                    const Divider(
+                        height: 1, thickness: 1, color: FigmaPalette.divider),
+                    _cityTile(loc),
+                  ],
                 ];
-              }
-              return [
-                for (final loc in items) ...[
-                  const Divider(
-                      height: 1, thickness: 1, color: FigmaPalette.divider),
-                  _cityTile(loc),
-                ],
-              ];
-            },
-            loading: () => [
-              const Divider(
-                  height: 1, thickness: 1, color: FigmaPalette.divider),
-              _loadingTile(),
-            ],
-            error: (_, __) => [
-              const Divider(
-                  height: 1, thickness: 1, color: FigmaPalette.divider),
-              _statusTile('common.searchError'.tr(ref)),
-            ],
-          ),
+              },
+              loading: () => [
+                const Divider(
+                    height: 1, thickness: 1, color: FigmaPalette.divider),
+                _loadingTile(),
+              ],
+              error: (_, __) => [
+                const Divider(
+                    height: 1, thickness: 1, color: FigmaPalette.divider),
+                _statusTile('common.searchError'.tr(ref)),
+              ],
+            ),
         ],
       ),
     );

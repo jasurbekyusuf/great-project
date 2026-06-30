@@ -10,5 +10,6 @@ abstract interface class ProfileRepository {
     String? personType,
     String? telegramUsername,
     String? whatsappNumber,
+    String? photoPath,
   });
 }

@@ -7,6 +7,10 @@ import 'package:loadme_mobile/features/notifications/domain/entities/app_notific
 abstract interface class NotificationsRepository {
   AsyncResult<List<AppNotification>> getNotifications();
 
+  /// Authoritative unread count for the nav badge
+  /// (`GET /notifications/unread-count/`).
+  AsyncResult<int> getUnreadCount();
+
   /// Marks a single user-notification read (`POST /notifications/{id}/read/`).
   AsyncResult<void> markRead(String id);
 

@@ -17,20 +17,29 @@ final locationEnabledProvider = FutureProvider.autoDispose<bool>((ref) async {
   }
 });
 
-/// Best-effort "turn location on" flow for the banner: ask for permission, and
-/// if it's permanently denied or the service is off, bounce the user to the
-/// relevant settings page. Re-checks [locationEnabledProvider] afterwards so the
-/// banner clears the moment access is granted.
+/// Best-effort "turn location on" flow for the banner. The *service* (GPS) being
+/// off is checked first — that opens the device location settings, never the
+/// App-info page — then permission: a denied permission is re-requested in-app
+/// (the OS dialog), and only a *permanent* denial, which has no in-app path,
+/// falls back to the app settings page. Re-checks [locationEnabledProvider]
+/// afterwards so the banner clears the moment access is granted.
 Future<void> enableLocation(WidgetRef ref) async {
   try {
-    var perm = await Geolocator.checkPermission();
-    if (perm == LocationPermission.denied) {
-      perm = await Geolocator.requestPermission();
-    }
-    if (perm == LocationPermission.deniedForever) {
-      await Geolocator.openAppSettings();
-    } else if (!await Geolocator.isLocationServiceEnabled()) {
+    // GPS off is the most common — and most easily fixed — cause of the banner.
+    // Send the user to the location toggle, not the confusing App-info page.
+    if (!await Geolocator.isLocationServiceEnabled()) {
       await Geolocator.openLocationSettings();
+    } else {
+      // Service is on, so it's a permission gap. A first-time/denied permission
+      // can still be requested in-app; the app settings page is a last resort
+      // reserved for a permanent denial (the OS won't show the dialog again).
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.deniedForever) {
+        await Geolocator.openAppSettings();
+      }
     }
   } catch (_) {
     // Never let a settings-launch failure crash the marketplace.

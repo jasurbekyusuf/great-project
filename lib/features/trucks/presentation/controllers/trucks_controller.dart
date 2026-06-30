@@ -36,12 +36,45 @@ final truckDetailsProvider =
 });
 
 /// Total number of public truck routes — drives the "Bo'sh transportlar: N"
-/// header on the marketplace. Separate from the paginated list so the count
-/// reflects the real backend total.
-final trucksCountProvider = FutureProvider.autoDispose<int>((ref) async {
-  final result = await ref.watch(trucksRepositoryProvider).getTrucksCount();
+/// header on the marketplace. Keyed by a canonical [trucksFilterKey]: the empty
+/// key returns the whole-feed total, a `pickup_*`/`delivery_*` key returns the
+/// filtered total after a Qidiruv ("Topildi: N"). Separate from the paginated
+/// list so the count reflects the real backend total.
+final trucksCountProvider =
+    FutureProvider.autoDispose.family<int, String>((ref, filterKey) async {
+  final result = await ref
+      .watch(trucksRepositoryProvider)
+      .getTrucksCount(filters: trucksFilterMap(filterKey));
   return result.fold((f) => throw f, (count) => count);
 });
+
+/// Order-independent string key for a trucks filter map, so the autoDispose
+/// `.family` count provider stays stable (a raw `Map` has no value equality).
+String trucksFilterKey(Map<String, String> filters) {
+  if (filters.isEmpty) return '';
+  final keys = filters.keys.toList()..sort();
+  return [for (final k in keys) '$k=${filters[k]}'].join('&');
+}
+
+/// Inverse of [trucksFilterKey] — rebuilds the filter map a `.family` provider
+/// was keyed with so it can re-issue the same server filter.
+Map<String, String> trucksFilterMap(String key) {
+  if (key.isEmpty) return const {};
+  final out = <String, String>{};
+  for (final part in key.split('&')) {
+    final i = part.indexOf('=');
+    if (i > 0) out[part.substring(0, i)] = part.substring(i + 1);
+  }
+  return out;
+}
+
+/// The trucks location filter currently applied to the public feed (`pickup_*` /
+/// `delivery_*` → place id, plus `truck_type`). Single source of truth shared by
+/// [TrucksController] (which pages the narrowed feed) and the marketplace count
+/// header (which keys [trucksCountProvider] off it), so the header total always
+/// matches the rows the list shows. Mirrors `activeLoadsFilterProvider`.
+final activeTrucksFilterProvider =
+    StateProvider<Map<String, String>>((ref) => const {});
 
 // -----------------------------------------------------------------------------
 // Controllers
@@ -77,9 +110,12 @@ class TrucksController extends AutoDisposeAsyncNotifier<List<TruckEntity>> {
     _page = 1;
     _hasMore = true;
     _loadingMore = false;
+    // Watch the active filter so a new Qidiruv / Filtrlar selection re-runs
+    // build (fresh page 1) and stays in lock-step with the count header.
+    final filters = ref.watch(activeTrucksFilterProvider);
     final result = await ref
         .read(fetchTrucksUseCaseProvider)
-        .call(const PaginatedInput(page: 1, limit: _limit));
+        .call(PaginatedInput(page: 1, limit: _limit, filters: filters));
     return result.fold(
       (f) => throw f,
       (list) {
@@ -97,9 +133,10 @@ class TrucksController extends AutoDisposeAsyncNotifier<List<TruckEntity>> {
     _hasMore = true;
     _loadingMore = false;
     state = const AsyncLoading();
+    final filters = ref.read(activeTrucksFilterProvider);
     final result = await ref
         .read(fetchTrucksUseCaseProvider)
-        .call(const PaginatedInput(page: 1, limit: _limit));
+        .call(PaginatedInput(page: 1, limit: _limit, filters: filters));
     state = result.fold(
       (f) => AsyncError(f, StackTrace.current),
       (list) {
@@ -119,9 +156,10 @@ class TrucksController extends AutoDisposeAsyncNotifier<List<TruckEntity>> {
     if (_loadingMore || !_hasMore || state.valueOrNull == null) return;
     _loadingMore = true;
     final next = _page + 1;
+    final filters = ref.read(activeTrucksFilterProvider);
     final result = await ref
         .read(fetchTrucksUseCaseProvider)
-        .call(PaginatedInput(page: next, limit: _limit));
+        .call(PaginatedInput(page: next, limit: _limit, filters: filters));
     _loadingMore = false;
     result.fold(
       (_) {},
@@ -132,6 +170,16 @@ class TrucksController extends AutoDisposeAsyncNotifier<List<TruckEntity>> {
         state = AsyncData(List<TruckEntity>.from(_all));
       },
     );
+  }
+
+  /// Applies the Qidiruv / Filtrlar "Qayerdan / Qayerga" choice as a *server*
+  /// filter on `/trucks/routes/available/`. Writing [activeTrucksFilterProvider]
+  /// re-runs [build] (fresh page 1) — so the whole feed narrows, not just the
+  /// rows already paged in — and updates the count header in the same tick. An
+  /// empty map clears the filter. Mirrors `LoadsController.applyLocationFilter`.
+  void applyLocationFilter(Map<String, String> filters) {
+    ref.read(activeTrucksFilterProvider.notifier).state =
+        Map<String, String>.unmodifiable(filters);
   }
 }
 

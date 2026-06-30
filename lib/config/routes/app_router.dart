@@ -44,26 +44,39 @@ final _postKey = GlobalKey<NavigatorState>();
 final _myKey = GlobalKey<NavigatorState>();
 final _profileKey = GlobalKey<NavigatorState>();
 
+/// Pure auth-gate decision, factored out of the router so it can be unit-tested
+/// without spinning up a widget tree. Returns the path to redirect to, or null
+/// to stay put.
+///
+/// - A logged-out user outside the guest/auth areas is sent to `/guest`.
+/// - A logged-in user sitting on a guest/auth screen (e.g. the cold-start
+///   landing, or right after login) is sent to their role home: carrier looks
+///   for cargo (`/loads`); shipper / broker look for trucks (`/trucks`). Mirrors
+///   the web `getPostLoginPath`.
+String? resolveStartupRedirect({
+  required bool isAuthed,
+  required String location,
+  required String role,
+}) {
+  final inAuth = location.startsWith('/auth');
+  final inGuest = location.startsWith('/guest');
+
+  if (!isAuthed && !inAuth && !inGuest) return '/guest';
+  if (isAuthed && (inAuth || inGuest)) {
+    return role == 'carrier' ? '/loads' : '/trucks';
+  }
+  return null;
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootKey,
     initialLocation: '/guest',
-    redirect: (context, state) {
-      final authState = ref.read(authControllerProvider);
-      final isAuthed = authState.valueOrNull != null;
-      final loc = state.matchedLocation;
-      final inAuth = loc.startsWith('/auth');
-      final inGuest = loc.startsWith('/guest');
-
-      if (!isAuthed && !inAuth && !inGuest) return '/guest';
-      if (isAuthed && (inAuth || inGuest)) {
-        // Role-aware home (mirrors web getPostLoginPath): carrier looks for
-        // cargo (loads); shipper / broker look for trucks.
-        final role = ref.read(currentUserRoleSyncProvider);
-        return role == 'carrier' ? '/loads' : '/trucks';
-      }
-      return null;
-    },
+    redirect: (context, state) => resolveStartupRedirect(
+      isAuthed: ref.read(authControllerProvider).valueOrNull != null,
+      location: state.matchedLocation,
+      role: ref.read(currentUserRoleSyncProvider),
+    ),
     routes: [
       // ---- Guest mode (no bottom nav, single screen) ------------------------
       GoRoute(

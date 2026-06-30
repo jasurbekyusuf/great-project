@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
+import 'package:loadme_mobile/features/locations/presentation/providers/locations_providers.dart';
+import 'package:loadme_mobile/features/magnit/presentation/providers/magnit_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/design_system/ds_truck_type_drawer.dart';
@@ -231,6 +233,9 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
     final v = await showSelectLocationDrawer(
       context: context,
       isDestination: true,
+      // Destination is optional in the filter, so "Har qanday joyga" is a real
+      // pick (anywhere sentinel) meaning "don't constrain the delivery side".
+      allowAnywhere: true,
       currentId: _to?.id,
     );
     if (v != null) setState(() => _to = v);
@@ -309,9 +314,19 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
       _selectedTrucks = [];
       _selectedPosters = [];
     });
+    // Clearing the visible fields isn't enough — the marketplace stays narrowed
+    // until the *applied* server filter is cleared too, and "Tayyor" can't do it
+    // (it disables the moment "Qayerdan" is empty). So drop the active filter and
+    // pop, mirroring _apply, so the user lands back on the full, unfiltered feed.
+    ref.read(loadsControllerProvider.notifier).applyLocationFilter({});
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/loads');
+    }
   }
 
-  void _apply() {
+  Future<void> _apply() async {
     // Server-side filter: the picked place's kind decides the param
     // (`pickup_region` / `delivery_district` / …) and its id is the value, so
     // the whole marketplace is narrowed — exactly like the web load filter.
@@ -319,10 +334,49 @@ class _LoadsFiltersScreenState extends ConsumerState<LoadsFiltersScreen> {
     final from = _from;
     final to = _to;
     if (from != null) filters['pickup_${from.filterKey}'] = from.id;
-    if (to != null) filters['delivery_${to.filterKey}'] = to.id;
+    // "Har qanday joyga" (anywhere) carries no place id — it means leave the
+    // delivery side unconstrained, so emit no `delivery_*` param.
+    if (to != null && !to.isAnywhere) {
+      filters['delivery_${to.filterKey}'] = to.id;
+    }
+    // Transport turi → `truck_type` (comma-joined backend UUIDs). The picker
+    // hands back hardcoded Uzbek labels, so resolve them against the
+    // `/trucks/types/` directory; without this the param was simply never sent
+    // and the filter had no effect ("Bu filterlar ishlamayapti").
+    if (_selectedTrucks.isNotEmpty) {
+      try {
+        final types = await ref.read(truckTypesProvider.future);
+        final ids = resolveTruckTypeIds(types, _selectedTrucks);
+        if (ids.isNotEmpty) filters['truck_type'] = ids.join(',');
+      } catch (_) {
+        // Directory fetch failed — apply the other filters rather than block.
+      }
+    }
+    // E'lon egasi → `owner_role` (shipper|broker, comma-joined). "all"/"ai"
+    // carry no backend role, so they are dropped (an empty set = no filter).
+    final roles =
+        _selectedPosters.where((p) => p == 'shipper' || p == 'broker').toList();
+    if (roles.isNotEmpty) filters['owner_role'] = roles.join(',');
+    // Radius (Yukgacha) → `pickup_anchor=lat,lng&deadhead_km` on
+    // `/loads/available/`. The backend anchors the radius at the user's standing
+    // location, so we attach the device's current GPS fix. A picked place has no
+    // coordinates, hence GPS is the only anchor source; if it's unavailable
+    // (permission denied / service off) the radius is skipped and the remaining
+    // filters still apply rather than blocking the whole search.
+    final radius = _radius;
+    if (radius != null) {
+      final km = RegExp(r'\d+').firstMatch(radius)?.group(0);
+      final coords = await currentDeviceLatLng();
+      if (km != null && coords != null) {
+        filters['pickup_anchor'] = '${coords.lat},${coords.lng}';
+        filters['deadhead_km'] = km;
+      }
+    }
+    if (!mounted) return;
     ref.read(loadsControllerProvider.notifier).applyLocationFilter(filters);
     // Pop back to the previous list (preserves history); fall back to /loads
     // if filters was opened as a fresh root (e.g. a deep link).
+    if (!mounted) return;
     if (context.canPop()) {
       context.pop();
     } else {

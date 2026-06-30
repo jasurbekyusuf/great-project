@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/theme/theme_extensions.dart';
+import 'package:loadme_mobile/features/auth/presentation/providers/current_user_provider.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_display_providers.dart';
 import 'package:loadme_mobile/features/loads/presentation/widgets/load_figma_card.dart';
@@ -147,6 +148,10 @@ class _NotFound extends ConsumerWidget {
             .valueOrNull
         : null;
 
+    // Magnit (route-watch notifications) is a driver-only feature — brokers
+    // post loads, so they have no use for "notify me when new loads appear".
+    final isCarrier = ref.watch(currentUserRoleSyncProvider) == 'carrier';
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
       children: [
@@ -188,8 +193,10 @@ class _NotFound extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              const _MagnitCard(),
+              if (isCarrier) ...[
+                const SizedBox(height: 16),
+                const _MagnitCard(),
+              ],
             ],
           ),
         ),

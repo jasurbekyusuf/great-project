@@ -1,12 +1,18 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 
-/// OpenStreetMap route preview — origin/destination pins + a connecting line.
+/// OpenStreetMap route preview — origin/destination pins + the driving route
+/// between them.
 ///
-/// Uses free OSM raster tiles (no API key). Set [interactive] = false to make
-/// it a static preview (e.g. inside a card that opens a full-screen map).
+/// Uses free OSM raster tiles (no API key) and the public OSRM demo server to
+/// fetch the real road geometry from A → B. Until the route lands (or if the
+/// request fails — offline, no road, an un-routable cross-border pair) it falls
+/// back to a straight connecting line, so the preview always renders. Set
+/// [interactive] = false to make it a static preview (e.g. inside a card that
+/// opens a full-screen map).
 class RouteMap extends StatefulWidget {
   const RouteMap({
     super.key,
@@ -24,6 +30,39 @@ class RouteMap extends StatefulWidget {
 }
 
 class _RouteMapState extends State<RouteMap> {
+  /// Road geometry from OSRM; null until it resolves. The drawn line falls back
+  /// to a straight from→to segment while this is null or on failure.
+  List<LatLng>? _route;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRoute();
+  }
+
+  @override
+  void didUpdateWidget(RouteMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Re-fetch when either endpoint moves (e.g. the card rebuilds with resolved
+    // backend coordinates).
+    if (oldWidget.from != widget.from || oldWidget.to != widget.to) {
+      _route = null;
+      _loadRoute();
+    }
+  }
+
+  Future<void> _loadRoute() async {
+    // Identical endpoints have no route to draw.
+    if (widget.from == widget.to) return;
+    final points = await _fetchDrivingRoute(widget.from, widget.to);
+    if (!mounted || points == null || points.isEmpty) return;
+    setState(() => _route = points);
+  }
+
+  /// The polyline to draw — the road geometry once known, else the straight
+  /// fallback so the line is never empty.
+  List<LatLng> get _line => _route ?? [widget.from, widget.to];
+
   LatLng get _mid => LatLng(
         (widget.from.latitude + widget.to.latitude) / 2,
         (widget.from.longitude + widget.to.longitude) / 2,
@@ -60,9 +99,9 @@ class _RouteMapState extends State<RouteMap> {
         PolylineLayer(
           polylines: [
             Polyline(
-              points: [widget.from, widget.to],
+              points: _line,
               color: FigmaPalette.primary,
-              strokeWidth: 3,
+              strokeWidth: 4,
             ),
           ],
         ),
@@ -107,6 +146,44 @@ class _Pin extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Fetches the driving route geometry between [from] and [to] from the public
+/// OSRM demo server (no API key). Returns the decoded polyline points, or null
+/// when the request fails or no route exists — the caller then keeps the
+/// straight-line fallback.
+///
+/// `geometries=geojson` returns `coordinates` as `[lng, lat]` pairs;
+/// `overview=full` keeps the full-resolution geometry so the line hugs the road.
+Future<List<LatLng>?> _fetchDrivingRoute(LatLng from, LatLng to) async {
+  try {
+    final dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 6),
+      receiveTimeout: const Duration(seconds: 6),
+    ));
+    final res = await dio.get<dynamic>(
+      'https://router.project-osrm.org/route/v1/driving/'
+      '${from.longitude},${from.latitude};${to.longitude},${to.latitude}',
+      queryParameters: const {'overview': 'full', 'geometries': 'geojson'},
+    );
+    final data = res.data;
+    if (data is! Map || data['code'] != 'Ok') return null;
+    final routes = data['routes'];
+    if (routes is! List || routes.isEmpty) return null;
+    final coords = routes.first['geometry']?['coordinates'];
+    if (coords is! List) return null;
+    final points = <LatLng>[];
+    for (final c in coords) {
+      if (c is List && c.length >= 2) {
+        final lng = (c[0] as num).toDouble();
+        final lat = (c[1] as num).toDouble();
+        points.add(LatLng(lat, lng));
+      }
+    }
+    return points.length >= 2 ? points : null;
+  } catch (_) {
+    return null;
   }
 }
 

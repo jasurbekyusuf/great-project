@@ -123,15 +123,18 @@ class GarageRemoteDataSource implements GarageDataSource {
   // ---------------------------------------------------------------------------
 
   GarageVehicle _parseVehicle(Map<String, dynamic> data) {
+    // The `/trucks/` list carries the type either as a nested object
+    // (`truck_type_data`) or as a bare UUID (`truck_type`). Prefer the nested
+    // object for an immediate name; otherwise leave the name empty and keep the
+    // UUID so the provider can resolve it against the truck-types directory.
+    final typeRaw = data['truck_type_data'] ?? data['truck_type'] ?? data['type'];
     return GarageVehicle(
       id: (data['id'] ?? data['guid'] ?? '').toString(),
-      name: _typeName(
-              data['truck_type'] ?? data['truck_type_data'] ?? data['type']) ??
-          _truckName(data) ??
-          '—',
+      name: _typeName(typeRaw) ?? '',
       model: _str(data['model_name'] ?? data['model'] ?? data['name']) ?? '',
       plate: _str(data['plate_number'] ?? data['plate']) ?? '',
       photoUrl: _media(data['image'] ?? data['photo']),
+      truckTypeId: _typeId(typeRaw),
     );
   }
 
@@ -205,6 +208,8 @@ class GarageRemoteDataSource implements GarageDataSource {
       weight: measurement.$1 != null ? '${_num(measurement.$1!)} t' : '—',
       capacity: measurement.$2 != null ? '${_num(measurement.$2!)} m³' : '—',
       comment: _str(data['note'] ?? data['comment']) ?? '',
+      contactId: _str(
+          owner['id'] ?? owner['guid'] ?? owner['user_id'] ?? owner['user']),
       contactName: _ownerName(owner) ?? '—',
       contactRating: _toDouble(owner['rating'] ?? data['rating']) ?? 0,
       telegram:
@@ -331,7 +336,9 @@ class GarageRemoteDataSource implements GarageDataSource {
     return s;
   }
 
-  String _kmLabel(int? km) => km == null ? '—' : '$km km';
+  // A 0 km radius/distance is the backend's "unset" placeholder, never a real
+  // value — show a dash so the detail card doesn't read "0 km".
+  String _kmLabel(int? km) => (km == null || km == 0) ? '—' : '$km km';
 
   /// Formats a measurement without a trailing ".0" ("4.0" → "4").
   String _num(double v) =>
@@ -365,6 +372,13 @@ class GarageRemoteDataSource implements GarageDataSource {
           raw['title']);
     }
     return null; // bare UUID — unresolved without the types directory
+  }
+
+  /// The truck-type UUID, whether the payload carries a nested object or a bare
+  /// id string. Lets the provider resolve the type name from the directory.
+  String? _typeId(dynamic raw) {
+    if (raw is Map) return _str(raw['id'] ?? raw['guid']);
+    return _str(raw);
   }
 
   String? _ownerName(Map<String, dynamic> owner) => _str(owner['display_name'] ??

@@ -42,6 +42,7 @@ abstract final class FigmaPalette {
   static const roleBlueBg = Color(0xFFEFF4FF);
   static const dangerText = Color(0xFFB42318); // error/700
   static const dangerBg = Color(0xFFFEF3F2); // error/50
+  static const otpErrorBorder = Color(0xFFE73B36); // OTP "wrong code" box border
 
   // Shadows
   static const cardShadow = Color(0x0A101828); // #101828 @ 4%

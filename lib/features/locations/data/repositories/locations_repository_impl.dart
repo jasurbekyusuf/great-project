@@ -13,4 +13,11 @@ class LocationsRepositoryImpl implements LocationsRepository {
   @override
   AsyncResult<List<LocationEntity>> search(String query, {int limit = 20}) =>
       Guard.run(() => _remote.search(query, limit: limit), tag: _tag);
+
+  @override
+  AsyncResult<LocationEntity?> reverse({
+    required double lat,
+    required double lng,
+  }) =>
+      Guard.run(() => _remote.reverse(lat: lat, lng: lng), tag: _tag);
 }

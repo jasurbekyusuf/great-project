@@ -20,6 +20,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
     String? personType,
     String? telegramUsername,
     String? whatsappNumber,
+    String? photoPath,
   }) =>
       Guard.run(
         () => _remote.updateProfile(
@@ -28,6 +29,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
           personType: personType,
           telegramUsername: telegramUsername,
           whatsappNumber: whatsappNumber,
+          photoPath: photoPath,
         ),
         tag: _tag,
       );

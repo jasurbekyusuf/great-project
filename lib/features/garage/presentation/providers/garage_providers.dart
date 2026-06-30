@@ -6,6 +6,7 @@ import 'package:loadme_mobile/features/garage/domain/entities/garage_route.dart'
 import 'package:loadme_mobile/features/garage/domain/entities/garage_vehicle.dart';
 import 'package:loadme_mobile/features/garage/domain/entities/transport_detail.dart';
 import 'package:loadme_mobile/features/garage/domain/repositories/garage_repository.dart';
+import 'package:loadme_mobile/features/magnit/presentation/providers/magnit_providers.dart';
 
 // Re-export the entities so widgets need only one import.
 export 'package:loadme_mobile/features/garage/domain/entities/garage_route.dart';
@@ -20,10 +21,35 @@ final garageRepositoryProvider = Provider<GarageRepository>((ref) {
 });
 
 /// Vehicles for the Transportlar tab.
+///
+/// The `/trucks/` list often carries the truck type as a bare UUID, so the
+/// data source leaves the type name empty. Those are resolved here against the
+/// truck-types directory so the "Transport turi" chip shows right after a truck
+/// is added; the model is used as a last-resort fallback.
 final garageVehiclesProvider =
     FutureProvider.autoDispose<List<GarageVehicle>>((ref) async {
   final result = await ref.watch(garageRepositoryProvider).getVehicles();
-  return result.fold((f) => throw f, (vehicles) => vehicles);
+  final vehicles = result.fold((f) => throw f, (v) => v);
+
+  if (vehicles.every((v) => v.name.isNotEmpty)) return vehicles;
+
+  var byId = const <String, String>{};
+  try {
+    final types = await ref.watch(truckTypesProvider.future);
+    byId = {for (final t in types) t.id: t.name};
+  } catch (_) {
+    // Types directory unavailable — fall back to the model below.
+  }
+
+  return [
+    for (final v in vehicles)
+      v.name.isNotEmpty
+          ? v
+          : v.copyWith(
+              name: (v.truckTypeId == null ? null : byId[v.truckTypeId]) ??
+                  (v.model.isNotEmpty ? v.model : '—'),
+            ),
+  ];
 });
 
 /// Saved routes for the Yo'nalishlarim tab + active/delete mutations.

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
+import 'package:loadme_mobile/features/loads/domain/entities/load_draft.dart';
 import 'package:loadme_mobile/features/loads/presentation/controllers/loads_controller.dart';
+import 'package:loadme_mobile/features/magnit/presentation/providers/magnit_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_action_drawer.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
 import 'package:loadme_mobile/shared/design_system/ds_success_modal.dart';
@@ -434,13 +436,20 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
     }
     setState(() => _submitting = true);
     try {
-      await ref.read(loadsControllerProvider.notifier).saveLoad(
-            loadId: widget.loadId,
-            fromAddress: '${_from!.country} · ${_from!.title}',
-            toAddress: '${_to!.country} · ${_to!.title}',
-            comment: _comment.text.trim(),
-          );
+      final draft = await _buildDraft();
+      final failure = await ref
+          .read(loadsControllerProvider.notifier)
+          .saveLoad(loadId: widget.loadId, draft: draft);
       if (!mounted) return;
+      // The backend POST may still reject the load (missing/invalid field, or a
+      // 403 for a non-shipper role). Only celebrate on a real success — showing
+      // the success modal regardless used to drop the user on an empty
+      // "Mening yuklarim" with no clue why.
+      if (failure != null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(failure.message)));
+        return;
+      }
       await showDsSuccessModal(
         context,
         title: l10n.tr('loadForm.success.title'),
@@ -454,6 +463,87 @@ class _LoadFormScreenState extends ConsumerState<LoadFormScreen> {
           .showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  /// Assembles the structured [LoadDraft] from the form state, mapping the UI
+  /// labels onto the backend's enums and resolving the picked truck-type labels
+  /// to their backend UUIDs (the `/trucks/types/` directory) so the load is
+  /// actually created with a `truck_type` the API accepts.
+  Future<LoadDraft> _buildDraft() async {
+    return LoadDraft(
+      fromAddress: '${_from!.country} · ${_from!.title}',
+      toAddress: '${_to!.country} · ${_to!.title}',
+      comment: _comment.text.trim(),
+      pickupKind: _from!.filterKey,
+      pickupId: _from!.id,
+      deliveryKind: _to!.filterKey,
+      deliveryId: _to!.id,
+      truckTypeIds: await _resolveTruckTypeIds(),
+      price: _digits(_price.text),
+      currencyCode: _currencyCode(_priceCurrency),
+      paymentType: _paymentType == null ? null : _paymentCode(_paymentType!),
+      measurementValue: _digits(_measure.text),
+      measurementUnit: _measure.text.trim().isEmpty
+          ? null
+          : _measureUnitCode(_measureUnit),
+      advancePayment: _digits(_advance.text),
+      advanceCurrencyCode: _currencyCode(_advanceCurrency),
+      pickupDate: _departDate == null ? null : _isoDate(_departDate!),
+      deliveryDate: _arriveDate == null ? null : _isoDate(_arriveDate!),
+      isPartial: _cargoPart == null ? null : _cargoPart == 'partial',
+      commodity: _product.text.trim().isEmpty ? null : _product.text.trim(),
+    );
+  }
+
+  /// Matches the picked (hard-coded, Uzbek) truck-type labels against the live
+  /// `/trucks/types/` directory by name, returning the backend UUIDs. Unmatched
+  /// labels are dropped rather than sent as text the API would reject; a fetch
+  /// failure yields an empty list so the rest of the load can still be created.
+  Future<List<String>> _resolveTruckTypeIds() async {
+    if (_selectedTrucks.isEmpty) return const [];
+    try {
+      final types = await ref.read(truckTypesProvider.future);
+      return resolveTruckTypeIds(types, _selectedTrucks);
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  // ---- backend enum mappings ----
+  String? _digits(String raw) {
+    final d = raw.replaceAll(RegExp('[^0-9]'), '');
+    return d.isEmpty ? null : d;
+  }
+
+  String _isoDate(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  String _currencyCode(String unit) {
+    switch (unit) {
+      case 'USD':
+        return 'USD';
+      case 'EUR':
+        return 'EUR';
+      case 'RUB':
+        return 'RUB';
+      default:
+        return 'UZS'; // "so'm"
+    }
+  }
+
+  String _paymentCode(String v) => v == 'banking' ? 'bank_transfer' : v;
+
+  String _measureUnitCode(String unit) {
+    switch (unit) {
+      case 'm³':
+        return 'm3';
+      case 'litr':
+        return 'l';
+      case 'kg':
+        return 'kg';
+      default:
+        return 'ton'; // "tonna"
     }
   }
 

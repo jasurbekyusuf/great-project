@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/features/locations/domain/entities/location_entity.dart';
+import 'package:loadme_mobile/features/locations/presentation/providers/location_status_provider.dart';
 import 'package:loadme_mobile/features/locations/presentation/providers/locations_providers.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -21,7 +22,27 @@ class LocationItem {
     required this.country,
     this.kind = LocationFilterKind.region,
     this.regionName,
+    this.countryId,
+    this.regionId,
+    this.latitude,
+    this.longitude,
+    this.isAnywhere = false,
   });
+
+  /// The "Har qanday joyga" (anywhere) sentinel — a *non-null* selection that
+  /// carries no place id, so callers can tell it apart from a dismissed sheet
+  /// (which still pops `null`). Its filter getters all return null, so applying
+  /// it simply clears the delivery constraint instead of narrowing it.
+  const LocationItem.anywhere({required this.title})
+      : id = '',
+        country = '',
+        kind = LocationFilterKind.region,
+        regionName = null,
+        countryId = null,
+        regionId = null,
+        latitude = null,
+        longitude = null,
+        isAnywhere = true;
 
   /// Builds the lightweight selection item from a directory entity.
   factory LocationItem.fromEntity(LocationEntity e) => LocationItem(
@@ -30,6 +51,10 @@ class LocationItem {
         country: e.countryName ?? '',
         kind: e.kind,
         regionName: e.regionName,
+        countryId: e.countryId,
+        regionId: e.regionId,
+        latitude: e.latitude,
+        longitude: e.longitude,
       );
 
   final String id;
@@ -44,8 +69,41 @@ class LocationItem {
   /// Parent region (district picks), for disambiguation in callers.
   final String? regionName;
 
+  /// Parent country / region **ids** (from the directory payload), so callers
+  /// that need the full chain — e.g. magnet/route creation, where the backend
+  /// requires `pickup_country` *and* `pickup_region` together — can resolve it.
+  final String? countryId;
+  final String? regionId;
+
+  /// Place centroid, usable as a proximity (radius) anchor without device GPS.
+  final double? latitude;
+  final double? longitude;
+
+  /// True only for the [LocationItem.anywhere] sentinel ("Har qanday joyga").
+  final bool isAnywhere;
+
   /// `/loads/available/` param suffix: `country` | `region` | `district`.
   String get filterKey => kind.name;
+
+  /// Caller-facing label: the anywhere sentinel shows its (already-localized)
+  /// title alone, a normal pick keeps the "country · place" form.
+  String get displayLabel =>
+      isAnywhere || country.isEmpty ? title : '$country · $title';
+
+  /// The full country→region→district chain for endpoints that need it.
+  /// A region pick yields `{country, region}`; a district `{country, region,
+  /// district}`; a country just `{country}`. Self id slots in by [kind]; the
+  /// rest come from the carried parent ids.
+  String? get countryFilterId => isAnywhere
+      ? null
+      : (kind == LocationFilterKind.country ? id : countryId);
+  String? get regionFilterId => isAnywhere
+      ? null
+      : (kind == LocationFilterKind.region
+          ? id
+          : (kind == LocationFilterKind.district ? regionId : null));
+  String? get districtFilterId =>
+      isAnywhere ? null : (kind == LocationFilterKind.district ? id : null);
 }
 
 // Icon-box fill behind the pickup/delivery glyph (Figma #EBEBEB — distinct from
@@ -59,9 +117,14 @@ const _kIconBoxBg = Color(0xFFEBEBEB);
 ///
 /// [currentId] is accepted for source compatibility; the redesign shows no
 /// per-row selection state so it is currently unused.
+/// [allowAnywhere] turns the destination "Har qanday joyga" row into a real
+/// selection ([LocationItem.anywhere]) rather than a dismiss — used by the
+/// loads/magnit filters where "anywhere" clears the delivery constraint. It is
+/// off for creation forms, where an explicit destination is required.
 Future<LocationItem?> showSelectLocationDrawer({
   required BuildContext context,
   bool isDestination = false,
+  bool allowAnywhere = false,
   String? currentId,
 }) {
   return Navigator.of(context).push<LocationItem>(
@@ -70,8 +133,8 @@ Future<LocationItem?> showSelectLocationDrawer({
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 260),
       reverseTransitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (_, __, ___) =>
-          _LocationSearchPage(isDestination: isDestination),
+      pageBuilder: (_, __, ___) => _LocationSearchPage(
+          isDestination: isDestination, allowAnywhere: allowAnywhere),
       transitionsBuilder: (_, anim, __, child) => SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
             .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
@@ -82,8 +145,10 @@ Future<LocationItem?> showSelectLocationDrawer({
 }
 
 class _LocationSearchPage extends ConsumerStatefulWidget {
-  const _LocationSearchPage({required this.isDestination});
+  const _LocationSearchPage(
+      {required this.isDestination, this.allowAnywhere = false});
   final bool isDestination;
+  final bool allowAnywhere;
 
   @override
   ConsumerState<_LocationSearchPage> createState() =>
@@ -93,11 +158,81 @@ class _LocationSearchPage extends ConsumerStatefulWidget {
 class _LocationSearchPageState extends ConsumerState<_LocationSearchPage> {
   final _controller = TextEditingController();
   String _query = '';
+  // A "Mening joylashuvim" GPS lookup is in flight (spinner on the action row).
+  bool _locating = false;
+  // The place the last GPS reverse-geocode resolved to. While set (and the
+  // search box is otherwise empty) it shows as a pinned, one-tap confirm row so
+  // the user *sees* what their location resolved to in the input before it
+  // propagates back to the caller.
+  LocationEntity? _resolved;
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  /// "Mening joylashuvim" (pickup only): take a GPS fix, reverse-geocode it to a
+  /// directory place and surface it in the input. On success the resolved place
+  /// name fills the search field and a pinned confirm row appears, so the user
+  /// can see and confirm it (the original bug: nothing was ever shown). A null
+  /// result means location is off/denied or unmatched — show a clear message and
+  /// kick off the permission/settings flow so the user can grant access and try
+  /// again, instead of silently doing nothing.
+  Future<void> _useMyLocation() async {
+    if (_locating) return;
+    setState(() => _locating = true);
+
+    // Step 1 — get a GPS fix. No coordinates means location access is the
+    // problem (service off / permission denied) or the fix couldn't be obtained.
+    // Check access to decide between routing to settings vs. just informing.
+    final coords = await currentDeviceLatLng();
+    if (!mounted) return;
+    if (coords == null) {
+      ref.invalidate(locationEnabledProvider);
+      final hasAccess = await ref.read(locationEnabledProvider.future);
+      if (!mounted) return;
+      setState(() => _locating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(hasAccess
+              ? 'location.locateFailed'.tr(ref)
+              : 'location.permissionNeeded'.tr(ref)),
+        ),
+      );
+      if (!hasAccess) await enableLocation(ref);
+      return;
+    }
+
+    // Step 2 — reverse-geocode the fix to a directory place. Surface the
+    // backend's own error on failure (e.g. an unmatched coordinate or a network
+    // issue) instead of a generic message, so the cause is visible.
+    final result = await ref
+        .read(locationsRepositoryProvider)
+        .reverse(lat: coords.lat, lng: coords.lng);
+    if (!mounted) return;
+    setState(() => _locating = false);
+    result.fold(
+      (failure) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(failure.message)),
+      ),
+      (place) {
+        // A successful call can still yield no place — the backend matched the
+        // request but found no region/district for these coordinates. Treat that
+        // as a soft failure rather than crashing on a null name.
+        if (place == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('location.locateFailed'.tr(ref))),
+          );
+          return;
+        }
+        _controller.text = place.name;
+        setState(() {
+          _resolved = place;
+          _query = '';
+        });
+      },
+    );
   }
 
   @override
@@ -115,9 +250,31 @@ class _LocationSearchPageState extends ConsumerState<_LocationSearchPage> {
         label: dest
             ? 'location.anywhere'.tr(ref)
             : 'location.myLocation'.tr(ref),
-        onTap: () => Navigator.of(context).pop(),
+        // Destination "Har qanday joyga": when [allowAnywhere] is on it pops a
+        // real anywhere-sentinel (so the caller applies it as "clear the
+        // delivery constraint"); otherwise it just dismisses. Pickup "Mening
+        // joylashuvim" resolves the device GPS to a place.
+        loading: !dest && _locating,
+        onTap: dest
+            ? () => Navigator.of(context).pop(
+                  widget.allowAnywhere
+                      ? LocationItem.anywhere(title: 'location.anywhere'.tr(ref))
+                      : null,
+                )
+            : _useMyLocation,
       ),
     ];
+    // Pinned GPS result: shown only while no query is typed, so it never
+    // competes with live search. Tapping it confirms the resolved place.
+    if (q.isEmpty && _resolved != null) {
+      children
+        ..add(const _RowDivider())
+        ..add(_CityRow(
+          loc: _resolved!,
+          onTap: () =>
+              Navigator.of(context).pop(LocationItem.fromEntity(_resolved!)),
+        ));
+    }
     if (q.isNotEmpty) {
       ref.watch(locationSearchProvider(q)).when(
             data: (items) {
@@ -189,7 +346,10 @@ class _LocationSearchPageState extends ConsumerState<_LocationSearchPage> {
                     onChanged: (v) => setState(() => _query = v),
                     onClear: () {
                       _controller.clear();
-                      setState(() => _query = '');
+                      setState(() {
+                        _query = '';
+                        _resolved = null;
+                      });
                     },
                   ),
                   const SizedBox(height: 12),
@@ -339,15 +499,21 @@ class _SearchInput extends ConsumerWidget {
 /// (delivery) with a leading navigation / map-pin glyph.
 class _ActionRow extends StatelessWidget {
   const _ActionRow(
-      {required this.icon, required this.label, required this.onTap});
+      {required this.icon,
+      required this.label,
+      required this.onTap,
+      this.loading = false});
   final IconData icon;
   final String label;
   final VoidCallback onTap;
 
+  /// Swaps the leading glyph for a spinner while a GPS lookup is in flight.
+  final bool loading;
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: loading ? null : onTap,
       child: Container(
         height: 52,
         padding: const EdgeInsets.fromLTRB(12, 0, 14, 0),
@@ -356,7 +522,16 @@ class _ActionRow extends StatelessWidget {
           children: [
             SizedBox(
               width: 24,
-              child: Icon(icon, size: 20, color: FigmaPalette.inkStrong),
+              child: loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: FigmaPalette.primary,
+                      ),
+                    )
+                  : Icon(icon, size: 20, color: FigmaPalette.inkStrong),
             ),
             const SizedBox(width: 8),
             Expanded(

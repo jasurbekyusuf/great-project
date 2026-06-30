@@ -52,12 +52,15 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
     super.dispose();
   }
 
-  String? _loc(LocationItem? l) => l == null ? null : '${l.country} · ${l.title}';
+  String? _loc(LocationItem? l) => l?.displayLabel;
 
   Future<void> _pickLocation({required bool isFrom}) async {
     final v = await showSelectLocationDrawer(
       context: context,
       isDestination: !isFrom,
+      // Destination is optional here, so "Har qanday joyga" is a real choice
+      // (anywhere sentinel) the user can pick; pickup stays mandatory.
+      allowAnywhere: !isFrom,
       currentId: (isFrom ? _from : _to)?.id,
     );
     if (v != null) setState(() => isFrom ? _from = v : _to = v);
@@ -199,17 +202,19 @@ class _MagnitScreenState extends ConsumerState<MagnitScreen> {
     setState(() => _submitting = true);
     try {
       final to = _to;
+      // The magnet creates a truck route, which requires the FULL pickup chain
+      // (`pickup_country` + `pickup_region` are mandatory, per the route
+      // contract). Sending only the picked level (e.g. just `pickup_region`)
+      // 400s — so emit the whole country→region→district chain via the
+      // LocationItem parent ids.
       final result = await ref.read(magnitRepositoryProvider).activate(
             truckType: type.id,
-            pickupCountry: from.filterKey == 'country' ? from.id : null,
-            pickupRegion: from.filterKey == 'region' ? from.id : null,
-            pickupDistrict: from.filterKey == 'district' ? from.id : null,
-            deliveryCountry:
-                to != null && to.filterKey == 'country' ? to.id : null,
-            deliveryRegion:
-                to != null && to.filterKey == 'region' ? to.id : null,
-            deliveryDistrict:
-                to != null && to.filterKey == 'district' ? to.id : null,
+            pickupCountry: from.countryFilterId,
+            pickupRegion: from.regionFilterId,
+            pickupDistrict: from.districtFilterId,
+            deliveryCountry: to?.countryFilterId,
+            deliveryRegion: to?.regionFilterId,
+            deliveryDistrict: to?.districtFilterId,
             deadheadRadiusKm: _radius == null ? null : int.tryParse(_radius!),
           );
       if (!mounted) return;

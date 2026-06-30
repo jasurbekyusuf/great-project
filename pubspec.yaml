@@ -60,6 +60,10 @@ dependencies:
   # "Lokatsiyaga ruxsat bering" primer (find nearest loads).
   geolocator: ^13.0.1
 
+  # Image picking — gallery/camera source for the profile avatar upload
+  # (PATCH /users/me/ multipart `photo`).
+  image_picker: ^1.1.2
+
   # Typography (Inter via Google Fonts, cached after first launch)
   google_fonts: ^6.2.1
 

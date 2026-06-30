@@ -18,11 +18,16 @@ class TrucksRepositoryImpl implements TrucksRepository {
       Guard.run(block, tag: _tag);
 
   @override
-  AsyncResult<List<TruckEntity>> getTrucks({required int page, required int limit}) =>
-      _guard(() => _remote.getTrucks(page: page, limit: limit));
+  AsyncResult<List<TruckEntity>> getTrucks({
+    required int page,
+    required int limit,
+    Map<String, String>? filters,
+  }) =>
+      _guard(() => _remote.getTrucks(page: page, limit: limit, filters: filters));
 
   @override
-  AsyncResult<int> getTrucksCount() => _guard(_remote.getTrucksCount);
+  AsyncResult<int> getTrucksCount({Map<String, String>? filters}) =>
+      _guard(() => _remote.getTrucksCount(filters: filters));
 
   @override
   AsyncResult<List<TruckEntity>> getMyPostTrucks({

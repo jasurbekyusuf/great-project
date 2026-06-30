@@ -70,13 +70,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _continue() async {
     final flow = ref.read(authFlowProvider);
+    // Name / company name is optional on the backend (`full_name`/`company_name`
+    // are simply omitted when empty), so the flow no longer blocks on an empty
+    // field — e.g. a legal user can continue with only the org name, or none.
     final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('register.nameRequired'.tr(ref))),
-      );
-      return;
-    }
     final isLegal = flow.personType == 'legal';
     setState(() => _loading = true);
     try {
@@ -85,8 +82,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 registrationToken: flow.registrationToken,
                 role: flow.role,
                 personType: flow.personType,
-                fullName: isLegal ? null : name,
-                companyName: isLegal ? name : null,
+                fullName: isLegal || name.isEmpty ? null : name,
+                companyName: isLegal && name.isNotEmpty ? name : null,
               );
       if (!mounted) return;
       if (fail != null || session == null) {

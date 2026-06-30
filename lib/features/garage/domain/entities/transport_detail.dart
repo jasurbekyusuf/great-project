@@ -24,6 +24,7 @@ class TransportDetail {
     required this.contactRating,
     required this.telegram,
     required this.whatsapp,
+    this.contactId,
     this.phone,
     this.pickupLat,
     this.pickupLng,
@@ -63,6 +64,10 @@ class TransportDetail {
   final double contactRating;
   final String telegram;
   final String whatsapp;
+
+  /// Carrier's user UUID (`owner.id`) — the `to_user` target when rating or
+  /// reporting the carrier. Null when the backend omits the owner object.
+  final String? contactId;
 
   /// Carrier phone for the "Bog'lanish" dialer (null when the backend hides it).
   final String? phone;

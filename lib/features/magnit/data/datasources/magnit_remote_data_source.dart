@@ -53,7 +53,10 @@ class MagnitRemoteDataSource {
       if (deliveryCountry != null) 'delivery_country': deliveryCountry,
       if (deliveryRegion != null) 'delivery_region': deliveryRegion,
       if (deliveryDistrict != null) 'delivery_district': deliveryDistrict,
-      if (deadheadRadiusKm != null) 'deadhead_radius_km': deadheadRadiusKm,
+      // Route contract types deadhead_radius_km as a string ("50"); send it as
+      // such rather than a bare int.
+      if (deadheadRadiusKm != null)
+        'deadhead_radius_km': deadheadRadiusKm.toString(),
     };
 
     final res =

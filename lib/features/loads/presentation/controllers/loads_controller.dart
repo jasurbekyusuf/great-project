@@ -4,6 +4,7 @@ import 'package:loadme_mobile/core/network/dio_client.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:loadme_mobile/features/loads/data/datasources/loads_remote_data_source.dart';
 import 'package:loadme_mobile/features/loads/data/repositories/loads_repository_impl.dart';
+import 'package:loadme_mobile/features/loads/domain/entities/load_draft.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 import 'package:loadme_mobile/features/loads/domain/repositories/loads_repository.dart';
 import 'package:loadme_mobile/features/loads/domain/use_cases/loads_use_cases.dart';
@@ -194,22 +195,16 @@ class LoadsController extends AutoDisposeAsyncNotifier<List<LoadEntity>> {
         Map<String, String>.unmodifiable(filters);
   }
 
-  Future<AppFailure?> saveLoad({
-    String? loadId,
-    required String fromAddress,
-    required String toAddress,
-    required String comment,
-  }) async {
+  Future<AppFailure?> saveLoad({String? loadId, required LoadDraft draft}) async {
     final result = await ref.read(saveLoadUseCaseProvider).call(
-          SaveLoadInput(
-            loadId: loadId,
-            fromAddress: fromAddress,
-            toAddress: toAddress,
-            comment: comment,
-          ),
+          SaveLoadInput(loadId: loadId, draft: draft),
         );
     return result.fold((f) => f, (_) {
       refresh();
+      // A freshly created/edited load belongs to the owner, so refresh "Mening
+      // yuklarim" too — otherwise it stays on its last (often empty) snapshot
+      // and the new load only appears after a manual pull-to-refresh.
+      ref.read(myLoadsControllerProvider.notifier).refresh();
       return null;
     });
   }

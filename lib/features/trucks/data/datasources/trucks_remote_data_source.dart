@@ -28,22 +28,28 @@ class TrucksRemoteDataSource {
   Future<List<TruckEntity>> getTrucks({
     required int page,
     required int limit,
+    Map<String, String>? filters,
   }) async {
     final res =
         await _dio.get<dynamic>('/trucks/routes/available/', queryParameters: {
       'page': page,
       'page_size': limit,
+      // Location filters keyed by the picked place's kind, e.g.
+      // `pickup_region` / `delivery_district` → a UUID (mirrors loads).
+      ...?filters,
     });
     return _resultsOf(res).map(_parseRoute).toList();
   }
 
   /// Total number of public truck routes (the paginated `count`). Requests a
-  /// single row — we only need the header total, not the page itself.
-  Future<int> getTrucksCount() async {
+  /// single row — we only need the header total, not the page itself. When
+  /// [filters] are supplied the count reflects the filtered total.
+  Future<int> getTrucksCount({Map<String, String>? filters}) async {
     final res =
         await _dio.get<dynamic>('/trucks/routes/available/', queryParameters: {
       'page': 1,
       'page_size': 1,
+      ...?filters,
     });
     return _countOf(res);
   }

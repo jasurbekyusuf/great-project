@@ -6,11 +6,17 @@ import 'package:loadme_mobile/features/trucks/domain/entities/truck_entity.dart'
 import 'package:loadme_mobile/features/trucks/domain/repositories/trucks_repository.dart';
 
 class PaginatedInput extends Equatable {
-  const PaginatedInput({this.page = 1, this.limit = 10});
+  const PaginatedInput({this.page = 1, this.limit = 10, this.filters});
   final int page;
   final int limit;
+
+  /// Optional server filter for the public truck-route feed, keyed by the
+  /// picked place's kind — `pickup_region` / `delivery_district` → a UUID, plus
+  /// `truck_type` → comma-joined ids. Only [FetchTrucksUseCase] forwards these;
+  /// the "my trucks" lookups ignore them.
+  final Map<String, String>? filters;
   @override
-  List<Object?> get props => [page, limit];
+  List<Object?> get props => [page, limit, filters];
 }
 
 class MyPostTrucksInput extends Equatable {
@@ -35,7 +41,8 @@ class FetchTrucksUseCase implements UseCase<PaginatedInput, List<TruckEntity>> {
   final TrucksRepository _repo;
   @override
   AsyncResult<List<TruckEntity>> call(PaginatedInput input) =>
-      _repo.getTrucks(page: input.page, limit: input.limit);
+      _repo.getTrucks(
+          page: input.page, limit: input.limit, filters: input.filters);
 }
 
 class FetchMyPostTrucksUseCase implements UseCase<MyPostTrucksInput, List<TruckEntity>> {

@@ -42,11 +42,13 @@ class GarageVehicleCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   _VehiclePhoto(url: photoUrl),
-                  Positioned(
-                    left: 12,
-                    bottom: 12,
-                    child: _LicensePlate(plate: plate),
-                  ),
+                  // Hide the plate until the truck is actually posted (no plate).
+                  if (plate.trim().isNotEmpty)
+                    Positioned(
+                      left: 12,
+                      bottom: 12,
+                      child: _LicensePlate(plate: plate),
+                    ),
                   Positioned(
                     right: 12,
                     bottom: 12,
@@ -88,10 +90,15 @@ class _VehiclePhoto extends StatelessWidget {
     if (url != null) {
       return Image.network(url!, fit: BoxFit.cover);
     }
-    return const ColoredBox(
-      color: FigmaPalette.avatarBg,
-      child: Center(
-        child: Icon(LucideIcons.truck, size: 48, color: FigmaPalette.muted),
+    // Figma garaj cards show the covered-truck photo, not an icon.
+    return Image.asset(
+      'assets/images/truck_placeholder.png',
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => const ColoredBox(
+        color: FigmaPalette.avatarBg,
+        child: Center(
+          child: Icon(LucideIcons.truck, size: 48, color: FigmaPalette.muted),
+        ),
       ),
     );
   }
@@ -136,15 +143,15 @@ class _LicensePlate extends StatelessWidget {
     final number = space == -1 ? '' : trimmed.substring(space + 1);
 
     // The region ("30") reads smaller than the plate number (Figma 6593:19490:
-    // region 15.75 vs number 22.75 — kept proportional here).
+    // region 15.75 vs number 22.75 — matched 1:1 to the 319-wide photo).
     const regionStyle = TextStyle(
-      fontSize: 13,
+      fontSize: 15.75,
       height: 1,
       fontWeight: FontWeight.w700,
       color: FigmaPalette.ink,
     );
     const numberStyle = TextStyle(
-      fontSize: 18,
+      fontSize: 22.75,
       height: 1,
       fontWeight: FontWeight.w700,
       color: FigmaPalette.ink,
@@ -166,7 +173,11 @@ class _LicensePlate extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 5),
             child: Text(region, style: regionStyle),
           ),
-          Container(width: 1, color: FigmaPalette.ink),
+          const SizedBox(
+            width: 1,
+            height: 28,
+            child: ColoredBox(color: FigmaPalette.ink),
+          ),
           // Number + UZ flag strip share one cell — no divider between them.
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6),

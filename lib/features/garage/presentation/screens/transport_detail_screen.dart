@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:loadme_mobile/core/logging/app_logger.dart';
 import 'package:loadme_mobile/core/services/app_l10n.dart';
 import 'package:loadme_mobile/core/theme/figma_palette.dart';
 import 'package:loadme_mobile/core/utils/phone_launcher.dart';
 import 'package:loadme_mobile/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:loadme_mobile/features/feedback/presentation/feedback_providers.dart';
+import 'package:loadme_mobile/features/feedback/presentation/feedback_sheets.dart';
 import 'package:loadme_mobile/features/garage/presentation/providers/garage_providers.dart';
 import 'package:loadme_mobile/features/saved/presentation/providers/saved_providers.dart';
 import 'package:loadme_mobile/shared/design_system/ds_button.dart';
@@ -82,7 +85,8 @@ class TransportDetailScreen extends ConsumerWidget {
                         }
                         // Authed → hand off to the native dialer.
                         unawaited(
-                          _dialCarrier(context, detail.valueOrNull?.phone),
+                          _dialCarrier(context, ref, id,
+                              detail.valueOrNull?.phone),
                         );
                       },
                     ),
@@ -482,64 +486,127 @@ class _MapCard extends StatelessWidget {
   const _MapCard({required this.detail});
   final TransportDetail detail;
 
+  /// Resolves an endpoint coordinate: explicit pickup/delivery coords when the
+  /// backend sends them, otherwise the city-name lookup. The fallback feeds the
+  /// *region* too (city is only the district, which isn't in the lookup — so on
+  /// its own both endpoints collapsed to the Tashkent default and no route line
+  /// was drawn, unlike the load screen which resolves a full "district, region"
+  /// address).
+  LatLng _endpoint(double? lat, double? lng, String city, String subtitle) {
+    if (lat != null && lng != null) return LatLng(lat, lng);
+    final address = subtitle.isEmpty ? city : '$city, $subtitle';
+    return resolveAddressLatLng(address);
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Resolve both endpoints once so the inline preview and the full-screen map
+    // it opens share the exact same route.
+    final from = _endpoint(
+        detail.pickupLat, detail.pickupLng, detail.fromCity, detail.fromSubtitle);
+    final to = _endpoint(
+        detail.deliveryLat, detail.deliveryLng, detail.toCity, detail.toSubtitle);
+
     return _Card(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: SizedBox(
-          height: 200,
-          child: Stack(
-            fit: StackFit.expand,
-            alignment: Alignment.center,
-            children: [
-              RouteMap(
-                from: detail.pickupLat != null && detail.pickupLng != null
-                    ? LatLng(detail.pickupLat!, detail.pickupLng!)
-                    : resolveAddressLatLng(detail.fromCity),
-                to: detail.deliveryLat != null && detail.deliveryLng != null
-                    ? LatLng(detail.deliveryLat!, detail.deliveryLng!)
-                    : resolveAddressLatLng(detail.toCity),
-                interactive: false,
-              ),
-              // "Show in map" pill — Center keeps the white box sized to its
-              // content instead of expanding over the whole map.
-              Center(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x1A101828),
-                        offset: Offset(0, 2),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(LucideIcons.map,
-                          size: 18, color: FigmaPalette.primary),
-                      SizedBox(width: 8),
-                      Text(
-                        'Show in map',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            fullscreenDialog: true,
+            builder: (_) => _RouteMapScreen(from: from, to: to),
           ),
         ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            height: 200,
+            child: Stack(
+              fit: StackFit.expand,
+              alignment: Alignment.center,
+              children: [
+                // IgnorePointer stops the preview's gesture layer from swallowing
+                // the tap so the wrapping GestureDetector always opens the map.
+                IgnorePointer(
+                  child: RouteMap(from: from, to: to, interactive: false),
+                ),
+                // "Show in map" pill — Center keeps the white box sized to its
+                // content instead of expanding over the whole map.
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x1A101828),
+                          offset: Offset(0, 2),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.map,
+                            size: 18, color: FigmaPalette.primary),
+                        SizedBox(width: 8),
+                        Text(
+                          'Show in map',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Full-screen route map — a pannable/zoomable [RouteMap] with a back button,
+// opened by tapping the preview card (mirrors the load-detail map screen).
+// ---------------------------------------------------------------------------
+class _RouteMapScreen extends StatelessWidget {
+  const _RouteMapScreen({required this.from, required this.to});
+
+  final LatLng from;
+  final LatLng to;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          Positioned.fill(child: RouteMap(from: from, to: to)),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 12,
+            child: Material(
+              color: Colors.white,
+              shape: const CircleBorder(),
+              elevation: 2,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => Navigator.of(context).pop(),
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(LucideIcons.arrowLeft, size: 22),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -614,9 +681,7 @@ class _ContactCard extends ConsumerWidget {
                 child: _ChipButton(
                   icon: LucideIcons.star,
                   label: 'transport.rate'.tr(ref),
-                  onTap: () => unawaited(
-                    showContactGateModal(context, DsContactGate.rate),
-                  ),
+                  onTap: () => _onRate(context, ref),
                 ),
               ),
               const SizedBox(width: 12),
@@ -624,9 +689,7 @@ class _ContactCard extends ConsumerWidget {
                 child: _ChipButton(
                   icon: LucideIcons.flag,
                   label: 'transport.report'.tr(ref),
-                  onTap: () => unawaited(
-                    showContactGateModal(context, DsContactGate.report),
-                  ),
+                  onTap: () => _onReport(context, ref),
                 ),
               ),
             ],
@@ -634,6 +697,37 @@ class _ContactCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  // Baholash — only after contacting (and only when the carrier id is known, so
+  // the rating has a `to_user`); otherwise the gate modal explains why. The
+  // rating is scoped to this route via `truck_route`.
+  void _onRate(BuildContext context, WidgetRef ref) {
+    final id = detail.contactId;
+    final contacted = ref.read(contactedProvider.notifier).hasContacted(detail.id);
+    AppLogger.tagged('Feedback').i(
+        'TRUCK rate-tap: routeId=${detail.id} contactId=$id contacted=$contacted '
+        'gateOpen=${!(id == null || id.isEmpty || !contacted)}');
+    if (id == null ||
+        id.isEmpty ||
+        !ref.read(contactedProvider.notifier).hasContacted(detail.id)) {
+      unawaited(showContactGateModal(context, DsContactGate.rate));
+      return;
+    }
+    unawaited(showRatingSheet(context, toUser: id, truckRoute: detail.id));
+  }
+
+  // Shikoyat — same gate; on pass, files a complaint about the carrier scoped
+  // to this route.
+  void _onReport(BuildContext context, WidgetRef ref) {
+    final id = detail.contactId;
+    if (id == null ||
+        id.isEmpty ||
+        !ref.read(contactedProvider.notifier).hasContacted(detail.id)) {
+      unawaited(showContactGateModal(context, DsContactGate.report));
+      return;
+    }
+    unawaited(showComplaintSheet(context, toUser: id, route: detail.id));
   }
 }
 
@@ -711,11 +805,22 @@ class _ChipButton extends StatelessWidget {
 }
 
 /// Opens the dialer for the carrier's [phone]; a missing number surfaces a
-/// short notice instead of failing silently.
-Future<void> _dialCarrier(BuildContext context, String? phone) async {
+/// short notice instead of failing silently. A successful hand-off marks this
+/// route ([routeId]) contacted, lifting the rate/report gate on the contact
+/// card (you can rate or report a carrier only after reaching out).
+Future<void> _dialCarrier(
+  BuildContext context,
+  WidgetRef ref,
+  String routeId,
+  String? phone,
+) async {
   final messenger = ScaffoldMessenger.of(context);
   final ok = await launchPhoneDial(phone);
-  if (!ok) {
+  AppLogger.tagged('Feedback')
+      .i('TRUCK contact: routeId=$routeId phone=$phone dialOk=$ok');
+  if (ok) {
+    ref.read(contactedProvider.notifier).markContacted(routeId);
+  } else {
     messenger.showSnackBar(
       const SnackBar(content: Text('Telefon raqami mavjud emas')),
     );

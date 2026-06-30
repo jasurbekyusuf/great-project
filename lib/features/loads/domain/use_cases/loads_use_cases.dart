@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:loadme_mobile/core/result/result.dart';
 import 'package:loadme_mobile/core/use_case/use_case.dart';
+import 'package:loadme_mobile/features/loads/domain/entities/load_draft.dart';
 import 'package:loadme_mobile/features/loads/domain/entities/load_entity.dart';
 import 'package:loadme_mobile/features/loads/domain/repositories/loads_repository.dart';
 
@@ -32,18 +33,13 @@ class MyLoadsInput extends Equatable {
 }
 
 class SaveLoadInput extends Equatable {
-  const SaveLoadInput({
-    required this.fromAddress,
-    required this.toAddress,
-    required this.comment,
-    this.loadId,
-  });
+  const SaveLoadInput({required this.draft, this.loadId});
+
+  /// Null → create (`POST /loads/`); non-null → edit (`PATCH /loads/{id}/`).
   final String? loadId;
-  final String fromAddress;
-  final String toAddress;
-  final String comment;
+  final LoadDraft draft;
   @override
-  List<Object?> get props => [loadId, fromAddress, toAddress, comment];
+  List<Object?> get props => [loadId, draft];
 }
 
 class UpdateLoadStatusInput extends Equatable {
@@ -95,19 +91,8 @@ class SaveLoadUseCase implements UseCase<SaveLoadInput, void> {
   final LoadsRepository _repo;
   @override
   AsyncResult<void> call(SaveLoadInput input) {
-    if (input.loadId == null) {
-      return _repo.addLoad(
-        fromAddress: input.fromAddress,
-        toAddress: input.toAddress,
-        comment: input.comment,
-      );
-    }
-    return _repo.updateLoad(
-      loadId: input.loadId!,
-      fromAddress: input.fromAddress,
-      toAddress: input.toAddress,
-      comment: input.comment,
-    );
+    if (input.loadId == null) return _repo.addLoad(input.draft);
+    return _repo.updateLoad(input.loadId!, input.draft);
   }
 }
 
